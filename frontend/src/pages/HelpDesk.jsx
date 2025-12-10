@@ -1,5 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ExternalLink, FileText, CreditCard, Users, AlertTriangle, Phone } from 'lucide-react';
+import axios from 'axios';
+import { toast } from '../hooks/use-toast';
+import { Toaster } from '../components/ui/toaster';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 const HelpDesk = () => {
   const services = [
