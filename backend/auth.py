@@ -102,10 +102,14 @@ async def google_login(request: Request):
 async def google_callback(request: Request):
     """Handle Google OAuth callback"""
     try:
+        logger.info("Google OAuth callback received")
         token = await oauth.google.authorize_access_token(request)
+        logger.info(f"Token received: {bool(token)}")
         user_info = token.get('userinfo')
+        logger.info(f"User info: {user_info.get('email') if user_info else 'None'}")
         
         if not user_info:
+            logger.error("Failed to get user info from token")
             raise HTTPException(status_code=400, detail="Failed to get user info")
         
         # Get database
