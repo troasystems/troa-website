@@ -5,7 +5,9 @@ import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const location = useLocation();
+  const { isAuthenticated, user, logout, login, isAdmin } = useAuth();
 
   const navItems = [
     { name: 'Home', path: '/' },
@@ -13,6 +15,7 @@ const Navbar = () => {
     { name: 'Committee', path: '/committee' },
     { name: 'Amenities', path: '/amenities' },
     { name: 'Gallery', path: '/gallery' },
+    { name: 'Help Desk', path: '/help-desk' },
     { name: 'Contact', path: '/contact' }
   ];
 
