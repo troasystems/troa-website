@@ -53,8 +53,10 @@ class MembershipApplication(BaseModel):
     phone: str
     villaNo: str
     message: Optional[str] = None
-    status: str = "pending"
+    status: str = "pending"  # pending, approved, rejected
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = None
+    reviewed_by: Optional[str] = None
 
 class MembershipApplicationCreate(BaseModel):
     firstName: str
@@ -63,3 +65,22 @@ class MembershipApplicationCreate(BaseModel):
     phone: str
     villaNo: str
     message: Optional[str] = None
+
+class MembershipApplicationUpdate(BaseModel):
+    status: str  # approved, rejected
+
+class User(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    email: EmailStr
+    name: str
+    picture: Optional[str] = None
+    provider: str = "google"  # google, facebook
+    is_admin: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    last_login: Optional[datetime] = Field(default_factory=datetime.utcnow)
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    name: str
+    picture: Optional[str] = None
+    provider: str = "google"
