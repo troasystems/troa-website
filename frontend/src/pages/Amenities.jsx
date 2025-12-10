@@ -47,10 +47,14 @@ const Amenities = () => {
 
   const handleSave = async (amenityId) => {
     try {
+      const token = localStorage.getItem('session_token');
       await axios.patch(
         `${API}/amenities/${amenityId}`,
         editForm,
-        { withCredentials: true }
+        { 
+          withCredentials: true,
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        }
       );
       toast({
         title: 'Success',
