@@ -103,10 +103,14 @@ const Amenities = () => {
 
   const handleAddNew = async () => {
     try {
+      const token = localStorage.getItem('session_token');
       await axios.post(
         `${API}/amenities`,
         newAmenityForm,
-        { withCredentials: true }
+        { 
+          withCredentials: true,
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        }
       );
       toast({
         title: 'Success',
