@@ -1,6 +1,7 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Request
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
@@ -10,8 +11,9 @@ from models import (
     CommitteeMember, CommitteeMemberCreate,
     Amenity, AmenityCreate,
     GalleryImage, GalleryImageCreate,
-    MembershipApplication, MembershipApplicationCreate
+    MembershipApplication, MembershipApplicationCreate, MembershipApplicationUpdate
 )
+from auth import auth_router, require_admin
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
