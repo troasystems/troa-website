@@ -19,17 +19,34 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check for token in URL (from OAuth callback)
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    
+    if (token) {
+      // Store token in localStorage
+      localStorage.setItem('session_token', token);
+      // Remove token from URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
     checkAuth();
   }, []);
 
   const checkAuth = async () => {
     try {
+      // Get token from localStorage
+      const token = localStorage.getItem('session_token');
+      
       const response = await axios.get(`${API}/auth/user`, {
-        withCredentials: true
+        withCredentials: true,
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       setUser(response.data);
     } catch (error) {
       setUser(null);
+      // Clear invalid token
+      localStorage.removeItem('session_token');
     } finally {
       setLoading(false);
     }
