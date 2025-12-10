@@ -122,7 +122,7 @@ const HelpDesk = () => {
         { label: 'Membership Form', link: 'https://docs.google.com/forms/d/e/1FAIpQLSdTiNpjTIHyZWdd77n5cbfaoX5mkZ-7CWTqDwfEr96RDFUlZw/viewform' }
       ],
       payments: [
-        { label: 'Pay Membership Fee (₹11,000)', type: 'membership', amount: 11000 }
+        { label: 'Pay Membership Fee (₹11,800)', type: 'membership', amount: 11800 }
       ],
       gradient: 'from-pink-500 to-rose-500'
     },
