@@ -161,6 +161,60 @@ const HelpDesk = () => {
 
   return (
     <div className="min-h-screen pt-20">
+      <Toaster />
+      
+      {/* Load Razorpay script */}
+      <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+      {/* Payment Modal */}
+      {paymentModal && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full">
+            <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+              Payment Details
+            </h3>
+            <p className="text-gray-600 mb-6">Amount: ₹{paymentModal.amount}</p>
+            <div className="space-y-4">
+              <input
+                type="text"
+                placeholder="Full Name"
+                value={paymentForm.name}
+                onChange={(e) => setPaymentForm({ ...paymentForm, name: e.target.value })}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                value={paymentForm.email}
+                onChange={(e) => setPaymentForm({ ...paymentForm, email: e.target.value })}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
+              />
+              <input
+                type="tel"
+                placeholder="Phone"
+                value={paymentForm.phone}
+                onChange={(e) => setPaymentForm({ ...paymentForm, phone: e.target.value })}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
+              />
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => handlePayNow(paymentModal.type, paymentModal.amount)}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300"
+                >
+                  Proceed to Pay
+                </button>
+                <button
+                  onClick={() => setPaymentModal(null)}
+                  className="px-6 py-3 bg-gray-500 text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
       <section className="relative py-20 bg-gradient-to-br from-purple-600 via-pink-600 to-orange-600 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
