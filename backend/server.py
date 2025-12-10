@@ -169,7 +169,7 @@ async def update_membership_application(application_id: str, update: MembershipA
 async def delete_membership_application(application_id: str, request: Request):
     """Delete membership application - admin only"""
     try:
-        admin = await require_admin(request)
+        await require_admin(request)
         
         result = await db.membership_applications.delete_one({"id": application_id})
         
