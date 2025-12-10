@@ -156,26 +156,152 @@ const Amenities = () => {
       {/* Amenities Grid */}
       <section className="py-20 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {isAdmin && (
+            <div className="text-center mb-12">
+              <button
+                onClick={() => setIsAdding(true)}
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300 shadow-lg"
+              >
+                + Add Amenity
+              </button>
+            </div>
+          )}
+
+          <Toaster />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Add New Amenity Card */}
+            {isAdding && (
+              <div className="bg-white rounded-2xl shadow-lg p-6">
+                <h3 className="text-xl font-bold mb-4 text-gray-900">Add New Amenity</h3>
+                <div className="space-y-4">
+                  <input
+                    type="text"
+                    placeholder="Name"
+                    value={newAmenityForm.name}
+                    onChange={(e) => setNewAmenityForm({ ...newAmenityForm, name: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
+                  />
+                  <textarea
+                    placeholder="Description"
+                    value={newAmenityForm.description}
+                    onChange={(e) => setNewAmenityForm({ ...newAmenityForm, description: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none resize-none"
+                    rows="3"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Image URL"
+                    value={newAmenityForm.image}
+                    onChange={(e) => setNewAmenityForm({ ...newAmenityForm, image: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
+                  />
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={handleAddNew}
+                      className="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300"
+                    >
+                      Add
+                    </button>
+                    <button
+                      onClick={handleCancelAdd}
+                      className="flex-1 px-4 py-2 bg-gray-500 text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {amenities.map((amenity) => (
               <div
                 key={amenity.id}
-                className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden hover:scale-105 transform"
+                className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden"
               >
-                <div className="relative h-64 overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-orange-500/20 z-10 group-hover:opacity-0 transition-opacity duration-300"></div>
-                  <img
-                    src={amenity.image}
-                    alt={amenity.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                </div>
-                <div className="p-6">
-                  <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
-                    {amenity.name}
-                  </h3>
-                  <p className="text-gray-600 leading-relaxed">{amenity.description}</p>
-                </div>
+                {editingId === amenity.id ? (
+                  // Edit Mode
+                  <div className="p-6">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Name</label>
+                        <input
+                          type="text"
+                          value={editForm.name}
+                          onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                        <textarea
+                          value={editForm.description}
+                          onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none resize-none"
+                          rows="4"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Image URL</label>
+                        <input
+                          type="text"
+                          value={editForm.image}
+                          onChange={(e) => setEditForm({ ...editForm, image: e.target.value })}
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
+                        />
+                      </div>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleSave(amenity.id)}
+                          className="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2"
+                        >
+                          <Save size={16} />
+                          <span>Save</span>
+                        </button>
+                        <button
+                          onClick={handleCancel}
+                          className="flex-1 px-4 py-2 bg-gray-500 text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2"
+                        >
+                          <X size={16} />
+                          <span>Cancel</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  // View Mode
+                  <>
+                    <div className="relative h-64 overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-orange-500/20 z-10 group-hover:opacity-0 transition-opacity duration-300"></div>
+                      <img
+                        src={amenity.image}
+                        alt={amenity.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                      {isAdmin && (
+                        <div className="absolute top-4 right-4 z-20 flex space-x-2">
+                          <button
+                            onClick={() => handleEdit(amenity)}
+                            className="w-10 h-10 bg-white/90 hover:bg-blue-500 rounded-lg flex items-center justify-center text-gray-700 hover:text-white transition-all duration-300 shadow-lg"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(amenity.id)}
+                            className="w-10 h-10 bg-white/90 hover:bg-red-500 rounded-lg flex items-center justify-center text-gray-700 hover:text-white transition-all duration-300 shadow-lg"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-6">
+                      <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+                        {amenity.name}
+                      </h3>
+                      <p className="text-gray-600 leading-relaxed">{amenity.description}</p>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>
