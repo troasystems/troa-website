@@ -77,8 +77,10 @@ const Amenities = () => {
     }
 
     try {
+      const token = localStorage.getItem('session_token');
       await axios.delete(`${API}/amenities/${amenityId}`, {
-        withCredentials: true
+        withCredentials: true,
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       toast({
         title: 'Success',
