@@ -14,6 +14,7 @@ from models import (
     MembershipApplication, MembershipApplicationCreate, MembershipApplicationUpdate
 )
 from auth import auth_router, require_admin
+from instagram import instagram_router
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
