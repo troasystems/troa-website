@@ -46,14 +46,6 @@ const Gallery = () => {
       {/* Gallery Content */}
       <section className="py-20 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
-              Latest from Instagram
-            </h2>
-            <p className="text-lg text-gray-600">
-              Our community moments captured on Instagram
-            </p>
-          </div>
 
           {/* Instagram Feed Embed */}
           <div className="bg-white rounded-2xl shadow-xl p-8 mb-12">
