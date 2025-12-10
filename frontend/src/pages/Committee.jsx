@@ -296,6 +296,24 @@ const Committee = () => {
                           className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-300 outline-none"
                         />
                       </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Twitter URL</label>
+                        <input
+                          type="text"
+                          value={editForm.twitter}
+                          onChange={(e) => setEditForm({ ...editForm, twitter: e.target.value })}
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-300 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">LinkedIn URL</label>
+                        <input
+                          type="text"
+                          value={editForm.linkedin}
+                          onChange={(e) => setEditForm({ ...editForm, linkedin: e.target.value })}
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-300 outline-none"
+                        />
+                      </div>
                       <div className="flex space-x-2">
                         <button
                           onClick={() => handleSave(member.id)}
