@@ -269,6 +269,7 @@ async def delete_membership_application(application_id: str, request: Request):
 app.include_router(api_router)
 app.include_router(auth_router, prefix="/api")
 app.include_router(instagram_router, prefix="/api")
+app.include_router(upload_router, prefix="/api")
 
 # Add session middleware
 app.add_middleware(
