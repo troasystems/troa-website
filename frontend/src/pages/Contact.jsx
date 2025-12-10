@@ -314,6 +314,21 @@ const Contact = () => {
                     </>
                   )}
                 </button>
+
+                {showPaymentOption && (
+                  <div className="mt-4 p-4 bg-green-50 border-2 border-green-200 rounded-lg">
+                    <p className="text-green-800 font-semibold mb-3">
+                      Application submitted! Complete your membership by paying ₹11,000
+                    </p>
+                    <button
+                      onClick={handlePayMembership}
+                      className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold hover:scale-105 transform transition-all duration-300 shadow-lg flex items-center justify-center space-x-2"
+                    >
+                      <CreditCard size={20} />
+                      <span>Pay Membership Fee (₹11,000)</span>
+                    </button>
+                  </div>
+                )}
               </form>
             </div>
           </div>
