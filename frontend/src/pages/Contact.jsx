@@ -130,9 +130,6 @@ const Contact = () => {
   return (
     <div className="min-h-screen pt-20">
       <Toaster />
-      
-      {/* Load Razorpay script */}
-      <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
       {/* Hero Section */}
       <section className="relative py-20 bg-gradient-to-br from-purple-600 via-pink-600 to-orange-600 text-white">
