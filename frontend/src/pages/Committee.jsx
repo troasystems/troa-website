@@ -139,10 +139,14 @@ const Committee = () => {
 
   const handleAddNew = async () => {
     try {
+      const token = localStorage.getItem('session_token');
       await axios.post(
         `${API}/committee`,
         newMemberForm,
-        { withCredentials: true }
+        { 
+          withCredentials: true,
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        }
       );
       toast({
         title: 'Success',
