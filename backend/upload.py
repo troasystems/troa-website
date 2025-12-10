@@ -25,9 +25,12 @@ def is_allowed_file(filename: str) -> bool:
     return ext in ALLOWED_EXTENSIONS
 
 @upload_router.post("/image")
-async def upload_image(file: UploadFile = File(...)):
-    """Upload an image file"""
+async def upload_image(request: Request, file: UploadFile = File(...)):
+    """Upload an image file - admin only"""
     try:
+        # Require admin authentication
+        await require_admin(request)
+        
         # Get backend URL from environment
         backend_url = os.getenv('REACT_APP_BACKEND_URL', 'http://localhost:8001')
         # Check file extension
