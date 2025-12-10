@@ -99,23 +99,49 @@ async def google_login(request: Request):
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @auth_router.get('/google/callback')
-async def google_callback(request: Request):
-    """Handle Google OAuth callback"""
+async def google_callback(code: str, state: str):
+    """Handle Google OAuth callback - Manual implementation"""
     try:
-        logger.info("Google OAuth callback received")
-        token = await oauth.google.authorize_access_token(request)
-        logger.info(f"Token received: {bool(token)}")
-        user_info = token.get('userinfo')
-        logger.info(f"User info: {user_info.get('email') if user_info else 'None'}")
+        logger.info(f"Google OAuth callback received with code: {code[:20]}...")
         
-        if not user_info:
-            logger.error("Failed to get user info from token")
-            raise HTTPException(status_code=400, detail="Failed to get user info")
+        # Exchange code for token manually
+        import httpx
+        async with httpx.AsyncClient() as client:
+            token_response = await client.post(
+                'https://oauth2.googleapis.com/token',
+                data={
+                    'code': code,
+                    'client_id': GOOGLE_CLIENT_ID,
+                    'client_secret': GOOGLE_CLIENT_SECRET,
+                    'redirect_uri': f"{os.getenv('REACT_APP_BACKEND_URL')}/api/auth/google/callback",
+                    'grant_type': 'authorization_code'
+                }
+            )
+            
+            if token_response.status_code != 200:
+                logger.error(f"Token exchange failed: {token_response.text}")
+                raise HTTPException(status_code=400, detail="Failed to exchange code for token")
+            
+            token_data = token_response.json()
+            access_token = token_data.get('access_token')
+            
+            # Get user info
+            user_response = await client.get(
+                'https://www.googleapis.com/oauth2/v2/userinfo',
+                headers={'Authorization': f'Bearer {access_token}'}
+            )
+            
+            if user_response.status_code != 200:
+                logger.error(f"Failed to get user info: {user_response.text}")
+                raise HTTPException(status_code=400, detail="Failed to get user info")
+            
+            user_info = user_response.json()
+            logger.info(f"User authenticated: {user_info.get('email')}")
         
         # Get database
         mongo_url = os.environ['MONGO_URL']
-        client = AsyncIOMotorClient(mongo_url)
-        db = client[os.environ['DB_NAME']]
+        mongo_client = AsyncIOMotorClient(mongo_url)
+        db = mongo_client[os.environ['DB_NAME']]
         
         # Check if user exists
         existing_user = await db.users.find_one({'email': user_info['email']})
@@ -137,6 +163,7 @@ async def google_callback(request: Request):
                 is_admin=user_info['email'] in ADMIN_EMAILS
             )
             await db.users.insert_one(user_obj.dict())
+            logger.info(f"New user created: {user_info['email']}")
         else:
             # Update existing user
             await db.users.update_one(
@@ -147,9 +174,11 @@ async def google_callback(request: Request):
                     'last_login': datetime.utcnow()
                 }}
             )
+            logger.info(f"Existing user updated: {user_info['email']}")
         
         # Create session
         session_token = create_session(user_data)
+        logger.info(f"Session created for user: {user_info['email']}")
         
         # Redirect to frontend with session token in URL
         frontend_url = os.getenv('REACT_APP_BACKEND_URL', '').replace('/api', '')
@@ -157,16 +186,17 @@ async def google_callback(request: Request):
         response.set_cookie(
             key='session_token',
             value=session_token,
-            httponly=False,  # Changed to False so frontend can read it
+            httponly=False,
             max_age=7 * 24 * 60 * 60,  # 7 days
             samesite='lax',
             path='/'
         )
         
-        client.close()
+        mongo_client.close()
         return response
         
     except Exception as e:
+        logger.error(f"Authentication failed: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Authentication failed: {str(e)}")
 
 @auth_router.get('/user')
