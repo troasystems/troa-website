@@ -138,6 +138,44 @@ const Navbar = () => {
                 {item.name}
               </Link>
             ))}
+            
+            {/* Mobile Auth */}
+            {isAuthenticated ? (
+              <>
+                <div className="px-4 py-3 bg-gray-50 rounded-lg">
+                  <p className="text-sm font-semibold text-gray-900">{user?.name}</p>
+                  <p className="text-xs text-gray-600">{user?.email}</p>
+                </div>
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setIsOpen(false)}
+                    className="block px-4 py-3 rounded-lg font-medium text-purple-600 hover:bg-purple-50"
+                  >
+                    Admin Portal
+                  </Link>
+                )}
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    logout();
+                  }}
+                  className="block w-full text-left px-4 py-3 rounded-lg font-medium text-red-600 hover:bg-red-50"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  login();
+                }}
+                className="block w-full px-4 py-3 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white rounded-lg font-medium"
+              >
+                Login
+              </button>
+            )}
           </div>
         )}
       </div>
