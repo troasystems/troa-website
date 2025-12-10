@@ -53,10 +53,14 @@ const Committee = () => {
 
   const handleSave = async (memberId) => {
     try {
+      const token = localStorage.getItem('session_token');
       await axios.patch(
         `${API}/committee/${memberId}`,
         editForm,
-        { withCredentials: true }
+        { 
+          withCredentials: true,
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        }
       );
       toast({
         title: 'Success',
