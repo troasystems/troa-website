@@ -24,9 +24,11 @@ def is_allowed_file(filename: str) -> bool:
     return ext in ALLOWED_EXTENSIONS
 
 @upload_router.post("/image")
-async def upload_image(file: UploadFile = File(...), request: Request = None):
+async def upload_image(file: UploadFile = File(...)):
     """Upload an image file"""
     try:
+        # Get backend URL from environment
+        backend_url = os.getenv('REACT_APP_BACKEND_URL', 'http://localhost:8001')
         # Check file extension
         if not is_allowed_file(file.filename):
             raise HTTPException(
