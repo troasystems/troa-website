@@ -62,9 +62,13 @@ export const AuthProvider = ({ children }) => {
         withCredentials: true
       });
       setUser(null);
+      localStorage.removeItem('session_token');
       window.location.href = '/';
     } catch (error) {
       console.error('Logout error:', error);
+      localStorage.removeItem('session_token');
+      setUser(null);
+      window.location.href = '/';
     }
   };
 
