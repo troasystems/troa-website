@@ -15,6 +15,7 @@ from models import (
 )
 from auth import auth_router, require_admin
 from instagram import instagram_router
+from upload import upload_router
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
