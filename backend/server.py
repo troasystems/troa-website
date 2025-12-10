@@ -55,12 +55,17 @@ async def get_committee_members():
         raise HTTPException(status_code=500, detail="Failed to fetch committee members")
 
 @api_router.post("/committee", response_model=CommitteeMember)
-async def create_committee_member(member: CommitteeMemberCreate):
+async def create_committee_member(member: CommitteeMemberCreate, request: Request):
     try:
+        # Require admin authentication
+        await require_admin(request)
+        
         member_dict = member.dict()
         member_obj = CommitteeMember(**member_dict)
         await db.committee_members.insert_one(member_obj.dict())
         return member_obj
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error creating committee member: {e}")
         raise HTTPException(status_code=500, detail="Failed to create committee member")
