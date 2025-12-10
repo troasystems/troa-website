@@ -112,9 +112,11 @@ const Committee = () => {
     formData.append('file', file);
 
     try {
+      const token = localStorage.getItem('session_token');
       const response = await axios.post(`${API}/upload/image`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         }
       });
       
