@@ -131,6 +131,37 @@ const Amenities = () => {
     });
   };
 
+  const handleImageUpload = async (file, isEdit = false) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post(`${API}/upload/image`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        withCredentials: true
+      });
+      
+      if (isEdit) {
+        setEditForm({ ...editForm, image: response.data.url });
+      } else {
+        setNewAmenityForm({ ...newAmenityForm, image: response.data.url });
+      }
+      
+      toast({
+        title: 'Success',
+        description: 'Image uploaded successfully'
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to upload image',
+        variant: 'destructive'
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen pt-20 flex items-center justify-center">
