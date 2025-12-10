@@ -175,7 +175,7 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "✅ POST /api/amenities endpoint tested successfully. Creates new amenity with proper validation. Returns created amenity with generated ID. Error handling working for invalid data (422 status)."
+          comment: "✅ POST /api/amenities endpoint now properly secured with admin authentication. Returns 401 Unauthorized when no auth token provided. Authentication requirement working correctly."
 
   - task: "Gallery API - GET endpoint"
     implemented: true
