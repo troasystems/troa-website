@@ -85,25 +85,6 @@ const Gallery = () => {
               </div>
             </div>
           </div>
-
-          {/* CTA Section */}
-          <div className="mt-16 text-center p-12 bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 rounded-2xl text-white">
-            <Instagram size={64} className="mx-auto mb-6 text-pink-400" />
-            <h3 className="text-3xl font-bold mb-4">Join Our Instagram Community</h3>
-            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              Follow @the.retreat.bangalore for daily updates, events, and beautiful moments from our community
-            </p>
-            <a
-              href="https://www.instagram.com/the.retreat.bangalore/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 text-white rounded-full font-bold text-lg hover:scale-105 transform transition-all duration-300 shadow-2xl"
-            >
-              <Instagram size={28} />
-              <span>Follow Now</span>
-              <ExternalLink size={20} />
-            </a>
-          </div>
         </div>
       </section>
     </div>
