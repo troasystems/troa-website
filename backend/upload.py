@@ -54,8 +54,6 @@ async def upload_image(file: UploadFile = File(...)):
             file_path.unlink()
             raise HTTPException(status_code=400, detail="Invalid image file")
         
-        # Get backend URL
-        backend_url = os.getenv('REACT_APP_BACKEND_URL', str(request.base_url).rstrip('/'))
         image_url = f"{backend_url}/api/upload/image/{unique_filename}"
         
         logger.info(f"Image uploaded successfully: {unique_filename}")
