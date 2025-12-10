@@ -57,8 +57,8 @@ const Gallery = () => {
 
           {/* Instagram Feed Embed */}
           <div className="bg-white rounded-2xl shadow-xl p-8 mb-12">
-            <div className="max-w-4xl mx-auto">
-              {/* Elfsight Instagram Feed Widget - Easy Setup */}
+            <div className="max-w-6xl mx-auto">
+              {/* Elfsight Instagram Feed Widget */}
               <div className="text-center mb-8">
                 <h3 className="text-2xl font-bold mb-4 text-gray-900">
                   Follow Our Instagram Journey
@@ -68,41 +68,20 @@ const Gallery = () => {
                 </p>
               </div>
 
-              {/* Instagram Embed Container */}
-              <div className="relative bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 rounded-2xl p-8 min-h-[600px] flex items-center justify-center">
-                <div className="text-center">
-                  <Instagram size={80} className="mx-auto mb-6 text-purple-400" />
-                  <h4 className="text-2xl font-bold mb-4 text-gray-900">
-                    Visit Our Instagram
-                  </h4>
-                  <p className="text-gray-600 mb-6 max-w-lg mx-auto">
-                    See our latest posts, stories, and community moments on Instagram
-                  </p>
-                  <a
-                    href="https://www.instagram.com/the.retreat.bangalore/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-full font-bold text-lg hover:scale-105 transform transition-all duration-300 shadow-2xl"
-                  >
-                    <Instagram size={28} />
-                    <span>View Instagram Profile</span>
-                    <ExternalLink size={20} />
-                  </a>
-                  
-                  <div className="mt-8 p-4 bg-white rounded-lg shadow-md">
-                    <p className="text-sm text-gray-600 mb-2">
-                      <strong>Easy Instagram Integration:</strong>
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      To display live Instagram feed here:
-                    </p>
-                    <ol className="text-xs text-gray-500 text-left mt-2 space-y-1">
-                      <li>1. Visit <a href="https://elfsight.com/instagram-feed-instashow/" target="_blank" rel="noopener" className="text-purple-600 hover:underline">Elfsight Instagram Widget</a></li>
-                      <li>2. Create free account and connect @the.retreat.bangalore</li>
-                      <li>3. Copy the widget code and share with developer</li>
-                    </ol>
-                  </div>
-                </div>
+              {/* Instagram Widget */}
+              <div className="elfsight-app-e60ad30d-b722-4a0d-8884-173acf13e96f" data-elfsight-app-lazy></div>
+
+              <div className="text-center mt-8">
+                <a
+                  href="https://www.instagram.com/the.retreat.bangalore/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-full font-semibold hover:scale-105 transform transition-all duration-300 shadow-lg"
+                >
+                  <Instagram size={24} />
+                  <span>View Full Profile on Instagram</span>
+                  <ExternalLink size={18} />
+                </a>
               </div>
             </div>
           </div>
