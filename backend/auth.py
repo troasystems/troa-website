@@ -76,7 +76,9 @@ async def require_admin(request: Request):
 @auth_router.get('/google/login')
 async def google_login(request: Request):
     """Initiate Google OAuth login"""
-    redirect_uri = request.url_for('google_callback')
+    # Construct the full redirect URI
+    backend_url = os.getenv('REACT_APP_BACKEND_URL', str(request.base_url).rstrip('/'))
+    redirect_uri = f"{backend_url}/api/auth/google/callback"
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @auth_router.get('/google/callback')
