@@ -126,16 +126,9 @@ async def get_membership_applications():
         logger.error(f"Error fetching membership applications: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch membership applications")
 
-# Include the router in the main app
+# Include routers in the main app
 app.include_router(api_router)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.include_router(auth_router, prefix=\"/api\")\n\n# Add session middleware\napp.add_middleware(\n    SessionMiddleware,\n    secret_key=os.getenv('SECRET_KEY', 'your-secret-key-change-in-production')\n)\n\napp.add_middleware(\n    CORSMiddleware,\n    allow_credentials=True,\n    allow_origins=[\"*\"],\n    allow_methods=[\"*\"],\n    allow_headers=[\"*\"],\n)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
