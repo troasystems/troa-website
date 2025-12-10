@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from '../hooks/use-toast';
-import { Mail, Phone, MapPin, Send } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, CreditCard } from 'lucide-react';
 import { Toaster } from '../components/ui/toaster';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -17,6 +17,7 @@ const Contact = () => {
     message: ''
   });
   const [loading, setLoading] = useState(false);
+  const [showPaymentOption, setShowPaymentOption] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
