@@ -10,9 +10,11 @@ const Footer = () => {
           {/* Logo & Description */}
           <div className="col-span-1">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">TR</span>
-              </div>
+              <img 
+                src="https://customer-assets.emergentagent.com/job_tron-inspired/artifacts/s7kqkc41_Gemini_Generated_Image_b3s3itb3s3itb3s3.png" 
+                alt="The Retreat Logo" 
+                className="h-14 w-auto"
+              />
               <div>
                 <h3 className="text-xl font-bold">TROA</h3>
                 <p className="text-xs text-gray-300">The Retreat Owners Association</p>
