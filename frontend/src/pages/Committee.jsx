@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Facebook, Twitter, Linkedin } from 'lucide-react';
+import { Facebook, Twitter, Linkedin, Edit2, Trash2, Save, X } from 'lucide-react';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+import { toast } from '../hooks/use-toast';
+import { Toaster } from '../components/ui/toaster';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -8,6 +11,9 @@ const API = `${BACKEND_URL}/api`;
 const Committee = () => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     fetchMembers();
@@ -22,6 +28,68 @@ const Committee = () => {
       console.error('Error fetching committee members:', error);
       setLoading(false);
     }
+  };
+
+  const handleEdit = (member) => {
+    setEditingId(member.id);
+    setEditForm({
+      name: member.name,
+      position: member.position,
+      image: member.image,
+      facebook: member.facebook || '',
+      twitter: member.twitter || '',
+      linkedin: member.linkedin || ''
+    });
+  };
+
+  const handleSave = async (memberId) => {
+    try {
+      await axios.patch(
+        `${API}/committee/${memberId}`,
+        editForm,
+        { withCredentials: true }
+      );
+      toast({
+        title: 'Success',
+        description: 'Committee member updated successfully'
+      });
+      setEditingId(null);
+      fetchMembers();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update committee member',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleDelete = async (memberId) => {
+    if (!window.confirm('Are you sure you want to delete this committee member?')) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${API}/committee/${memberId}`, {
+        withCredentials: true
+      });
+      toast({
+        title: 'Success',
+        description: 'Committee member deleted successfully'
+      });
+      fetchMembers();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete committee member',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleCancel = () => {
+    setEditingId(null);
+    setEditForm({});
   };
 
   if (loading) {
