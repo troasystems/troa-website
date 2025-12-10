@@ -36,22 +36,94 @@ const Contact = () => {
         title: 'Success!',
         description: 'Your membership application has been submitted successfully.',
       });
-      setFormData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        villaNo: '',
-        message: ''
-      });
+      setShowPaymentOption(true);
+      setLoading(false);
     } catch (error) {
       toast({
         title: 'Error',
         description: 'Failed to submit your application. Please try again.',
         variant: 'destructive'
       });
-    } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePayMembership = async () => {
+    try {
+      // Create order
+      const orderResponse = await axios.post(`${API}/payment/create-order`, {
+        payment_type: 'membership',
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        phone: formData.phone
+      });
+
+      const { order_id, amount, key_id } = orderResponse.data;
+
+      // Razorpay options
+      const options = {
+        key: key_id,
+        amount: amount,
+        currency: 'INR',
+        name: 'TROA - The Retreat',
+        description: 'Membership Fee Payment',
+        order_id: order_id,
+        handler: async function (response) {
+          try {
+            // Verify payment
+            await axios.post(`${API}/payment/verify`, {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              payment_type: 'membership',
+              user_details: {
+                name: `${formData.firstName} ${formData.lastName}`,
+                email: formData.email,
+                phone: formData.phone,
+                villaNo: formData.villaNo
+              }
+            });
+
+            toast({
+              title: 'Payment Successful!',
+              description: '₹11,000 membership fee paid successfully'
+            });
+
+            setShowPaymentOption(false);
+            setFormData({
+              firstName: '',
+              lastName: '',
+              email: '',
+              phone: '',
+              villaNo: '',
+              message: ''
+            });
+          } catch (error) {
+            toast({
+              title: 'Payment Verification Failed',
+              description: 'Please contact support',
+              variant: 'destructive'
+            });
+          }
+        },
+        prefill: {
+          name: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          contact: formData.phone
+        },
+        theme: {
+          color: '#9333ea'
+        }
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to initiate payment',
+        variant: 'destructive'
+      });
     }
   };
 
