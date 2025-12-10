@@ -38,7 +38,7 @@ const Navbar = () => {
           </Link>
 
           {/* Desktop Menu */}
-          <div className="hidden md:flex space-x-1">
+          <div className="hidden md:flex items-center space-x-1">
             {navItems.map((item) => (
               <Link
                 key={item.path}
@@ -52,6 +52,64 @@ const Navbar = () => {
                 {item.name}
               </Link>
             ))}
+            
+            {/* User Menu */}
+            {isAuthenticated ? (
+              <div className="relative ml-3">
+                <button
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  {user?.picture ? (
+                    <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full" />
+                  ) : (
+                    <User className="w-5 h-5" />
+                  )}
+                  <span className="text-sm font-medium">{user?.name?.split(' ')[0]}</span>
+                </button>
+                
+                {profileOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
+                    <div className="px-4 py-3 border-b border-gray-200">
+                      <p className="text-sm font-semibold text-gray-900">{user?.name}</p>
+                      <p className="text-xs text-gray-600">{user?.email}</p>
+                      {isAdmin && (
+                        <span className="inline-block mt-2 px-2 py-1 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 text-xs font-semibold rounded-full">
+                          Admin
+                        </span>
+                      )}
+                    </div>
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 transition-colors"
+                      >
+                        <Shield className="w-4 h-4" />
+                        <span>Admin Portal</span>
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => {
+                        setProfileOpen(false);
+                        logout();
+                      }}
+                      className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={login}
+                className="ml-3 px-6 py-2 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white rounded-lg font-medium hover:scale-105 transform transition-all duration-300 shadow-lg"
+              >
+                Login
+              </button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
