@@ -83,8 +83,10 @@ const Committee = () => {
     }
 
     try {
+      const token = localStorage.getItem('session_token');
       await axios.delete(`${API}/committee/${memberId}`, {
-        withCredentials: true
+        withCredentials: true,
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       toast({
         title: 'Success',
