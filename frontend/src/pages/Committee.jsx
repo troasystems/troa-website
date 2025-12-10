@@ -173,6 +173,14 @@ const Committee = () => {
               WE ARE THERE FOR YOU
             </h2>
             <p className="text-xl text-gray-600">Our experienced committee members are here to serve</p>
+            {isAdmin && (
+              <button
+                onClick={() => setIsAdding(true)}
+                className="mt-6 px-6 py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300 shadow-lg"
+              >
+                + Add Committee Member
+              </button>
+            )}
           </div>
 
           <Toaster />
