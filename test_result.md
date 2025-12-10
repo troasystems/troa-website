@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test all backend APIs for the TROA (The Retreat Owners Association) website including Committee Members, Amenities, Gallery, and Membership Application endpoints"
+user_problem_statement: "Test the committee member update functionality for the TROA website with authentication requirements"
 
 backend:
   - task: "Committee Members API - GET endpoint"
@@ -115,7 +115,7 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "✅ GET /api/committee endpoint tested successfully. Returns 10 committee members with correct structure (id, name, position, image, social links, created_at). Response format validated."
+          comment: "✅ GET /api/committee endpoint tested successfully. Returns 9 committee members with correct structure (id, name, position, image, social links). All members have proper UUIDs. Wilson Thomas (President) found with ID: f5a25bd0-8711-4a27-b9b3-ea3412b94d60."
 
   - task: "Committee Members API - POST endpoint"
     implemented: true
@@ -127,7 +127,31 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "✅ POST /api/committee endpoint tested successfully. Creates new committee member with proper validation. Returns created member with generated ID. Error handling working for invalid data (422 status)."
+          comment: "✅ POST /api/committee endpoint now properly secured with admin authentication. Returns 401 Unauthorized when no auth token provided. Authentication requirement working correctly."
+
+  - task: "Committee Members API - PATCH endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PATCH /api/committee/{id} endpoint properly secured with admin authentication. Returns 401 Unauthorized when no auth token provided. Database update functionality verified - can successfully update Wilson Thomas and other members."
+
+  - task: "Committee Members API - DELETE endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ DELETE /api/committee/{id} endpoint properly secured with admin authentication. Returns 401 Unauthorized when no auth token provided. Authentication requirement working correctly."
 
   - task: "Amenities API - GET endpoint"
     implemented: true
