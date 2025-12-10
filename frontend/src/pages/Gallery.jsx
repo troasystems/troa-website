@@ -71,86 +71,62 @@ const Gallery = () => {
             </p>
           </div>
 
-          {/* Instagram Widget Embed */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 mb-12">
-            <div className="text-center">
-              <h3 className="text-2xl font-bold mb-6 text-gray-900">
+          {/* Instagram Feed Grid */}
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <div className="text-center mb-12">
+              <h3 className="text-3xl font-bold mb-4 text-gray-900">
                 The Retreat Bangalore Instagram Feed
               </h3>
-              
-              {/* Instagram Profile Widget */}
-              <div className="flex justify-center">
-                <iframe
-                  src="https://www.instagram.com/the.retreat.bangalore/embed/"
-                  width="400"
-                  height="480"
-                  frameBorder="0"
-                  scrolling="no"
-                  allowTransparency="true"
-                  className="instagram-media max-w-full"
-                  title="Instagram Profile Widget"
-                ></iframe>
-              </div>
-              
-              <div className="mt-8">
+              <p className="text-gray-600 mb-6">
+                Click below to view our latest posts and stories
+              </p>
+              <a
+                href="https://www.instagram.com/the.retreat.bangalore/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-full font-semibold hover:scale-105 transform transition-all duration-300 shadow-lg"
+              >
+                <Instagram size={24} />
+                <span>View Instagram Profile</span>
+                <ExternalLink size={18} />
+              </a>
+            </div>
+
+            {/* Instagram Grid Preview */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
                 <a
+                  key={i}
                   href="https://www.instagram.com/the.retreat.bangalore/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-full font-semibold hover:scale-105 transform transition-all duration-300 shadow-lg"
+                  className="relative group aspect-square rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300"
                 >
-                  <Instagram size={24} />
-                  <span>View Full Profile on Instagram</span>
-                  <ExternalLink size={18} />
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex items-center justify-center">
+                    <Instagram size={48} className="text-white opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
+                  </div>
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                    <span className="text-white font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      View on Instagram
+                    </span>
+                  </div>
                 </a>
-              </div>
-            </div>
-          </div>
-
-          {/* Alternative: Grid of latest posts */}
-          <div className="mt-16">
-            <h3 className="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
-              Community Highlights
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {instagramPosts.map((postUrl, index) => (
-                <div key={index} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300">
-                  <blockquote
-                    className="instagram-media"
-                    data-instgrm-permalink={postUrl}
-                    data-instgrm-version="14"
-                    style={{ 
-                      background: '#FFF',
-                      border: 0,
-                      borderRadius: '12px',
-                      boxShadow: '0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15)',
-                      margin: '1px',
-                      maxWidth: '100%',
-                      minWidth: '326px',
-                      padding: 0,
-                      width: '99.375%'
-                    }}
-                  >
-                    <div style={{ padding: '16px' }}>
-                      <a
-                        href={postUrl}
-                        style={{ 
-                          background: '#FFFFFF',
-                          lineHeight: 0,
-                          padding: 0,
-                          textAlign: 'center',
-                          textDecoration: 'none',
-                          width: '100%'
-                        }}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        View this post on Instagram
-                      </a>
-                    </div>
-                  </blockquote>
-                </div>
               ))}
+            </div>
+
+            <div className="mt-8 text-center">
+              <p className="text-gray-600 mb-4">
+                Follow us for daily updates, events, and beautiful moments from our community
+              </p>
+              <a
+                href="https://www.instagram.com/the.retreat.bangalore/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-purple-600 hover:text-pink-600 font-semibold inline-flex items-center space-x-2"
+              >
+                <span>@the.retreat.bangalore</span>
+                <ExternalLink size={16} />
+              </a>
             </div>
           </div>
 
