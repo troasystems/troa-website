@@ -3,9 +3,9 @@ import { Instagram, ExternalLink } from 'lucide-react';
 
 const Gallery = () => {
   useEffect(() => {
-    // Load Instagram embed script
+    // Load Elfsight Instagram widget script
     const script = document.createElement('script');
-    script.src = 'https://cdn.lightwidget.com/widgets/lightwidget.js';
+    script.src = 'https://elfsightcdn.com/platform.js';
     script.async = true;
     document.body.appendChild(script);
 
