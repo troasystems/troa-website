@@ -6,6 +6,7 @@ import shutil
 import os
 from PIL import Image
 import logging
+from auth import require_admin
 
 logger = logging.getLogger(__name__)
 
