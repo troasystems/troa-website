@@ -139,15 +139,16 @@ async def google_callback(request: Request):
         # Create session
         session_token = create_session(user_data)
         
-        # Redirect to frontend with session token
+        # Redirect to frontend with session token in URL
         frontend_url = os.getenv('REACT_APP_BACKEND_URL', '').replace('/api', '')
-        response = RedirectResponse(url=f'{frontend_url}/?auth_success=true')
+        response = RedirectResponse(url=f'{frontend_url}/?auth_success=true&token={session_token}')
         response.set_cookie(
             key='session_token',
             value=session_token,
-            httponly=True,
+            httponly=False,  # Changed to False so frontend can read it
             max_age=7 * 24 * 60 * 60,  # 7 days
-            samesite='lax'
+            samesite='lax',
+            path='/'
         )
         
         client.close()
