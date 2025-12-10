@@ -185,7 +185,21 @@ async def delete_membership_application(application_id: str, request: Request):
 
 # Include routers in the main app
 app.include_router(api_router)
-app.include_router(auth_router, prefix=\"/api\")\n\n# Add session middleware\napp.add_middleware(\n    SessionMiddleware,\n    secret_key=os.getenv('SECRET_KEY', 'your-secret-key-change-in-production')\n)\n\napp.add_middleware(\n    CORSMiddleware,\n    allow_credentials=True,\n    allow_origins=[\"*\"],\n    allow_methods=[\"*\"],\n    allow_headers=[\"*\"],\n)
+app.include_router(auth_router, prefix="/api")
+
+# Add session middleware
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv('SECRET_KEY', 'your-secret-key-change-in-production')
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=True,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
