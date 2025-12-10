@@ -50,16 +50,6 @@ const Gallery = () => {
           {/* Instagram Feed Embed */}
           <div className="bg-white rounded-2xl shadow-xl p-8 mb-12">
             <div className="max-w-6xl mx-auto">
-              {/* Elfsight Instagram Feed Widget */}
-              <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold mb-4 text-gray-900">
-                  Follow Our Instagram Journey
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  @the.retreat.bangalore
-                </p>
-              </div>
-
               {/* Instagram Widget */}
               <div className="elfsight-app-e60ad30d-b722-4a0d-8884-173acf13e96f" data-elfsight-app-lazy></div>
 
