@@ -118,13 +118,70 @@ async def create_membership_application(application: MembershipApplicationCreate
         raise HTTPException(status_code=500, detail="Failed to submit membership application")
 
 @api_router.get("/membership", response_model=List[MembershipApplication])
-async def get_membership_applications():
+async def get_membership_applications(request: Request, admin = None):
+    """Get membership applications - admin only for full access"""
     try:
+        # Check if user is admin
+        try:
+            admin = await require_admin(request)
+        except:
+            # Non-admin users can't see applications
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
         applications = await db.membership_applications.find().sort("created_at", -1).to_list(1000)
         return [MembershipApplication(**app) for app in applications]
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error fetching membership applications: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch membership applications")
+
+@api_router.patch("/membership/{application_id}", response_model=MembershipApplication)
+async def update_membership_application(application_id: str, update: MembershipApplicationUpdate, request: Request):
+    """Update membership application status - admin only"""
+    try:
+        admin = await require_admin(request)
+        
+        from datetime import datetime
+        result = await db.membership_applications.find_one_and_update(
+            {"id": application_id},
+            {
+                "$set": {
+                    "status": update.status,
+                    "updated_at": datetime.utcnow(),
+                    "reviewed_by": admin['email']
+                }
+            },
+            return_document=True
+        )
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="Application not found")
+        
+        return MembershipApplication(**result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating membership application: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update membership application")
+
+@api_router.delete("/membership/{application_id}")
+async def delete_membership_application(application_id: str, request: Request):
+    """Delete membership application - admin only"""
+    try:
+        admin = await require_admin(request)
+        
+        result = await db.membership_applications.delete_one({"id": application_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Application not found")
+        
+        return {"message": "Application deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting membership application: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete membership application")
 
 # Include routers in the main app
 app.include_router(api_router)
