@@ -86,7 +86,7 @@ const Contact = () => {
 
             toast({
               title: 'Payment Successful!',
-              description: '₹11,000 membership fee paid successfully'
+              description: '₹11,800 membership fee paid successfully'
             });
 
             setShowPaymentOption(false);
