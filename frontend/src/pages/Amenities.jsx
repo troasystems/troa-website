@@ -139,8 +139,7 @@ const Amenities = () => {
       const response = await axios.post(`${API}/upload/image`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-        },
-        withCredentials: true
+        }
       });
       
       if (isEdit) {
