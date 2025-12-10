@@ -85,7 +85,14 @@ const Footer = () => {
             <ul className="space-y-3 mb-6">
               <li className="flex items-start space-x-2">
                 <MapPin size={18} className="text-orange-400 mt-1 flex-shrink-0" />
-                <span className="text-gray-300 text-sm">The Retreat Community, Bangalore</span>
+                <a
+                  href="https://www.google.com/maps/place/The+Retreat+Blvd,+Tharabanahalli,+Karnataka+562157/@13.1937241,77.6229915,17z/data=!3m1!4b1!4m6!3m5!1s0x3bae1ef5e6fc7771:0xad750ac6cda3a9fa!8m2!3d13.1937189!4d77.6255664!16s%2Fg%2F11g639rxfw!5m1!1e2"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-300 text-sm hover:text-orange-400 transition-colors"
+                >
+                  The Retreat Community, Bangalore
+                </a>
               </li>
             </ul>
 
