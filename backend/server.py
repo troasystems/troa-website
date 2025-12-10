@@ -123,8 +123,8 @@ async def get_membership_applications(request: Request, admin = None):
     try:
         # Check if user is admin
         try:
-            admin = await require_admin(request)
-        except:
+            await require_admin(request)
+        except Exception:
             # Non-admin users can't see applications
             raise HTTPException(status_code=403, detail="Admin access required")
         
