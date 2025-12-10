@@ -22,9 +22,11 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <Link to="/" className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-600 via-pink-500 to-orange-500 rounded-lg flex items-center justify-center transform hover:scale-105 transition-transform duration-300">
-              <span className="text-white font-bold text-xl">TR</span>
-            </div>
+            <img 
+              src="https://customer-assets.emergentagent.com/job_tron-inspired/artifacts/s7kqkc41_Gemini_Generated_Image_b3s3itb3s3itb3s3.png" 
+              alt="The Retreat Logo" 
+              className="h-16 w-auto transform hover:scale-105 transition-transform duration-300"
+            />
             <div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 bg-clip-text text-transparent">TROA</h1>
               <p className="text-xs text-gray-600">The Retreat Owners Association</p>
