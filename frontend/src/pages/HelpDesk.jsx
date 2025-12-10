@@ -104,8 +104,8 @@ const HelpDesk = () => {
         { label: 'Move Out Form', link: 'https://docs.google.com/forms/d/e/1FAIpQLScV2zbpjwbLxs4nU85oGJWr7ddNvTLw64-qviELYhdeLEgaVQ/viewform?usp=dialog' }
       ],
       payments: [
-        { label: 'Pay for Move-In (₹2,000)', type: 'move_in', amount: 2000 },
-        { label: 'Pay for Move-Out (₹2,000)', type: 'move_out', amount: 2000 }
+        { label: 'Pay for Move-In (₹2,380)', type: 'move_in', amount: 2380 },
+        { label: 'Pay for Move-Out (₹2,380)', type: 'move_out', amount: 2380 }
       ],
       gradient: 'from-purple-500 to-indigo-500'
     },
