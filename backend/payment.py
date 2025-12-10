@@ -47,9 +47,11 @@ class PaymentVerification(BaseModel):
 async def create_payment_order(order_request: PaymentOrderRequest):
     """Create a Razorpay order"""
     try:
+        logger.info(f"Creating payment order for type: {order_request.payment_type}")
         payment_type = order_request.payment_type
         
         if payment_type not in PAYMENT_AMOUNTS:
+            logger.error(f"Invalid payment type: {payment_type}")
             raise HTTPException(status_code=400, detail="Invalid payment type")
         
         amount = PAYMENT_AMOUNTS[payment_type]
