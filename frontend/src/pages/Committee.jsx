@@ -101,6 +101,37 @@ const Committee = () => {
     setEditForm({});
   };
 
+  const handleImageUpload = async (file, isEdit = false) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post(`${API}/upload/image`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        withCredentials: true
+      });
+      
+      if (isEdit) {
+        setEditForm({ ...editForm, image: response.data.url });
+      } else {
+        setNewMemberForm({ ...newMemberForm, image: response.data.url });
+      }
+      
+      toast({
+        title: 'Success',
+        description: 'Image uploaded successfully'
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to upload image',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const handleAddNew = async () => {
     try {
       await axios.post(
