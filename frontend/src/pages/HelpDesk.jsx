@@ -8,6 +8,85 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 const HelpDesk = () => {
+  const [paymentModal, setPaymentModal] = useState(null);
+  const [paymentForm, setPaymentForm] = useState({ name: '', email: '', phone: '' });
+
+  const handlePayNow = async (paymentType, amount) => {
+    if (!paymentForm.name || !paymentForm.email || !paymentForm.phone) {
+      toast({
+        title: 'Error',
+        description: 'Please fill in all payment details',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      // Create order
+      const orderResponse = await axios.post(`${API}/payment/create-order`, {
+        payment_type: paymentType,
+        name: paymentForm.name,
+        email: paymentForm.email,
+        phone: paymentForm.phone
+      });
+
+      const { order_id, amount: orderAmount, key_id } = orderResponse.data;
+
+      // Razorpay options
+      const options = {
+        key: key_id,
+        amount: orderAmount,
+        currency: 'INR',
+        name: 'TROA - The Retreat',
+        description: `Payment for ${paymentType.replace('_', ' ')} form`,
+        order_id: order_id,
+        handler: async function (response) {
+          try {
+            // Verify payment
+            await axios.post(`${API}/payment/verify`, {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              payment_type: paymentType,
+              user_details: paymentForm
+            });
+
+            toast({
+              title: 'Payment Successful!',
+              description: `₹${amount} paid successfully`
+            });
+
+            setPaymentModal(null);
+            setPaymentForm({ name: '', email: '', phone: '' });
+          } catch (error) {
+            toast({
+              title: 'Payment Verification Failed',
+              description: 'Please contact support',
+              variant: 'destructive'
+            });
+          }
+        },
+        prefill: {
+          name: paymentForm.name,
+          email: paymentForm.email,
+          contact: paymentForm.phone
+        },
+        theme: {
+          color: '#9333ea'
+        }
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to initiate payment',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const services = [
     {
       icon: <FileText className="w-8 h-8" />,
