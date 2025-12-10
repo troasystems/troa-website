@@ -83,15 +83,20 @@ const Contact = () => {
               </p>
 
               <div className="space-y-6">
-                <div className="flex items-start space-x-4 p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                <a
+                  href="https://www.google.com/maps/place/The+Retreat+Blvd,+Tharabanahalli,+Karnataka+562157/@13.1937241,77.6229915,17z/data=!3m1!4b1!4m6!3m5!1s0x3bae1ef5e6fc7771:0xad750ac6cda3a9fa!8m2!3d13.1937189!4d77.6255664!16s%2Fg%2F11g639rxfw!5m1!1e2"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-start space-x-4 p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 group"
+                >
+                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
                     <MapPin className="text-white" size={24} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold mb-2 text-gray-900">Address</h3>
-                    <p className="text-gray-600">The Retreat Community<br />Bangalore, Karnataka</p>
+                    <h3 className="text-xl font-semibold mb-2 text-gray-900 group-hover:text-purple-600 transition-colors">Address</h3>
+                    <p className="text-gray-600 group-hover:text-gray-900 transition-colors">The Retreat Community<br />Bangalore, Karnataka</p>
                   </div>
-                </div>
+                </a>
 
                 <div className="p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
                   <h3 className="text-xl font-semibold mb-4 text-gray-900">Connect With Us</h3>
