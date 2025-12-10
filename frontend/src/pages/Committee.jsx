@@ -13,6 +13,15 @@ const Committee = () => {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [isAdding, setIsAdding] = useState(false);
+  const [newMemberForm, setNewMemberForm] = useState({
+    name: '',
+    position: '',
+    image: '',
+    facebook: '',
+    twitter: '',
+    linkedin: ''
+  });
   const { isAdmin } = useAuth();
 
   useEffect(() => {
