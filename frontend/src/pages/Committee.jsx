@@ -101,6 +101,48 @@ const Committee = () => {
     setEditForm({});
   };
 
+  const handleAddNew = async () => {
+    try {
+      await axios.post(
+        `${API}/committee`,
+        newMemberForm,
+        { withCredentials: true }
+      );
+      toast({
+        title: 'Success',
+        description: 'Committee member added successfully'
+      });
+      setIsAdding(false);
+      setNewMemberForm({
+        name: '',
+        position: '',
+        image: '',
+        facebook: '',
+        twitter: '',
+        linkedin: ''
+      });
+      fetchMembers();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to add committee member',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleCancelAdd = () => {
+    setIsAdding(false);
+    setNewMemberForm({
+      name: '',
+      position: '',
+      image: '',
+      facebook: '',
+      twitter: '',
+      linkedin: ''
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen pt-20 flex items-center justify-center">
