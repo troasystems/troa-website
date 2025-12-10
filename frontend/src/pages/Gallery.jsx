@@ -1,44 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Instagram, ExternalLink, AlertCircle } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import React, { useEffect } from 'react';
+import { Instagram, ExternalLink } from 'lucide-react';
 
 const Gallery = () => {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
-  const { isAdmin } = useAuth();
-
   useEffect(() => {
-    fetchInstagramPosts();
+    // Load Instagram embed script
+    const script = document.createElement('script');
+    script.src = 'https://cdn.lightwidget.com/widgets/lightwidget.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
   }, []);
-
-  const fetchInstagramPosts = async () => {
-    try {
-      const response = await axios.get(`${API}/instagram/posts`);
-      setPosts(response.data.posts || []);
-      setAuthenticated(response.data.authenticated);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching Instagram posts:', error);
-      setLoading(false);
-    }
-  };
-
-  const handleInstagramAuth = () => {
-    window.location.href = `${API}/instagram/auth`;
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen pt-20 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-600"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen pt-20">
