@@ -257,7 +257,7 @@ const HelpDesk = () => {
                       </ol>
 
                       {service.actions && (
-                        <div className="flex flex-wrap gap-4">
+                        <div className="flex flex-wrap gap-4 mb-4">
                           {service.actions.map((action, i) => (
                             <div key={i} className="flex-1 min-w-[200px]">
                               <a
@@ -272,6 +272,22 @@ const HelpDesk = () => {
                               {action.description && (
                                 <p className="text-sm text-gray-600 mt-2">{action.description}</p>
                               )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {service.payments && (
+                        <div className="flex flex-wrap gap-4 mt-4">
+                          {service.payments.map((payment, i) => (
+                            <div key={i} className="flex-1 min-w-[200px]">
+                              <button
+                                onClick={() => setPaymentModal({ type: payment.type, amount: payment.amount })}
+                                className={`inline-flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold hover:scale-105 transform transition-all duration-300 shadow-lg w-full`}
+                              >
+                                <CreditCard className="w-4 h-4" />
+                                <span>{payment.label}</span>
+                              </button>
                             </div>
                           ))}
                         </div>
