@@ -63,7 +63,15 @@ def delete_session(token: str):
 
 async def get_current_user(request: Request) -> Optional[dict]:
     """Get current logged in user from session"""
+    # Try to get token from cookie first
     token = request.cookies.get('session_token')
+    
+    # If not in cookie, try Authorization header
+    if not token:
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.replace('Bearer ', '')
+    
     if not token:
         return None
     return get_session(token)
