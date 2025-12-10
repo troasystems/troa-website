@@ -63,6 +63,46 @@ async def create_committee_member(member: CommitteeMemberCreate):
         logger.error(f"Error creating committee member: {e}")
         raise HTTPException(status_code=500, detail="Failed to create committee member")
 
+@api_router.patch("/committee/{member_id}", response_model=CommitteeMember)
+async def update_committee_member(member_id: str, member: CommitteeMemberCreate, request: Request):
+    """Update committee member - admin only"""
+    try:
+        admin = await require_admin(request)
+        
+        result = await db.committee_members.find_one_and_update(
+            {"id": member_id},
+            {"$set": member.dict()},
+            return_document=True
+        )
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="Committee member not found")
+        
+        return CommitteeMember(**result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating committee member: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update committee member")
+
+@api_router.delete("/committee/{member_id}")
+async def delete_committee_member(member_id: str, request: Request):
+    """Delete committee member - admin only"""
+    try:
+        admin = await require_admin(request)
+        
+        result = await db.committee_members.delete_one({"id": member_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Committee member not found")
+        
+        return {"message": "Committee member deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting committee member: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete committee member")
+
 # Amenities Routes
 @api_router.get("/amenities", response_model=List[Amenity])
 async def get_amenities():
