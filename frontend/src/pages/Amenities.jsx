@@ -219,9 +219,22 @@ const Amenities = () => {
                     className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none resize-none"
                     rows="3"
                   />
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Upload Image</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e.target.files[0], false)}
+                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
+                    />
+                    {newAmenityForm.image && (
+                      <img src={newAmenityForm.image} alt="Preview" className="mt-2 w-full h-32 object-cover rounded-lg" />
+                    )}
+                  </div>
+                  <div className="text-center text-sm text-gray-500">OR</div>
                   <input
                     type="text"
-                    placeholder="Image URL"
+                    placeholder="Or paste Image URL"
                     value={newAmenityForm.image}
                     onChange={(e) => setNewAmenityForm({ ...newAmenityForm, image: e.target.value })}
                     className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
