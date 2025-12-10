@@ -10,18 +10,27 @@ import secrets
 from models import User, UserCreate
 from motor.motor_asyncio import AsyncIOMotorClient
 
+# Load environment variables
+from dotenv import load_dotenv
+from pathlib import Path
+ROOT_DIR = Path(__file__).parent
+load_dotenv(ROOT_DIR / '.env')
+
 # Initialize OAuth
-config = Config()
-oauth = OAuth(config)
+oauth = OAuth()
 
 # Admin emails
 ADMIN_EMAILS = ['troa.mgr@gmail.com', 'troa.systems@gmail.com']
 
+# Get OAuth credentials
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+
 # Register Google OAuth
 oauth.register(
     name='google',
-    client_id=os.getenv('GOOGLE_CLIENT_ID'),
-    client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+    client_id=GOOGLE_CLIENT_ID,
+    client_secret=GOOGLE_CLIENT_SECRET,
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={'scope': 'openid email profile'}
 )
