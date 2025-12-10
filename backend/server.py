@@ -124,6 +124,46 @@ async def create_amenity(amenity: AmenityCreate):
         logger.error(f"Error creating amenity: {e}")
         raise HTTPException(status_code=500, detail="Failed to create amenity")
 
+@api_router.patch("/amenities/{amenity_id}", response_model=Amenity)
+async def update_amenity(amenity_id: str, amenity: AmenityCreate, request: Request):
+    """Update amenity - admin only"""
+    try:
+        admin = await require_admin(request)
+        
+        result = await db.amenities.find_one_and_update(
+            {"id": amenity_id},
+            {"$set": amenity.dict()},
+            return_document=True
+        )
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="Amenity not found")
+        
+        return Amenity(**result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating amenity: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update amenity")
+
+@api_router.delete("/amenities/{amenity_id}")
+async def delete_amenity(amenity_id: str, request: Request):
+    """Delete amenity - admin only"""
+    try:
+        admin = await require_admin(request)
+        
+        result = await db.amenities.delete_one({"id": amenity_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Amenity not found")
+        
+        return {"message": "Amenity deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting amenity: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete amenity")
+
 # Gallery Routes
 @api_router.get("/gallery", response_model=List[GalleryImage])
 async def get_gallery_images():
