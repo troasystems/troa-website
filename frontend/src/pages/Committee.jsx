@@ -185,6 +185,71 @@ const Committee = () => {
 
           <Toaster />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Add New Member Card */}
+            {isAdding && (
+              <div className="bg-white rounded-2xl shadow-lg p-6">
+                <h3 className="text-xl font-bold mb-4 text-gray-900">Add New Member</h3>
+                <div className="space-y-4">
+                  <input
+                    type="text"
+                    placeholder="Name"
+                    value={newMemberForm.name}
+                    onChange={(e) => setNewMemberForm({ ...newMemberForm, name: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Position"
+                    value={newMemberForm.position}
+                    onChange={(e) => setNewMemberForm({ ...newMemberForm, position: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Image URL"
+                    value={newMemberForm.image}
+                    onChange={(e) => setNewMemberForm({ ...newMemberForm, image: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Facebook URL (optional)"
+                    value={newMemberForm.facebook}
+                    onChange={(e) => setNewMemberForm({ ...newMemberForm, facebook: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Twitter URL (optional)"
+                    value={newMemberForm.twitter}
+                    onChange={(e) => setNewMemberForm({ ...newMemberForm, twitter: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
+                  />
+                  <input
+                    type="text"
+                    placeholder="LinkedIn URL (optional)"
+                    value={newMemberForm.linkedin}
+                    onChange={(e) => setNewMemberForm({ ...newMemberForm, linkedin: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
+                  />
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={handleAddNew}
+                      className="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300"
+                    >
+                      Add
+                    </button>
+                    <button
+                      onClick={handleCancelAdd}
+                      className="flex-1 px-4 py-2 bg-gray-500 text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {members.map((member) => (
               <div
                 key={member.id}
