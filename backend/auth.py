@@ -17,6 +17,9 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
+# Configure logging
+logger = logging.getLogger(__name__)
+
 # Initialize OAuth
 oauth = OAuth()
 
