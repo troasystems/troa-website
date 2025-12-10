@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Edit2, Trash2, Save, X } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { toast } from '../hooks/use-toast';
+import { Toaster } from '../components/ui/toaster';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -7,6 +11,15 @@ const API = `${BACKEND_URL}/api`;
 const Amenities = () => {
   const [amenities, setAmenities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [isAdding, setIsAdding] = useState(false);
+  const [newAmenityForm, setNewAmenityForm] = useState({
+    name: '',
+    description: '',
+    image: ''
+  });
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     fetchAmenities();
@@ -21,6 +34,101 @@ const Amenities = () => {
       console.error('Error fetching amenities:', error);
       setLoading(false);
     }
+  };
+
+  const handleEdit = (amenity) => {
+    setEditingId(amenity.id);
+    setEditForm({
+      name: amenity.name,
+      description: amenity.description,
+      image: amenity.image
+    });
+  };
+
+  const handleSave = async (amenityId) => {
+    try {
+      await axios.patch(
+        `${API}/amenities/${amenityId}`,
+        editForm,
+        { withCredentials: true }
+      );
+      toast({
+        title: 'Success',
+        description: 'Amenity updated successfully'
+      });
+      setEditingId(null);
+      fetchAmenities();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update amenity',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleDelete = async (amenityId) => {
+    if (!window.confirm('Are you sure you want to delete this amenity?')) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${API}/amenities/${amenityId}`, {
+        withCredentials: true
+      });
+      toast({
+        title: 'Success',
+        description: 'Amenity deleted successfully'
+      });
+      fetchAmenities();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete amenity',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleCancel = () => {
+    setEditingId(null);
+    setEditForm({});
+  };
+
+  const handleAddNew = async () => {
+    try {
+      await axios.post(
+        `${API}/amenities`,
+        newAmenityForm,
+        { withCredentials: true }
+      );
+      toast({
+        title: 'Success',
+        description: 'Amenity added successfully'
+      });
+      setIsAdding(false);
+      setNewAmenityForm({
+        name: '',
+        description: '',
+        image: ''
+      });
+      fetchAmenities();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to add amenity',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleCancelAdd = () => {
+    setIsAdding(false);
+    setNewAmenityForm({
+      name: '',
+      description: '',
+      image: ''
+    });
   };
 
   if (loading) {
