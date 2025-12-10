@@ -165,9 +165,6 @@ const HelpDesk = () => {
   return (
     <div className="min-h-screen pt-20">
       <Toaster />
-      
-      {/* Load Razorpay script */}
-      <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
       {/* Payment Modal */}
       {paymentModal && (
