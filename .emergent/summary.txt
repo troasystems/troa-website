@@ -1,0 +1,159 @@
+<analysis>**original_problem_statement**: The user wants to build a website that is a pixel-perfect clone of , matching its design, layout, colors, fonts, images, animations, and structure.
+
+**PRODUCT REQUIREMENTS:**
+1.  **Core Website:** A multi-page website with a vibrant theme, including pages for Home, About, Committee, Amenities, Gallery, and Contact.
+2.  **Authentication:** Login functionality with Google OAuth.
+3.  **Admin Portal:** An admin-only section where designated admins (, ) can:
+    *   View, approve, reject, and delete membership requests.
+    *   Perform full CRUD (Create, Read, Update, Delete) operations on Committee members, including their name, role, and photo.
+    *   Perform full CRUD operations on Amenities, including their name, description, and photo.
+4.  **Help Desk Page:** Replicate the functionality and content of .
+5.  **Gallery Page:** The page should display a live feed from the Instagram account .
+6.  **Payment Integration:** Integrate Razorpay for payments on three forms with specific amounts:
+    *   Move-In form: ₹2,380
+    *   Move-Out form: ₹2,380
+    *   Membership form: ₹11,800
+7.  **UI/UX Changes:**
+    *   Use a specific logo provided by the user.
+    *   Remove phone and email details from the footer and Contact page.
+    *   Add Facebook and Instagram icons in the footer and on the contact page, linking to the correct profiles.
+    *   Make the address in the footer and on the contact page a clickable link to a specific Google Maps URL.
+    *   Rename the website title to The Retreat, Bangalore.
+
+**User's preferred language**: English
+
+**what currently exists?**
+A multi-page React/FastAPI application has been built, mirroring the structure of . Key features implemented include:
+- Frontend pages for Home, About, Committee, Amenities, Gallery, Help Desk, and Contact.
+- A live Instagram feed on the Gallery page using an Elfsight widget.
+- An admin portal with UI elements for managing Committee and Amenities, including image uploads.
+- Razorpay payment integration with Pay Now buttons for Move-in, Move-out, and Membership fees on the Help Desk and Contact pages.
+- Backend endpoints for all the above features, including CRUD operations and payment order creation.
+- All requested UI/UX modifications (logo, social links, clickable address, title change) have been applied.
+
+**Last working item**:
+*   **Last item agent was working**: The agent was attempting to fix the Google OAuth login functionality, which is preventing users from authenticating and accessing admin features. The login process results in a 401 Unauthorized error.
+*   **Status**: BLOCKED
+*   **Agent Testing Done**: N
+*   **Which testing method agent to use?**: Manual testing by trying to log in via the frontend. Check backend logs for errors during the  execution.
+*   **User Testing Done**: Y (User reported the login is not working).
+
+**All Pending/In progress Issue list**:
+*   **Issue 1**: Google OAuth Login is not working (P0 - HIGHEST)
+*   **Issue 2**: Image upload endpoints lack authentication (P1)
+*   **Issue 3**: Razorpay payment initiation is unverified after the last fix (P2)
+*   **Issue 4**: Admin CRUD functionalities are untested due to the login issue (P2)
+
+**Issues Detail**:
+*   **Issue 1: Google OAuth Login is not working**
+    *   **Attempted fixes**: The agent initially tried a session-based approach which failed due to  cookie issues. It then switched to a token-based approach where the backend should redirect to the frontend with a JWT in the URL (). However, the OAuth callback on the backend () is issuing a  instead of processing the user's details, creating a JWT, and returning it. This prevents the login from completing.
+    *   **Next debug checklist**:
+        1.  In , add extensive logging inside the  function, especially around the  call to see if it's being executed or throwing an unhandled exception.
+        2.  Verify that the  configuration in  does not require a server-side session, as the current flow is designed to be stateless (token-based).
+        3.  Ensure the  passed when initiating the login () exactly matches one of the URIs registered in the Google Cloud Console.
+    *   **Why fix this issue and what will be achieved with the fix?**: This is the highest priority issue. Fixing it will enable user authentication, which is critical for accessing the admin portal and all related content management features.
+    *   **Status**: BLOCKED
+    *   **Is recurring issue?**: Y
+    *   **Should Test frontend/backend/both after fix?**: Both
+    *   **Blocked on other issue**: None
+
+*   **Issue 2: Image upload endpoints lack authentication**
+    *   **Attempted fixes**: The agent removed the authentication dependency from the upload endpoints in  as a temporary workaround for an upload failure. This is a security risk.
+    *   **Next debug checklist**:
+        1.  Once the login (Issue 1) is fixed, re-add the authentication dependency to the upload routes in .
+        2.  Ensure the frontend  or  calls for file uploads in  and  include the  header.
+    *   **Why fix this issue and what will be achieved with the fix?**: To secure the application and ensure only authenticated admins can upload or change images.
+    *   **Status**: NOT STARTED
+    *   **Is recurring issue?**: N
+    *   **Should Test frontend/backend/both after fix?**: Both
+    *   **Blocked on other issue**: Issue 1: Google OAuth Login is not working
+
+**In progress Task List**:
+None.
+
+**Upcoming and Future Tasks**
+*   **Task 1 (P1):** Test the complete Razorpay payment flow for all three forms to confirm it works end-to-end after the script loading fix.
+*   **Task 2 (P1):** Test all admin CRUD functionalities for the Committee and Amenities pages once login is restored.
+
+**Completed work in this session**
+- **Website Structure**: Created a multi-page website clone of troa.in.
+- **Logo Integration**: Replaced the default logo with a user-provided image in the Navbar and Footer.
+- **Instagram Gallery**: Integrated a live Instagram feed into the Gallery page using an Elfsight widget.
+- **UI Cleanup**: Removed phone/email from footer/contact, added correct social media links, and made the address a clickable Google Maps link.
+- **Website Title**: Changed the HTML title to The Retreat, Bangalore.
+- **Admin CRUD**: Implemented backend and frontend for full CRUD management (including image uploads) for Committee members and Amenities, gated behind admin login.
+- **Payment Integration**: Added Razorpay payment buttons with correct amounts for Move-In, Move-Out, and Membership forms.
+
+**Earlier issues found/mentioned but not fixed**
+None.
+
+**Known issue recurrence from previous fork**
+None.
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+-   **Frontend**: React, React Router, Tailwind CSS, Shadcn UI components.
+-   **Backend**: FastAPI, MongoDB (with  for async).
+-   **Authentication**: Google OAuth with , attempting a stateless JWT-based flow. The token is passed from backend to frontend via a URL query parameter and stored in .
+-   **Payments**: Razorpay integration for processing payments.
+-   **File Uploads**: Backend handles file uploads and saves them to a public directory in the frontend.
+
+**key DB schema**
+*   **db.users**: 
+*   **db.committee_members**: 
+*   **db.amenities**: 
+*   **db.membership_requests**: 
+*   **db.payments**: 
+
+**changes in tech stack**
+None.
+
+**All files of reference**
+-   : Core of the broken login logic.
+-   : Defines all API routes and includes the auth router.
+-   : Manages the user's authentication state on the frontend.
+-   : The page that initiates the Google login flow.
+-   : Contains the currently insecure file upload logic.
+-   : Contains admin functionality that is currently untestable.
+-   : Contains admin functionality that is currently untestable.
+-   : Handles Razorpay order creation.
+-   : Contains the payment buttons.
+
+**Critical Info for New Agent**
+-   **The absolute priority is fixing the Google OAuth login.** The current implementation is stuck in a redirect loop () during the callback phase. The root cause is likely within the  file, where the  call is failing silently. Do not trust that previous attempts to fix this were correct.
+-   As a consequence of the broken login, all admin-gated features (CRUD on Committee/Amenities, viewing membership requests) are completely untested.
+-   The image upload endpoints in  have had their authentication removed. This is a major security flaw and must be fixed by re-adding the auth dependency once login is working.
+-   The user has provided all necessary credentials (Google OAuth, Razorpay) and they are stored in .
+
+**Last 10 User Messages and any pending user messages**
+1.  **the amount to pay for move-in and move-out sould be 2380 each, and the amount for Membership fee should be 11800**: Completed. Agent updated the amounts on the frontend and backend.
+2.  **how to logout and clear session**: Responded. Agent provided instructions.
+3.  **login is still resulting in 401**: In Progress. This is the main blocking issue.
+4.  **still same error**: User confirming the login fix did not work.
+5.  **continue**: User prompt to continue debugging.
+6.  (No further user messages). The last action was the agent deciding to try a simpler, manual OAuth flow, which is what it was already attempting.
+
+**Project Health Check:**
+*   **Broken**: Google OAuth Login.
+*   **Mocked**: None.
+
+**3rd Party Integrations**
+*   **Google OAuth**: For user authentication. Requires User API Key.
+*   **Razorpay**: For payment processing. Requires User API Key.
+*   **Elfsight**: For embedding the Instagram feed. Uses a user-provided widget script.
+
+**Testing status**
+*   **Testing agent used after significant changes**: YES (earlier in the session, but not for the recent broken auth changes).
+*   **Troubleshoot agent used after agent stuck in loop**: NO
+*   **Test files created**: None.
+*   **Known regressions**: Google OAuth login was previously working in some capacity before being refactored and subsequently breaking.
+
+**Credentials to test flow:**
+-   **Google OAuth**: Credentials are in . Admin emails are  and .
+-   **Razorpay**: Credentials are in .
+
+**What agent forgot to execute**
+- The agent has not verified the Razorpay and image upload fixes after the user reported them as broken. It assumed its fixes would work without confirmation.
+- The agent has not implemented the admin functionality for viewing/approving/rejecting/deleting **membership requests**, even though it was part of the initial request for the admin portal. It only focused on Committee and Amenities CRUD.</analysis>
