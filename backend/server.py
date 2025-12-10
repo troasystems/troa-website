@@ -121,12 +121,17 @@ async def get_amenities():
         raise HTTPException(status_code=500, detail="Failed to fetch amenities")
 
 @api_router.post("/amenities", response_model=Amenity)
-async def create_amenity(amenity: AmenityCreate):
+async def create_amenity(amenity: AmenityCreate, request: Request):
     try:
+        # Require admin authentication
+        await require_admin(request)
+        
         amenity_dict = amenity.dict()
         amenity_obj = Amenity(**amenity_dict)
         await db.amenities.insert_one(amenity_obj.dict())
         return amenity_obj
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error creating amenity: {e}")
         raise HTTPException(status_code=500, detail="Failed to create amenity")
