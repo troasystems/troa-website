@@ -55,71 +55,56 @@ const Gallery = () => {
             </p>
           </div>
 
-          {/* Instagram Feed Widget */}
+          {/* Instagram Feed Embed */}
           <div className="bg-white rounded-2xl shadow-xl p-8 mb-12">
-            <div className="flex justify-center">
-              <iframe 
-                src="https://lightwidget.com/widgets/8c4e3f4f1c2b558d9e7a6b5c4d3e2f1a.html" 
-                scrolling="no" 
-                allowTransparency="true" 
-                className="lightwidget-widget w-full border-0"
-                style={{ width: '100%', border: 0, overflow: 'hidden', minHeight: '600px' }}
-                title="Instagram Feed"
-              ></iframe>
-            </div>
-            
-            <div className="text-center mt-8">
-              <a
-                href="https://www.instagram.com/the.retreat.bangalore/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-full font-semibold hover:scale-105 transform transition-all duration-300 shadow-lg"
-              >
-                <Instagram size={24} />
-                <span>View Full Profile on Instagram</span>
-                <ExternalLink size={18} />
-              </a>
-            </div>
-          </div>
+            <div className="max-w-4xl mx-auto">
+              {/* Elfsight Instagram Feed Widget - Easy Setup */}
+              <div className="text-center mb-8">
+                <h3 className="text-2xl font-bold mb-4 text-gray-900">
+                  Follow Our Instagram Journey
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  @the.retreat.bangalore
+                </p>
+              </div>
 
-          {/* Alternative: Manual Instagram Grid */}
-          <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold mb-8 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
-              Community Highlights
-            </h3>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {[
-              'https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=400&q=80',
-              'https://images.unsplash.com/photo-1519671282429-b44660ead0a7?w=400&q=80',
-              'https://images.unsplash.com/photo-1511988617509-a57c8a288659?w=400&q=80',
-              'https://images.unsplash.com/photo-1621112904887-419379ce6824?w=400&q=80',
-              'https://images.unsplash.com/photo-1565813086292-604790c8a97b?w=400&q=80',
-              'https://images.unsplash.com/photo-1544928147-79a2dbc1f389?w=400&q=80',
-              'https://images.unsplash.com/photo-1472653431158-6364773b2a56?w=400&q=80',
-              'https://images.pexels.com/photos/1655329/pexels-photo-1655329.jpeg?w=400&q=80'
-            ].map((imgUrl, index) => (
-              <a
-                key={index}
-                href="https://www.instagram.com/the.retreat.bangalore/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group relative aspect-square rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105"
-              >
-                <img
-                  src={imgUrl}
-                  alt={`Community moment ${index + 1}`}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-4">
-                  <div className="text-white flex items-center space-x-2">
-                    <Instagram size={20} />
-                    <span className="text-sm font-semibold">View on Instagram</span>
+              {/* Instagram Embed Container */}
+              <div className="relative bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 rounded-2xl p-8 min-h-[600px] flex items-center justify-center">
+                <div className="text-center">
+                  <Instagram size={80} className="mx-auto mb-6 text-purple-400" />
+                  <h4 className="text-2xl font-bold mb-4 text-gray-900">
+                    Visit Our Instagram
+                  </h4>
+                  <p className="text-gray-600 mb-6 max-w-lg mx-auto">
+                    See our latest posts, stories, and community moments on Instagram
+                  </p>
+                  <a
+                    href="https://www.instagram.com/the.retreat.bangalore/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-full font-bold text-lg hover:scale-105 transform transition-all duration-300 shadow-2xl"
+                  >
+                    <Instagram size={28} />
+                    <span>View Instagram Profile</span>
+                    <ExternalLink size={20} />
+                  </a>
+                  
+                  <div className="mt-8 p-4 bg-white rounded-lg shadow-md">
+                    <p className="text-sm text-gray-600 mb-2">
+                      <strong>Easy Instagram Integration:</strong>
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      To display live Instagram feed here:
+                    </p>
+                    <ol className="text-xs text-gray-500 text-left mt-2 space-y-1">
+                      <li>1. Visit <a href="https://elfsight.com/instagram-feed-instashow/" target="_blank" rel="noopener" className="text-purple-600 hover:underline">Elfsight Instagram Widget</a></li>
+                      <li>2. Create free account and connect @the.retreat.bangalore</li>
+                      <li>3. Copy the widget code and share with developer</li>
+                    </ol>
                   </div>
                 </div>
-              </a>
-            ))}
+              </div>
+            </div>
           </div>
 
           {/* CTA Section */}
