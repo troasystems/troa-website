@@ -257,9 +257,9 @@ async def update_membership_application(application_id: str, update: MembershipA
 
 @api_router.delete("/membership/{application_id}")
 async def delete_membership_application(application_id: str, request: Request):
-    """Delete membership application - admin only"""
+    """Delete membership application - admin and manager access"""
     try:
-        await require_admin(request)
+        await require_manager_or_admin(request)
         
         result = await db.membership_applications.delete_one({"id": application_id})
         
