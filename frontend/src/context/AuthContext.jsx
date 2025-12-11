@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
-import { getBasicAuth } from '../utils/api';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -38,12 +37,10 @@ export const AuthProvider = ({ children }) => {
     try {
       // Get token from localStorage
       const token = localStorage.getItem('session_token');
-      const basicAuth = getBasicAuth();
       
       const response = await axios.get(`${API}/auth/user`, {
         withCredentials: true,
         headers: {
-          'Authorization': `Basic ${basicAuth}`,
           ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
         }
       });
@@ -63,12 +60,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      const basicAuth = getBasicAuth();
       await axios.post(`${API}/auth/logout`, {}, {
-        withCredentials: true,
-        headers: {
-          'Authorization': `Basic ${basicAuth}`
-        }
+        withCredentials: true
       });
       setUser(null);
       localStorage.removeItem('session_token');
