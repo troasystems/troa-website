@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, List
 
 # Get backend URL from environment
-BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://theretreathub.preview.emergentagent.com')
+BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://tenant-assist-6.preview.emergentagent.com')
 API_BASE_URL = f"{BACKEND_URL}/api"
 
 class TROAAPITester:
