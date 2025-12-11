@@ -620,9 +620,6 @@ app.include_router(instagram_router, prefix="/api")
 app.include_router(upload_router, prefix="/api")
 app.include_router(payment_router, prefix="/api")
 
-# Add basic authentication middleware (must be first)
-app.middleware("http")(basic_auth_middleware)
-
 # Add session middleware
 app.add_middleware(
     SessionMiddleware,
