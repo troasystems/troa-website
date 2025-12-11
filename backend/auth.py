@@ -88,7 +88,13 @@ async def get_current_user(request: Request) -> Optional[dict]:
     # Try to get token from cookie first
     token = request.cookies.get('session_token')
     
-    # If not in cookie, try Authorization header
+    # If not in cookie, try X-Session-Token header (used when basic auth is present)
+    if not token:
+        session_header = request.headers.get('X-Session-Token')
+        if session_header and session_header.startswith('Bearer '):
+            token = session_header.replace('Bearer ', '')
+    
+    # If still not found, try Authorization header (fallback for backward compatibility)
     if not token:
         auth_header = request.headers.get('Authorization')
         if auth_header and auth_header.startswith('Bearer '):
