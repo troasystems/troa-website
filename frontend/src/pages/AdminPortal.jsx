@@ -1,31 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
 import { toast } from '../hooks/use-toast';
 import { Toaster } from '../components/ui/toaster';
-import { Check, X, Trash2, Clock, Mail, Phone, Home } from 'lucide-react';
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { Users, FileText, Shield } from 'lucide-react';
+import MembershipManagement from '../components/MembershipManagement';
+import UserManagement from '../components/UserManagement';
 
 const AdminPortal = () => {
-  const { isAdmin, loading: authLoading } = useAuth();
+  const { isAdmin, isManager, role, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [applications, setApplications] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // all, pending, approved, rejected
+  const [activeTab, setActiveTab] = useState('membership');
 
   useEffect(() => {
-    if (!authLoading && !isAdmin) {
+    if (!authLoading && role === 'user') {
       navigate('/');
       toast({
         title: 'Access Denied',
-        description: 'You do not have admin privileges',
+        description: 'You do not have management privileges',
         variant: 'destructive'
       });
     }
-  }, [isAdmin, authLoading, navigate]);
+  }, [role, authLoading, navigate]);
 
   useEffect(() => {
     if (isAdmin) {
