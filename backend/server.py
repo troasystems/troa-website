@@ -442,6 +442,135 @@ async def delete_feedback(feedback_id: str, request: Request):
         logger.error(f"Error deleting feedback: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete feedback")
 
+# Amenity Booking Routes
+@api_router.post("/bookings", response_model=AmenityBooking)
+async def create_booking(booking: AmenityBookingCreate, request: Request):
+    """Create amenity booking - authenticated users only"""
+    try:
+        user = await require_auth(request)
+        
+        # Validate duration
+        if booking.duration_minutes not in [30, 60]:
+            raise HTTPException(status_code=400, detail="Duration must be 30 or 60 minutes")
+        
+        # Validate additional users count
+        if len(booking.additional_users) > 3:
+            raise HTTPException(status_code=400, detail="Maximum 3 additional users allowed")
+        
+        # Calculate end time
+        from datetime import datetime, timedelta
+        start_dt = datetime.strptime(booking.start_time, "%H:%M")
+        end_dt = start_dt + timedelta(minutes=booking.duration_minutes)
+        end_time = end_dt.strftime("%H:%M")
+        
+        # Check for conflicts
+        existing_bookings = await db.bookings.find({
+            "amenity_id": booking.amenity_id,
+            "booking_date": booking.booking_date,
+            "status": "confirmed"
+        }, {"_id": 0}).to_list(100)
+        
+        for existing in existing_bookings:
+            existing_start = datetime.strptime(existing['start_time'], "%H:%M")
+            existing_end = datetime.strptime(existing['end_time'], "%H:%M")
+            new_start = start_dt
+            new_end = end_dt
+            
+            # Check for time overlap
+            if (new_start < existing_end and new_end > existing_start):
+                raise HTTPException(
+                    status_code=409, 
+                    detail=f"Time slot conflicts with existing booking ({existing['start_time']}-{existing['end_time']})"
+                )
+        
+        # Create booking
+        booking_obj = AmenityBooking(
+            amenity_id=booking.amenity_id,
+            amenity_name=booking.amenity_name,
+            booked_by_email=user['email'],
+            booked_by_name=user['name'],
+            booking_date=booking.booking_date,
+            start_time=booking.start_time,
+            end_time=end_time,
+            duration_minutes=booking.duration_minutes,
+            additional_users=booking.additional_users or []
+        )
+        
+        await db.bookings.insert_one(booking_obj.dict())
+        logger.info(f"Booking created by {user['email']} for {booking.amenity_name}")
+        return booking_obj
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating booking: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create booking")
+
+@api_router.get("/bookings", response_model=List[AmenityBooking])
+async def get_bookings(request: Request, amenity_id: Optional[str] = None, date: Optional[str] = None):
+    """Get bookings - authenticated users can see all bookings"""
+    try:
+        user = await require_auth(request)
+        
+        query = {"status": "confirmed"}
+        if amenity_id:
+            query["amenity_id"] = amenity_id
+        if date:
+            query["booking_date"] = date
+        
+        bookings = await db.bookings.find(query, {"_id": 0}).sort("booking_date", 1).to_list(1000)
+        return [AmenityBooking(**booking) for booking in bookings]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching bookings: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch bookings")
+
+@api_router.get("/bookings/my", response_model=List[AmenityBooking])
+async def get_my_bookings(request: Request):
+    """Get current user's bookings"""
+    try:
+        user = await require_auth(request)
+        
+        bookings = await db.bookings.find({
+            "booked_by_email": user['email'],
+            "status": "confirmed"
+        }, {"_id": 0}).sort("booking_date", -1).to_list(1000)
+        
+        return [AmenityBooking(**booking) for booking in bookings]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching user bookings: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch bookings")
+
+@api_router.delete("/bookings/{booking_id}")
+async def cancel_booking(booking_id: str, request: Request):
+    """Cancel booking - only booking owner can cancel"""
+    try:
+        user = await require_auth(request)
+        
+        # Find booking
+        booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        
+        # Check if user is the booking owner
+        if booking['booked_by_email'] != user['email']:
+            raise HTTPException(status_code=403, detail="You can only cancel your own bookings")
+        
+        # Update status to cancelled
+        await db.bookings.update_one(
+            {"id": booking_id},
+            {"$set": {"status": "cancelled", "updated_at": datetime.utcnow()}}
+        )
+        
+        return {"message": "Booking cancelled successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error cancelling booking: {e}")
+        raise HTTPException(status_code=500, detail="Failed to cancel booking")
+
 # Include routers in the main app
 app.include_router(api_router)
 app.include_router(auth_router, prefix="/api")
