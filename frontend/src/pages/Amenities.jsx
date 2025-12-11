@@ -373,7 +373,18 @@ const Amenities = () => {
                       <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
                         {amenity.name}
                       </h3>
-                      <p className="text-gray-600 leading-relaxed">{amenity.description}</p>
+                      <p className="text-gray-600 leading-relaxed mb-4">{amenity.description}</p>
+                      
+                      {/* Book Now Button - Only for authenticated users */}
+                      {isAuthenticated && (
+                        <button
+                          onClick={() => setBookingAmenity(amenity)}
+                          className="w-full mt-4 flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-300"
+                        >
+                          <Calendar className="w-5 h-5" />
+                          <span>Book Now</span>
+                        </button>
+                      )}
                     </div>
                   </>
                 )}
@@ -382,6 +393,20 @@ const Amenities = () => {
           </div>
         </div>
       </section>
+      
+      {/* Booking Calendar Modal */}
+      {bookingAmenity && (
+        <BookingCalendar
+          amenity={bookingAmenity}
+          onClose={() => setBookingAmenity(null)}
+          onBookingCreated={() => {
+            toast({
+              title: 'Success',
+              description: 'Amenity booked successfully!'
+            });
+          }}
+        />
+      )}
 
       {/* Additional Info */}
       <section className="py-20 bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-white">
