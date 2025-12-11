@@ -32,6 +32,10 @@ async def basic_auth_middleware(request: Request, call_next):
     if request.url.path == "/health":
         return await call_next(request)
     
+    # Skip auth check for image GET requests (allow public image viewing)
+    if request.url.path.startswith("/api/upload/image/") and request.method == "GET":
+        return await call_next(request)
+    
     # Get authorization header
     auth_header = request.headers.get('Authorization')
     
