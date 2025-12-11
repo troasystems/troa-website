@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the committee member update functionality for the TROA website with authentication requirements"
+user_problem_statement: "Test the complete role-based access control system for TROA website including login flow, admin portal, and role-based UI visibility"
 
 backend:
   - task: "Committee Members API - GET endpoint"
