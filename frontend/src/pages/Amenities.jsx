@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { getBasicAuth } from '../utils/api';
 import axios from 'axios';
-import { Edit2, Trash2, Save, X, Calendar } from 'lucide-react';
+import { Edit2, Trash2, Save, X, Calendar, LogIn } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from '../hooks/use-toast';
 import { Toaster } from '../components/ui/toaster';
@@ -9,6 +8,9 @@ import BookingCalendar from '../components/BookingCalendar';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
+
+// Amenities that cannot be booked
+const NON_BOOKABLE_AMENITIES = ['Landscaped Gardens', 'Children\'s Play Area'];
 
 const Amenities = () => {
   const [amenities, setAmenities] = useState([]);
@@ -22,7 +24,14 @@ const Amenities = () => {
     image: ''
   });
   const [bookingAmenity, setBookingAmenity] = useState(null);
-  const { isAdmin, isAuthenticated } = useAuth();
+  const { isAdmin, isAuthenticated, login } = useAuth();
+
+  // Check if an amenity is bookable
+  const isBookable = (amenityName) => {
+    return !NON_BOOKABLE_AMENITIES.some(name => 
+      amenityName.toLowerCase().includes(name.toLowerCase())
+    );
+  };
 
   useEffect(() => {
     fetchAmenities();
@@ -30,12 +39,7 @@ const Amenities = () => {
 
   const fetchAmenities = async () => {
     try {
-      const basicAuth = getBasicAuth();
-      const response = await axios.get(`${API}/amenities`, {
-        headers: {
-          'Authorization': `Basic ${basicAuth}`
-        }
-      });
+      const response = await axios.get(`${API}/amenities`);
       setAmenities(response.data);
       setLoading(false);
     } catch (error) {
