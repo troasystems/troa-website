@@ -21,7 +21,7 @@ const FeedbackBanner = () => {
           <div className="flex items-center space-x-3 flex-1">
             <MessageSquare className="w-5 h-5 flex-shrink-0" />
             <p className="text-sm md:text-base font-medium">
-              🎯 <strong>Dogfooding Phase:</strong> Help us improve! {isAuthenticated ? 'Share your feedback on features, bugs, or suggestions.' : 'Please login to share your feedback.'}
+              💬 <strong>We value your feedback!</strong> {isAuthenticated ? 'Share your thoughts on features, report bugs, or suggest improvements.' : 'Please login to share your feedback.'}
             </p>
           </div>
           <div className="flex items-center space-x-3">
@@ -55,7 +55,7 @@ const FeedbackBanner = () => {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <MessageSquare className="w-4 h-4 flex-shrink-0" />
-              <p className="text-xs font-bold">Dogfooding Phase</p>
+              <p className="text-xs font-bold">We value your feedback!</p>
             </div>
             <p className="text-xs">Help us improve!</p>
           </div>
