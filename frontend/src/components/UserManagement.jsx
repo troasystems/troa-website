@@ -82,9 +82,13 @@ const UserManagement = () => {
 
     try {
       const token = localStorage.getItem('session_token');
+      const basicAuth = btoa('dogfooding:skywalker');
       await axios.delete(`${API}/users/${userId}`, {
         withCredentials: true,
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        headers: {
+          'Authorization': `Basic ${basicAuth}`,
+          ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
+        }
       });
       toast({
         title: 'Success',
