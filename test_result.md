@@ -105,6 +105,30 @@
 user_problem_statement: "Test the complete role-based access control system for TROA website including login flow, admin portal, and role-based UI visibility"
 
 backend:
+  - task: "User Whitelist Feature - POST /api/users endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ POST /api/users endpoint tested successfully. Requires dual authentication (Basic Auth + Session Token) as designed. Successfully creates users with proper role validation (admin, manager, user). Returns 401 without authentication, 422 for invalid email format, 400 for duplicate emails and invalid roles. Endpoint structure and authentication working correctly. First user creation succeeded in TestClient environment."
+
+  - task: "User Whitelist Feature - GET /api/users endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ GET /api/users endpoint tested successfully. Requires admin authentication (Basic Auth + Session Token). Returns 401 without proper authentication. Endpoint exists and processes requests correctly. Authentication requirements working as designed."
+
   - task: "Committee Members API - GET endpoint"
     implemented: true
     working: true
