@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Edit2, Trash2, Save, X } from 'lucide-react';
+import { Edit2, Trash2, Save, X, Calendar } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from '../hooks/use-toast';
 import { Toaster } from '../components/ui/toaster';
+import BookingCalendar from '../components/BookingCalendar';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -19,7 +20,8 @@ const Amenities = () => {
     description: '',
     image: ''
   });
-  const { isAdmin } = useAuth();
+  const [bookingAmenity, setBookingAmenity] = useState(null);
+  const { isAdmin, isAuthenticated } = useAuth();
 
   useEffect(() => {
     fetchAmenities();
