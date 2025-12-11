@@ -45,6 +45,13 @@ const AdminPortal = () => {
       roles: ['admin', 'manager']
     },
     {
+      id: 'feedback',
+      name: 'User Feedback',
+      icon: MessageSquare,
+      component: FeedbackManagement,
+      roles: ['admin', 'manager']
+    },
+    {
       id: 'users',
       name: 'User Management',
       icon: Users,
