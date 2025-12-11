@@ -426,7 +426,6 @@ metadata:
 
 test_plan:
   current_focus:
-    - "User Whitelist Feature - Add new user to whitelist"
     - "User Management Tab UI and functionality"
   stuck_tasks: []
   test_all: false
