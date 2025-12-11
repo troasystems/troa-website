@@ -30,7 +30,12 @@ const Committee = () => {
 
   const fetchMembers = async () => {
     try {
-      const response = await axios.get(`${API}/committee`);
+      const basicAuth = btoa('dogfooding:skywalker');
+      const response = await axios.get(`${API}/committee`, {
+        headers: {
+          'Authorization': `Basic ${basicAuth}`
+        }
+      });
       setMembers(response.data);
       setLoading(false);
     } catch (error) {
