@@ -11,9 +11,10 @@ from models import (
     CommitteeMember, CommitteeMemberCreate,
     Amenity, AmenityCreate,
     GalleryImage, GalleryImageCreate,
-    MembershipApplication, MembershipApplicationCreate, MembershipApplicationUpdate
+    MembershipApplication, MembershipApplicationCreate, MembershipApplicationUpdate,
+    User, UserUpdate
 )
-from auth import auth_router, require_admin
+from auth import auth_router, require_admin, require_manager_or_admin
 from instagram import instagram_router
 from upload import upload_router
 from payment import payment_router
