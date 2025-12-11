@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import BasicAuthWrapper from './components/BasicAuthWrapper';
 import Navbar from './components/Navbar';
+import FeedbackBanner from './components/FeedbackBanner';
 import Footer from './components/Footer';
 import Home from './pages/Home';
 import About from './pages/About';
@@ -24,6 +25,7 @@ function App() {
         <BrowserRouter>
           <AuthProvider>
             <Navbar />
+            <FeedbackBanner />
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
