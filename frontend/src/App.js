@@ -12,6 +12,7 @@ import Gallery from './pages/Gallery';
 import Contact from './pages/Contact';
 import HelpDesk from './pages/HelpDesk';
 import Login from './pages/Login';
+import LoginInfo from './pages/LoginInfo';
 import AdminPortal from './pages/AdminPortal';
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/help-desk" element={<HelpDesk />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/login-info" element={<LoginInfo />} />
             <Route path="/login" element={<Login />} />
             <Route path="/admin" element={<AdminPortal />} />
           </Routes>
