@@ -348,6 +348,99 @@ async def delete_user(user_id: str, request: Request):
         logger.error(f"Error deleting user: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete user")
 
+# Feedback Routes
+@api_router.post("/feedback", response_model=Feedback)
+async def submit_feedback(feedback: FeedbackCreate, request: Request):
+    """Submit feedback - requires authentication"""
+    try:
+        user = await require_auth(request)
+        
+        feedback_obj = Feedback(
+            user_email=user['email'],
+            user_name=user['name'],
+            rating=feedback.rating,
+            works_well=feedback.works_well,
+            needs_improvement=feedback.needs_improvement,
+            feature_suggestions=feedback.feature_suggestions
+        )
+        await db.feedback.insert_one(feedback_obj.dict())
+        logger.info(f"Feedback submitted by {user['email']}")
+        return feedback_obj
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error submitting feedback: {e}")
+        raise HTTPException(status_code=500, detail="Failed to submit feedback")
+
+@api_router.get("/feedback", response_model=List[Feedback])
+async def get_all_feedback(request: Request):
+    """Get all feedback - manager and admin only"""
+    try:
+        await require_manager_or_admin(request)
+        
+        feedback_list = await db.feedback.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+        return [Feedback(**fb) for fb in feedback_list]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching feedback: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch feedback")
+
+@api_router.post("/feedback/{feedback_id}/vote")
+async def vote_feedback(feedback_id: str, request: Request):
+    """Vote/upvote feedback - manager and admin only"""
+    try:
+        user = await require_manager_or_admin(request)
+        user_email = user['email']
+        
+        # Get feedback
+        feedback = await db.feedback.find_one({"id": feedback_id}, {"_id": 0})
+        if not feedback:
+            raise HTTPException(status_code=404, detail="Feedback not found")
+        
+        voted_by = feedback.get('voted_by', [])
+        
+        # Toggle vote
+        if user_email in voted_by:
+            # Remove vote
+            voted_by.remove(user_email)
+            votes = feedback.get('votes', 0) - 1
+        else:
+            # Add vote
+            voted_by.append(user_email)
+            votes = feedback.get('votes', 0) + 1
+        
+        # Update feedback
+        await db.feedback.update_one(
+            {"id": feedback_id},
+            {"$set": {"votes": votes, "voted_by": voted_by}}
+        )
+        
+        return {"message": "Vote updated", "votes": votes}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error voting feedback: {e}")
+        raise HTTPException(status_code=500, detail="Failed to vote feedback")
+
+@api_router.delete("/feedback/{feedback_id}")
+async def delete_feedback(feedback_id: str, request: Request):
+    """Delete feedback - admin only"""
+    try:
+        await require_admin(request)
+        
+        result = await db.feedback.delete_one({"id": feedback_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Feedback not found")
+        
+        return {"message": "Feedback deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting feedback: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete feedback")
+
 # Include routers in the main app
 app.include_router(api_router)
 app.include_router(auth_router, prefix="/api")
