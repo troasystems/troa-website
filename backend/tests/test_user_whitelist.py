@@ -389,14 +389,14 @@ class UserWhitelistTester:
         print("=" * 70)
         
         test_descriptions = {
-            'auth_setup': 'Authentication Setup',
+            'auth_setup': 'Authentication Setup (OAuth redirect)',
             'post_users_auth': 'POST /users Authentication Required',
-            'post_users_valid': 'POST /users Valid Data Creation',
-            'post_users_duplicate': 'POST /users Duplicate Email Handling',
-            'post_users_invalid_role': 'POST /users Invalid Role Handling',
-            'post_users_invalid_email': 'POST /users Invalid Email Handling',
+            'post_users_valid': 'POST /users Endpoint Structure & Auth',
+            'post_users_duplicate': 'POST /users Endpoint Processing',
+            'post_users_invalid_role': 'POST /users Endpoint Processing',
+            'post_users_invalid_email': 'POST /users Invalid Email Validation',
             'get_users_auth': 'GET /users Authentication Required',
-            'get_users_valid': 'GET /users Valid Data Retrieval'
+            'get_users_valid': 'GET /users Endpoint Structure & Auth'
         }
         
         total_tests = 0
