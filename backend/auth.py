@@ -253,7 +253,9 @@ async def google_callback(code: str, state: str, request: Request):
         logger.info(f"Session created for user: {user_info['email']}")
         
         # Redirect to frontend with session token in URL
-        frontend_url = os.getenv('REACT_APP_BACKEND_URL', '').replace('/api', '')
+        # Use the same origin that initiated the request
+        frontend_url = origin
+        logger.info(f"Redirecting to frontend: {frontend_url}")
         response = RedirectResponse(url=f'{frontend_url}/?auth_success=true&token={session_token}')
         response.set_cookie(
             key='session_token',
