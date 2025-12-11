@@ -146,10 +146,15 @@ class UserWhitelistTestClient:
             "role": "user"
         }
         
+        import base64
+        basic_auth = base64.b64encode(b"dogfooding:skywalker").decode()
         response = self.client.post(
             "/api/users",
             json=duplicate_user,
-            headers={"X-Session-Token": f"Bearer {self.admin_session_token}"}
+            headers={
+                "Authorization": f"Basic {basic_auth}",
+                "X-Session-Token": f"Bearer {self.admin_session_token}"
+            }
         )
         
         if response.status_code == 400:
