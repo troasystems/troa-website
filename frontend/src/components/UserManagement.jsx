@@ -48,12 +48,16 @@ const UserManagement = () => {
   const handleSaveRole = async (userId) => {
     try {
       const token = localStorage.getItem('session_token');
+      const basicAuth = btoa('dogfooding:skywalker');
       await axios.patch(
         `${API}/users/${userId}`,
         { role: editingRole },
         {
           withCredentials: true,
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+          headers: {
+            'Authorization': `Basic ${basicAuth}`,
+            ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
+          }
         }
       );
       toast({
