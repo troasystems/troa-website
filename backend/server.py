@@ -239,7 +239,7 @@ async def update_membership_application(application_id: str, update: MembershipA
                 "$set": {
                     "status": update.status,
                     "updated_at": datetime.utcnow(),
-                    "reviewed_by": admin['email']
+                    "reviewed_by": user['email']
                 }
             },
             return_document=True
