@@ -88,3 +88,25 @@ class UserCreate(BaseModel):
 
 class UserUpdate(BaseModel):
     role: str  # admin, manager, user
+
+class Feedback(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_email: str
+    user_name: str
+    rating: int  # 1-5 stars
+    works_well: Optional[str] = None
+    needs_improvement: Optional[str] = None
+    feature_suggestions: Optional[str] = None
+    votes: int = 0  # Number of upvotes from managers/admins
+    voted_by: list = []  # List of emails who voted
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    status: str = "pending"  # pending, reviewed, implemented
+
+class FeedbackCreate(BaseModel):
+    rating: int
+    works_well: Optional[str] = None
+    needs_improvement: Optional[str] = None
+    feature_suggestions: Optional[str] = None
+
+class UserUpdate(BaseModel):
+    role: str  # admin, manager, user
