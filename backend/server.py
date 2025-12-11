@@ -13,7 +13,8 @@ from models import (
     GalleryImage, GalleryImageCreate,
     MembershipApplication, MembershipApplicationCreate, MembershipApplicationUpdate,
     User, UserUpdate,
-    Feedback, FeedbackCreate
+    Feedback, FeedbackCreate,
+    AmenityBooking, AmenityBookingCreate
 )
 from auth import auth_router, require_admin, require_manager_or_admin, require_auth
 from basic_auth import basic_auth_middleware
