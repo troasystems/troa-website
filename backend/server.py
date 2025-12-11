@@ -277,6 +277,79 @@ async def delete_membership_application(application_id: str, request: Request):
         logger.error(f"Error deleting membership application: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete membership application")
 
+# User Management Routes (Admin only)
+@api_router.get("/users", response_model=List[User])
+async def get_all_users(request: Request):
+    """Get all users - admin only"""
+    try:
+        await require_admin(request)
+        
+        users = await db.users.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+        return [User(**user) for user in users]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching users: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch users")
+
+@api_router.patch("/users/{user_id}", response_model=User)
+async def update_user_role(user_id: str, update: UserUpdate, request: Request):
+    """Update user role - admin only"""
+    try:
+        admin = await require_admin(request)
+        
+        # Validate role
+        if update.role not in ['admin', 'manager', 'user']:
+            raise HTTPException(status_code=400, detail="Invalid role. Must be: admin, manager, or user")
+        
+        from datetime import datetime
+        result = await db.users.find_one_and_update(
+            {"id": user_id},
+            {
+                "$set": {
+                    "role": update.role,
+                    "is_admin": update.role == 'admin',
+                    "updated_at": datetime.utcnow()
+                }
+            },
+            return_document=True
+        )
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Remove _id for serialization
+        result.pop('_id', None)
+        return User(**result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating user role: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update user role")
+
+@api_router.delete("/users/{user_id}")
+async def delete_user(user_id: str, request: Request):
+    """Delete user - admin only"""
+    try:
+        admin = await require_admin(request)
+        
+        # Prevent admin from deleting themselves
+        user_to_delete = await db.users.find_one({"id": user_id}, {"_id": 0})
+        if user_to_delete and user_to_delete.get('email') == admin.get('email'):
+            raise HTTPException(status_code=400, detail="Cannot delete your own account")
+        
+        result = await db.users.delete_one({"id": user_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        return {"message": "User deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting user: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete user")
+
 # Include routers in the main app
 app.include_router(api_router)
 app.include_router(auth_router, prefix="/api")
