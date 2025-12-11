@@ -44,32 +44,6 @@ const LoginInfo = () => {
               </div>
             </div>
 
-            {/* Access Levels */}
-            <div className="bg-gradient-to-r from-orange-50 to-pink-50 border-l-4 border-orange-600 rounded-lg p-6">
-              <div className="flex items-start space-x-4">
-                <Users className="w-6 h-6 text-orange-600 flex-shrink-0 mt-1" />
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                    Access Levels
-                  </h3>
-                  <ul className="space-y-2 text-gray-700">
-                    <li className="flex items-start">
-                      <span className="font-semibold text-purple-600 min-w-[120px]">Administrator:</span>
-                      <span>Full system access including content management and user administration</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="font-semibold text-pink-600 min-w-[120px]">Manager:</span>
-                      <span>Membership application management and committee oversight</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="font-semibold text-orange-600 min-w-[120px]">Member:</span>
-                      <span>View community information and submit membership applications</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
             {/* Contact Information */}
             <div className="bg-gradient-to-r from-pink-50 to-purple-50 border-l-4 border-pink-600 rounded-lg p-6">
               <div className="flex items-start space-x-4">
