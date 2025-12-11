@@ -89,6 +89,29 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     role: str  # admin, manager, user
 
+class AmenityBooking(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    amenity_id: str
+    amenity_name: str
+    booked_by_email: str
+    booked_by_name: str
+    booking_date: str  # YYYY-MM-DD format
+    start_time: str  # HH:MM format (24-hour)
+    end_time: str  # HH:MM format (24-hour)
+    duration_minutes: int  # 30 or 60
+    additional_users: list = []  # List of email addresses (1-3 users)
+    status: str = "confirmed"  # confirmed, cancelled
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class AmenityBookingCreate(BaseModel):
+    amenity_id: str
+    amenity_name: str
+    booking_date: str  # YYYY-MM-DD
+    start_time: str  # HH:MM (24-hour)
+    duration_minutes: int  # 30 or 60 minutes
+    additional_users: Optional[list] = []  # Optional list of email addresses
+
 class Feedback(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_email: str
