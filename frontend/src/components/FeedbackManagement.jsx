@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getBasicAuth } from '../utils/api';
+// Basic auth removed
 import axios from 'axios';
 import { Star, ThumbsUp, MessageSquare, Lightbulb, Trash2, TrendingUp } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
@@ -18,12 +18,12 @@ const FeedbackManagement = () => {
   const fetchFeedback = async () => {
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = getBasicAuth();
+      
       
       const response = await axios.get(`${API}/feedback`, {
         withCredentials: true,
         headers: {
-          'Authorization': `Basic ${basicAuth}`,
+          
           ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
         }
       });
@@ -43,7 +43,7 @@ const FeedbackManagement = () => {
   const handleVote = async (feedbackId) => {
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = getBasicAuth();
+      
       
       await axios.post(
         `${API}/feedback/${feedbackId}/vote`,
@@ -51,7 +51,7 @@ const FeedbackManagement = () => {
         {
           withCredentials: true,
           headers: {
-            'Authorization': `Basic ${basicAuth}`,
+            
             ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
           }
         }
@@ -73,12 +73,12 @@ const FeedbackManagement = () => {
 
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = getBasicAuth();
+      
       
       await axios.delete(`${API}/feedback/${feedbackId}`, {
         withCredentials: true,
         headers: {
-          'Authorization': `Basic ${basicAuth}`,
+          
           ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
         }
       });

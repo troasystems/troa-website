@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getBasicAuth } from '../utils/api';
+// Basic auth removed
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Calendar, Clock, Users, Trash2, MapPin } from 'lucide-react';
@@ -32,12 +32,12 @@ const MyBookings = () => {
   const fetchBookings = async () => {
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = getBasicAuth();
+      
 
       const response = await axios.get(`${API}/bookings/my`, {
         withCredentials: true,
         headers: {
-          'Authorization': `Basic ${basicAuth}`,
+          
           ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
         }
       });
@@ -62,12 +62,12 @@ const MyBookings = () => {
 
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = getBasicAuth();
+      
 
       await axios.delete(`${API}/bookings/${bookingId}`, {
         withCredentials: true,
         headers: {
-          'Authorization': `Basic ${basicAuth}`,
+          
           ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
         }
       });

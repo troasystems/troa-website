@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getBasicAuth } from '../utils/api';
+// Basic auth removed
 import axios from 'axios';
 import { Check, X, Trash2, Clock, Mail, Phone, Home, User } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
@@ -19,11 +19,11 @@ const MembershipManagement = () => {
   const fetchApplications = async () => {
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = getBasicAuth();
+      
       const response = await axios.get(`${API}/membership`, {
         withCredentials: true,
         headers: {
-          'Authorization': `Basic ${basicAuth}`,
+          
           ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
         }
       });
@@ -43,14 +43,14 @@ const MembershipManagement = () => {
   const handleApprove = async (applicationId) => {
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = getBasicAuth();
+      
       await axios.patch(
         `${API}/membership/${applicationId}`,
         { status: 'approved' },
         {
           withCredentials: true,
           headers: {
-            'Authorization': `Basic ${basicAuth}`,
+            
             ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
           }
         }
@@ -72,14 +72,14 @@ const MembershipManagement = () => {
   const handleReject = async (applicationId) => {
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = getBasicAuth();
+      
       await axios.patch(
         `${API}/membership/${applicationId}`,
         { status: 'rejected' },
         {
           withCredentials: true,
           headers: {
-            'Authorization': `Basic ${basicAuth}`,
+            
             ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
           }
         }
@@ -105,11 +105,11 @@ const MembershipManagement = () => {
 
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = getBasicAuth();
+      
       await axios.delete(`${API}/membership/${applicationId}`, {
         withCredentials: true,
         headers: {
-          'Authorization': `Basic ${basicAuth}`,
+          
           ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
         }
       });

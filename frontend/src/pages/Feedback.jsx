@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getBasicAuth } from '../utils/api';
+// Basic auth removed
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
@@ -49,7 +49,7 @@ const Feedback = () => {
       const token = localStorage.getItem('session_token');
       
       // Create basic auth header
-      const basicAuth = getBasicAuth();
+      
       
       await axios.post(
         `${API}/feedback`,
@@ -62,7 +62,7 @@ const Feedback = () => {
         {
           withCredentials: true,
           headers: {
-            'Authorization': `Basic ${basicAuth}`,
+            
             ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
           }
         }

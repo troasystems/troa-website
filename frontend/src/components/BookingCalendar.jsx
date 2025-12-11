@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getBasicAuth } from '../utils/api';
+// Basic auth removed
 import axios from 'axios';
 import { Calendar, Clock, Users, X, Check, AlertCircle } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
@@ -24,7 +24,7 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
   const fetchBookings = async () => {
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = getBasicAuth();
+      
       
       const response = await axios.get(`${API}/bookings`, {
         params: {
@@ -33,7 +33,7 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
         },
         withCredentials: true,
         headers: {
-          'Authorization': `Basic ${basicAuth}`,
+          
           ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
         }
       });
@@ -102,7 +102,7 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = getBasicAuth();
+      
 
       await axios.post(
         `${API}/bookings`,
@@ -117,7 +117,7 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
         {
           withCredentials: true,
           headers: {
-            'Authorization': `Basic ${basicAuth}`,
+            
             ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
           }
         }

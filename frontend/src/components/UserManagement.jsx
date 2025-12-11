@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getBasicAuth } from '../utils/api';
+// Basic auth removed
 import axios from 'axios';
 import { Users, Shield, UserCog, User as UserIcon, Trash2, Edit2, Save, X, UserPlus, Mail, AtSign } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
@@ -25,11 +25,11 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = getBasicAuth();
+      
       const response = await axios.get(`${API}/users`, {
         withCredentials: true,
         headers: {
-          'Authorization': `Basic ${basicAuth}`,
+          
           ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
         }
       });
@@ -54,14 +54,14 @@ const UserManagement = () => {
   const handleSaveRole = async (userId) => {
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = getBasicAuth();
+      
       await axios.patch(
         `${API}/users/${userId}`,
         { role: editingRole },
         {
           withCredentials: true,
           headers: {
-            'Authorization': `Basic ${basicAuth}`,
+            
             ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
           }
         }
@@ -88,11 +88,11 @@ const UserManagement = () => {
 
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = getBasicAuth();
+      
       await axios.delete(`${API}/users/${userId}`, {
         withCredentials: true,
         headers: {
-          'Authorization': `Basic ${basicAuth}`,
+          
           ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
         }
       });
@@ -136,7 +136,7 @@ const UserManagement = () => {
     setAddingUserLoading(true);
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = getBasicAuth();
+      
       await axios.post(
         `${API}/users`,
         {
@@ -147,7 +147,7 @@ const UserManagement = () => {
         {
           withCredentials: true,
           headers: {
-            'Authorization': `Basic ${basicAuth}`,
+            
             'Content-Type': 'application/json',
             ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
           }
