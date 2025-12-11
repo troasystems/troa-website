@@ -12,8 +12,13 @@ import requests
 import json
 import os
 import base64
+import sys
 from datetime import datetime
 from typing import Dict, Any, List
+
+# Add backend directory to path to import auth module
+sys.path.append('/app/backend')
+from auth import create_session
 
 # Get backend URL from environment
 BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://tenant-assist-6.preview.emergentagent.com')
