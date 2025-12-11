@@ -109,6 +109,70 @@ const UserManagement = () => {
     }
   };
 
+  const handleAddNewUser = async (e) => {
+    e.preventDefault();
+    
+    if (!newUserEmail.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Email is required',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newUserEmail.trim())) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a valid email address',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setAddingUserLoading(true);
+    try {
+      const token = localStorage.getItem('session_token');
+      const basicAuth = btoa('dogfooding:skywalker');
+      await axios.post(
+        `${API}/users`,
+        {
+          email: newUserEmail.trim(),
+          name: newUserName.trim() || '',
+          role: newUserRole
+        },
+        {
+          withCredentials: true,
+          headers: {
+            'Authorization': `Basic ${basicAuth}`,
+            'Content-Type': 'application/json',
+            ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
+          }
+        }
+      );
+      toast({
+        title: 'Success',
+        description: `User ${newUserEmail} added to whitelist with role: ${newUserRole}`
+      });
+      // Reset form and refresh list
+      setNewUserEmail('');
+      setNewUserName('');
+      setNewUserRole('user');
+      setIsAddingUser(false);
+      fetchUsers();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.detail || 'Failed to add user',
+        variant: 'destructive'
+      });
+    } finally {
+      setAddingUserLoading(false);
+    }
+  };
+
   const getRoleIcon = (role) => {
     switch (role) {
       case 'admin':
