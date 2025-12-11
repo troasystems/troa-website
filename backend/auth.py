@@ -128,9 +128,19 @@ async def require_manager_or_admin(request: Request):
 @auth_router.get('/google/login')
 async def google_login(request: Request):
     """Initiate Google OAuth login"""
-    # Construct the full redirect URI
-    backend_url = os.getenv('REACT_APP_BACKEND_URL', str(request.base_url).rstrip('/'))
-    redirect_uri = f"{backend_url}/api/auth/google/callback"
+    # Construct the full redirect URI dynamically from the request
+    # This allows the same code to work on any domain (preview, production, custom)
+    
+    # Get the origin from the request headers or construct from host
+    origin = request.headers.get('origin')
+    if not origin:
+        # Construct from host header
+        host = request.headers.get('host', '')
+        scheme = request.headers.get('x-forwarded-proto', 'https')
+        origin = f"{scheme}://{host}"
+    
+    redirect_uri = f"{origin}/api/auth/google/callback"
+    logger.info(f"OAuth login initiated with redirect_uri: {redirect_uri}")
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @auth_router.get('/google/callback')
