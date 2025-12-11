@@ -103,12 +103,12 @@ const Navbar = () => {
                 )}
               </div>
             ) : (
-              <button
-                onClick={login}
-                className="ml-3 px-6 py-2 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white rounded-lg font-medium hover:scale-105 transform transition-all duration-300 shadow-lg"
+              <Link
+                to="/login-info"
+                className="ml-3 px-6 py-2 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white rounded-lg font-medium hover:scale-105 transform transition-all duration-300 shadow-lg inline-block"
               >
                 Login
-              </button>
+              </Link>
             )}
           </div>
 
