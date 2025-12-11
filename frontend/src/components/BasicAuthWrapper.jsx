@@ -8,8 +8,9 @@ const BasicAuthWrapper = ({ children }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const BASIC_AUTH_USERNAME = 'dogfooding';
-  const BASIC_AUTH_PASSWORD = 'skywalker';
+  // Get credentials from environment variables
+  const BASIC_AUTH_USERNAME = process.env.REACT_APP_BASIC_AUTH_USERNAME || 'dogfooding';
+  const BASIC_AUTH_PASSWORD = process.env.REACT_APP_BASIC_AUTH_PASSWORD || 'skywalker';
 
   useEffect(() => {
     // Check if already authenticated
