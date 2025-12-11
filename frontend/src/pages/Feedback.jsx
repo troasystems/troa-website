@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getBasicAuth } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
@@ -48,7 +49,7 @@ const Feedback = () => {
       const token = localStorage.getItem('session_token');
       
       // Create basic auth header
-      const basicAuth = btoa('dogfooding:skywalker');
+      const basicAuth = getBasicAuth();
       
       await axios.post(
         `${API}/feedback`,

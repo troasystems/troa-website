@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getBasicAuth } from '../utils/api';
 import axios from 'axios';
 import { Star, ThumbsUp, MessageSquare, Lightbulb, Trash2, TrendingUp } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
@@ -17,7 +18,7 @@ const FeedbackManagement = () => {
   const fetchFeedback = async () => {
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = btoa('dogfooding:skywalker');
+      const basicAuth = getBasicAuth();
       
       const response = await axios.get(`${API}/feedback`, {
         withCredentials: true,
@@ -42,7 +43,7 @@ const FeedbackManagement = () => {
   const handleVote = async (feedbackId) => {
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = btoa('dogfooding:skywalker');
+      const basicAuth = getBasicAuth();
       
       await axios.post(
         `${API}/feedback/${feedbackId}/vote`,
@@ -72,7 +73,7 @@ const FeedbackManagement = () => {
 
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = btoa('dogfooding:skywalker');
+      const basicAuth = getBasicAuth();
       
       await axios.delete(`${API}/feedback/${feedbackId}`, {
         withCredentials: true,

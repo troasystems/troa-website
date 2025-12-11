@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getBasicAuth } from '../utils/api';
 import axios from 'axios';
 import { Edit2, Trash2, Save, X, Calendar } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -29,7 +30,7 @@ const Amenities = () => {
 
   const fetchAmenities = async () => {
     try {
-      const basicAuth = btoa('dogfooding:skywalker');
+      const basicAuth = getBasicAuth();
       const response = await axios.get(`${API}/amenities`, {
         headers: {
           'Authorization': `Basic ${basicAuth}`

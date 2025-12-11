@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getBasicAuth } from '../utils/api';
 import axios from 'axios';
 import { Check, X, Trash2, Clock, Mail, Phone, Home, User } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
@@ -18,7 +19,7 @@ const MembershipManagement = () => {
   const fetchApplications = async () => {
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = btoa('dogfooding:skywalker');
+      const basicAuth = getBasicAuth();
       const response = await axios.get(`${API}/membership`, {
         withCredentials: true,
         headers: {
@@ -42,7 +43,7 @@ const MembershipManagement = () => {
   const handleApprove = async (applicationId) => {
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = btoa('dogfooding:skywalker');
+      const basicAuth = getBasicAuth();
       await axios.patch(
         `${API}/membership/${applicationId}`,
         { status: 'approved' },
@@ -71,7 +72,7 @@ const MembershipManagement = () => {
   const handleReject = async (applicationId) => {
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = btoa('dogfooding:skywalker');
+      const basicAuth = getBasicAuth();
       await axios.patch(
         `${API}/membership/${applicationId}`,
         { status: 'rejected' },
@@ -104,7 +105,7 @@ const MembershipManagement = () => {
 
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = btoa('dogfooding:skywalker');
+      const basicAuth = getBasicAuth();
       await axios.delete(`${API}/membership/${applicationId}`, {
         withCredentials: true,
         headers: {

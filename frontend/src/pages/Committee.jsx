@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getBasicAuth } from '../utils/api';
 import { Facebook, Twitter, Linkedin, Edit2, Trash2, Save, X } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -30,7 +31,7 @@ const Committee = () => {
 
   const fetchMembers = async () => {
     try {
-      const basicAuth = btoa('dogfooding:skywalker');
+      const basicAuth = getBasicAuth();
       const response = await axios.get(`${API}/committee`, {
         headers: {
           'Authorization': `Basic ${basicAuth}`

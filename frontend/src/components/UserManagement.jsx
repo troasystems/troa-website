@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getBasicAuth } from '../utils/api';
 import axios from 'axios';
 import { Users, Shield, UserCog, User as UserIcon, Trash2, Edit2, Save, X, UserPlus, Mail, AtSign } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
@@ -24,7 +25,7 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = btoa('dogfooding:skywalker');
+      const basicAuth = getBasicAuth();
       const response = await axios.get(`${API}/users`, {
         withCredentials: true,
         headers: {
@@ -53,7 +54,7 @@ const UserManagement = () => {
   const handleSaveRole = async (userId) => {
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = btoa('dogfooding:skywalker');
+      const basicAuth = getBasicAuth();
       await axios.patch(
         `${API}/users/${userId}`,
         { role: editingRole },
@@ -87,7 +88,7 @@ const UserManagement = () => {
 
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = btoa('dogfooding:skywalker');
+      const basicAuth = getBasicAuth();
       await axios.delete(`${API}/users/${userId}`, {
         withCredentials: true,
         headers: {
@@ -135,7 +136,7 @@ const UserManagement = () => {
     setAddingUserLoading(true);
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = btoa('dogfooding:skywalker');
+      const basicAuth = getBasicAuth();
       await axios.post(
         `${API}/users`,
         {

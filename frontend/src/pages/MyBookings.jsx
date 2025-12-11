@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getBasicAuth } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Calendar, Clock, Users, Trash2, MapPin } from 'lucide-react';
@@ -31,7 +32,7 @@ const MyBookings = () => {
   const fetchBookings = async () => {
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = btoa('dogfooding:skywalker');
+      const basicAuth = getBasicAuth();
 
       const response = await axios.get(`${API}/bookings/my`, {
         withCredentials: true,
@@ -61,7 +62,7 @@ const MyBookings = () => {
 
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = btoa('dogfooding:skywalker');
+      const basicAuth = getBasicAuth();
 
       await axios.delete(`${API}/bookings/${bookingId}`, {
         withCredentials: true,

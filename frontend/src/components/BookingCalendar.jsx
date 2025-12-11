@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getBasicAuth } from '../utils/api';
 import axios from 'axios';
 import { Calendar, Clock, Users, X, Check, AlertCircle } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
@@ -23,7 +24,7 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
   const fetchBookings = async () => {
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = btoa('dogfooding:skywalker');
+      const basicAuth = getBasicAuth();
       
       const response = await axios.get(`${API}/bookings`, {
         params: {
@@ -101,7 +102,7 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('session_token');
-      const basicAuth = btoa('dogfooding:skywalker');
+      const basicAuth = getBasicAuth();
 
       await axios.post(
         `${API}/bookings`,
