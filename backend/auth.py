@@ -106,10 +106,17 @@ async def require_auth(request: Request):
     return user
 
 async def require_admin(request: Request):
-    """Require admin authentication"""
+    """Require admin authentication - only for troa.systems@gmail.com"""
     user = await require_auth(request)
-    if user['email'] not in ADMIN_EMAILS:
+    if user.get('role') != 'admin':
         raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+async def require_manager_or_admin(request: Request):
+    """Require manager or admin authentication"""
+    user = await require_auth(request)
+    if user.get('role') not in ['admin', 'manager']:
+        raise HTTPException(status_code=403, detail="Manager or Admin access required")
     return user
 
 @auth_router.get('/google/login')
