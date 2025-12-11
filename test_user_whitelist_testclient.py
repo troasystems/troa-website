@@ -243,9 +243,14 @@ class UserWhitelistTestClient:
             print(f"❌ Expected 401 without auth, got {response.status_code}")
         
         # Test with admin authentication
+        import base64
+        basic_auth = base64.b64encode(b"dogfooding:skywalker").decode()
         response = self.client.get(
             "/api/users",
-            headers={"X-Session-Token": f"Bearer {self.admin_session_token}"}
+            headers={
+                "Authorization": f"Basic {basic_auth}",
+                "X-Session-Token": f"Bearer {self.admin_session_token}"
+            }
         )
         
         if response.status_code == 200:
