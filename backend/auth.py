@@ -188,11 +188,33 @@ async def google_callback(code: str, state: str, request: Request):
     try:
         logger.info(f"Google OAuth callback received with code: {code[:20]}...")
         
-        # Construct redirect_uri dynamically to match what was sent in login
-        origin = request.headers.get('origin')
+        # Log headers for debugging
+        logger.info(f"OAuth callback - Headers: host={request.headers.get('host')}, "
+                    f"x-forwarded-host={request.headers.get('x-forwarded-host')}, "
+                    f"referer={request.headers.get('referer')}")
+        
+        # Determine origin using same logic as login
+        origin = None
+        scheme = request.headers.get('x-forwarded-proto', 'https')
+        
+        # Try x-forwarded-host first
+        forwarded_host = request.headers.get('x-forwarded-host')
+        if forwarded_host:
+            forwarded_host = forwarded_host.split(',')[0].strip()
+            origin = f"{scheme}://{forwarded_host}"
+        
+        # Try referer header
+        if not origin:
+            referer = request.headers.get('referer')
+            if referer:
+                from urllib.parse import urlparse
+                parsed = urlparse(referer)
+                if parsed.scheme and parsed.netloc:
+                    origin = f"{parsed.scheme}://{parsed.netloc}"
+        
+        # Fallback to host header
         if not origin:
             host = request.headers.get('host', '')
-            scheme = request.headers.get('x-forwarded-proto', 'https')
             origin = f"{scheme}://{host}"
         
         redirect_uri = f"{origin}/api/auth/google/callback"
