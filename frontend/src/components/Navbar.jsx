@@ -166,15 +166,13 @@ const Navbar = () => {
                 </button>
               </>
             ) : (
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  login();
-                }}
-                className="block w-full px-4 py-3 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white rounded-lg font-medium"
+              <Link
+                to="/login-info"
+                onClick={() => setIsOpen(false)}
+                className="block w-full px-4 py-3 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white rounded-lg font-medium text-center"
               >
                 Login
-              </button>
+              </Link>
             )}
           </div>
         )}
