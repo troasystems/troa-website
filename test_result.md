@@ -402,7 +402,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Committee member update functionality with authentication - COMPLETED"
+    - "User Whitelist Feature - Add new user to whitelist"
+    - "User Management Tab UI and functionality"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -414,3 +415,5 @@ agent_communication:
       message: "Comprehensive frontend testing completed successfully using Playwright automation. All requested scenarios tested and working: ✅ Navigation between all pages working ✅ Home page hero section, CTAs, features, and amenities preview all functional ✅ Committee page loads 12 members from API with photos, names, positions, social links ✅ Amenities page loads 9 amenities from API with images, names, descriptions ✅ Gallery page loads 9 images from API with working lightbox/modal functionality ✅ Contact form validation and submission working with success messages ✅ Mobile menu (hamburger) working on smaller screens ✅ Vibrant gradient theme throughout ✅ Smooth scroll and hover effects working ✅ No console errors, proper image loading ✅ All API integrations functional. The TROA website is fully functional and ready for production use."
     - agent: "testing"
       message: "Committee member update functionality authentication testing completed successfully. ✅ All committee members (9) have proper UUIDs assigned ✅ Wilson Thomas (President) found with valid ID: f5a25bd0-8711-4a27-b9b3-ea3412b94d60 ✅ All protected endpoints (POST/PATCH/DELETE committee, POST amenities, GET membership, POST image upload) correctly return 401/403 without authentication ✅ Google OAuth configuration working - redirects to accounts.google.com ✅ Admin email troa.systems@gmail.com successfully authenticated in backend logs ✅ Database update operations tested and verified working ✅ Bearer token authentication support implemented in auth module. Authentication security fixes are working correctly - all protected endpoints require proper admin authentication."
+    - agent: "main"
+      message: "Implemented User Whitelist Feature: 1) Fixed backend - added UserCreate import and updated POST /api/users endpoint to accept role parameter 2) Updated UserCreate model to include role field 3) Added complete frontend UI in UserManagement.jsx with Add User form including email, name (optional), and role selection. The form validates email, sends POST request with proper Basic Auth and Session Token headers, and refreshes user list on success. Ready for testing."
