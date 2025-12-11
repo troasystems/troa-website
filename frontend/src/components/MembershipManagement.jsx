@@ -18,9 +18,13 @@ const MembershipManagement = () => {
   const fetchApplications = async () => {
     try {
       const token = localStorage.getItem('session_token');
+      const basicAuth = btoa('dogfooding:skywalker');
       const response = await axios.get(`${API}/membership`, {
         withCredentials: true,
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        headers: {
+          'Authorization': `Basic ${basicAuth}`,
+          ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
+        }
       });
       setApplications(response.data);
       setLoading(false);
