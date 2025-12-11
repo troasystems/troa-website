@@ -82,9 +82,10 @@ class User(BaseModel):
 
 class UserCreate(BaseModel):
     email: EmailStr
-    name: str
+    name: str = ""
     picture: Optional[str] = None
-    provider: str = "google"
+    provider: str = "whitelist"
+    role: str = "user"  # admin, manager, user
 
 class UserUpdate(BaseModel):
     role: str  # admin, manager, user

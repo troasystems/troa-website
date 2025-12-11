@@ -13,7 +13,7 @@ from models import (
     Amenity, AmenityCreate,
     GalleryImage, GalleryImageCreate,
     MembershipApplication, MembershipApplicationCreate, MembershipApplicationUpdate,
-    User, UserUpdate,
+    User, UserCreate, UserUpdate,
     Feedback, FeedbackCreate,
     AmenityBooking, AmenityBookingCreate
 )
