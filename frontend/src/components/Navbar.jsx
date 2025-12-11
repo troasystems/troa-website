@@ -161,6 +161,21 @@ const Navbar = () => {
               </Link>
             ))}
             
+            {/* Mobile Feedback Link - Only for authenticated users */}
+            {isAuthenticated && (
+              <Link
+                to="/feedback"
+                onClick={() => setIsOpen(false)}
+                className={`block px-4 py-3 rounded-lg font-medium transition-all duration-300 ${
+                  isActive('/feedback')
+                    ? 'bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white'
+                    : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-100 hover:to-pink-100'
+                }`}
+              >
+                Feedback
+              </Link>
+            )}
+            
             {/* Mobile Auth */}
             {isAuthenticated ? (
               <>
