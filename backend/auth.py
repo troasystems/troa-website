@@ -144,10 +144,20 @@ async def google_login(request: Request):
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @auth_router.get('/google/callback')
-async def google_callback(code: str, state: str):
+async def google_callback(code: str, state: str, request: Request):
     """Handle Google OAuth callback - Manual implementation"""
     try:
         logger.info(f"Google OAuth callback received with code: {code[:20]}...")
+        
+        # Construct redirect_uri dynamically to match what was sent in login
+        origin = request.headers.get('origin')
+        if not origin:
+            host = request.headers.get('host', '')
+            scheme = request.headers.get('x-forwarded-proto', 'https')
+            origin = f"{scheme}://{host}"
+        
+        redirect_uri = f"{origin}/api/auth/google/callback"
+        logger.info(f"OAuth callback using redirect_uri: {redirect_uri}")
         
         # Exchange code for token manually
         import httpx
@@ -158,7 +168,7 @@ async def google_callback(code: str, state: str):
                     'code': code,
                     'client_id': GOOGLE_CLIENT_ID,
                     'client_secret': GOOGLE_CLIENT_SECRET,
-                    'redirect_uri': f"{os.getenv('REACT_APP_BACKEND_URL')}/api/auth/google/callback",
+                    'redirect_uri': redirect_uri,
                     'grant_type': 'authorization_code'
                 }
             )
