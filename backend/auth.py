@@ -173,13 +173,17 @@ async def google_callback(code: str, state: str):
         db = mongo_client[os.environ['DB_NAME']]
         
         # Check if user exists
-        existing_user = await db.users.find_one({'email': user_info['email']})
+        existing_user = await db.users.find_one({'email': user_info['email']}, {'_id': 0})
+        
+        # Determine user role
+        user_role = get_user_role(user_info['email'])
         
         user_data = {
             'email': user_info['email'],
             'name': user_info.get('name', ''),
             'picture': user_info.get('picture', ''),
-            'is_admin': user_info['email'] in ADMIN_EMAILS
+            'role': user_role,
+            'is_admin': user_role == 'admin'  # Legacy support
         }
         
         if not existing_user:
@@ -189,19 +193,32 @@ async def google_callback(code: str, state: str):
                 name=user_info.get('name', ''),
                 picture=user_info.get('picture', ''),
                 provider='google',
-                is_admin=user_info['email'] in ADMIN_EMAILS
+                role=user_role,
+                is_admin=user_role == 'admin'
             )
             await db.users.insert_one(user_obj.dict())
-            logger.info(f"New user created: {user_info['email']}")
+            logger.info(f"New user created: {user_info['email']} with role: {user_role}")
         else:
-            # Update existing user
+            # Update existing user - preserve custom role if admin changed it
+            update_data = {
+                'name': user_info.get('name', ''),
+                'picture': user_info.get('picture', ''),
+                'last_login': datetime.utcnow()
+            }
+            
+            # Only update role if user doesn't have a role yet or if it's their first login with new system
+            if 'role' not in existing_user:
+                update_data['role'] = user_role
+                update_data['is_admin'] = user_role == 'admin'
+                user_data['role'] = user_role
+            else:
+                # Use existing role from database
+                user_data['role'] = existing_user.get('role', user_role)
+                user_data['is_admin'] = user_data['role'] == 'admin'
+            
             await db.users.update_one(
                 {'email': user_info['email']},
-                {'$set': {
-                    'name': user_info.get('name', ''),
-                    'picture': user_info.get('picture', ''),
-                    'last_login': datetime.utcnow()
-                }}
+                {'$set': update_data}
             )
             logger.info(f"Existing user updated: {user_info['email']}")
         
