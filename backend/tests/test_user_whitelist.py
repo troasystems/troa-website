@@ -78,13 +78,22 @@ class UserWhitelistTester:
             
             if response.status_code in [302, 307]:
                 self.log_success("OAuth Setup", "- Google OAuth redirect working")
-                self.test_results['auth_setup'] = True
                 
-                # For testing purposes, we'll simulate an admin session
-                # In a real scenario, this would come from completing OAuth flow
-                # We'll use a mock session token for testing
-                self.admin_session_token = "Bearer mock_admin_session_token_for_testing"
-                print(f"📝 Using mock admin session token for testing")
+                # Create a real admin session for testing
+                admin_user_data = {
+                    'email': 'troa.systems@gmail.com',
+                    'name': 'TROA Admin',
+                    'picture': '',
+                    'role': 'admin',
+                    'is_admin': True
+                }
+                
+                # Create session using the auth module
+                session_token = create_session(admin_user_data)
+                self.admin_session_token = f"Bearer {session_token}"
+                
+                self.log_success("Admin Session", f"- Created real admin session token")
+                self.test_results['auth_setup'] = True
                 return True
             else:
                 self.log_error("OAuth Setup", f"OAuth redirect failed: {response.status_code}")
