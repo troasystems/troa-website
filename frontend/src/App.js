@@ -17,6 +17,7 @@ import Login from './pages/Login';
 import LoginInfo from './pages/LoginInfo';
 import AdminPortal from './pages/AdminPortal';
 import Feedback from './pages/Feedback';
+import MyBookings from './pages/MyBookings';
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
                 <Route path="/login-info" element={<LoginInfo />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/feedback" element={<Feedback />} />
+                <Route path="/my-bookings" element={<MyBookings />} />
                 <Route path="/admin" element={<AdminPortal />} />
               </Routes>
             </div>
