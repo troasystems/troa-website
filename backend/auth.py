@@ -23,8 +23,26 @@ logger = logging.getLogger(__name__)
 # Initialize OAuth
 oauth = OAuth()
 
-# Admin emails
-ADMIN_EMAILS = ['troa.mgr@gmail.com', 'troa.systems@gmail.com']
+# Role-based email lists
+ADMIN_EMAIL = 'troa.systems@gmail.com'
+MANAGER_EMAILS = [
+    'troa.mgr@gmail.com',
+    'troa.secretary@gmail.com',
+    'troa.treasurer@gmail.com',
+    'president.troa@gmail.com'
+]
+
+# Legacy support
+ADMIN_EMAILS = [ADMIN_EMAIL]
+
+def get_user_role(email: str) -> str:
+    """Determine user role based on email"""
+    if email == ADMIN_EMAIL:
+        return 'admin'
+    elif email in MANAGER_EMAILS:
+        return 'manager'
+    else:
+        return 'user'
 
 # Get OAuth credentials
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
