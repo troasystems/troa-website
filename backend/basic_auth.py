@@ -36,6 +36,10 @@ async def basic_auth_middleware(request: Request, call_next):
     if request.url.path.startswith("/api/upload/image/") and request.method == "GET":
         return await call_next(request)
     
+    # Skip auth check for Google OAuth endpoints (login and callback)
+    if request.url.path in ["/api/auth/google/login", "/api/auth/google/callback"]:
+        return await call_next(request)
+    
     # Get authorization header
     auth_header = request.headers.get('Authorization')
     
