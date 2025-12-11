@@ -94,6 +94,14 @@ const Navbar = () => {
                       )}
                     </div>
                     <Link
+                      to="/my-bookings"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 transition-colors"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      <span>My Bookings</span>
+                    </Link>
+                    <Link
                       to="/feedback"
                       onClick={() => setProfileOpen(false)}
                       className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 transition-colors"
