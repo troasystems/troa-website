@@ -14,6 +14,7 @@ import HelpDesk from './pages/HelpDesk';
 import Login from './pages/Login';
 import LoginInfo from './pages/LoginInfo';
 import AdminPortal from './pages/AdminPortal';
+import Feedback from './pages/Feedback';
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/login-info" element={<LoginInfo />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/feedback" element={<Feedback />} />
             <Route path="/admin" element={<AdminPortal />} />
           </Routes>
           <Footer />
