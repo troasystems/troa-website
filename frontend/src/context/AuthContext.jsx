@@ -62,8 +62,12 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      const basicAuth = btoa('dogfooding:skywalker');
       await axios.post(`${API}/auth/logout`, {}, {
-        withCredentials: true
+        withCredentials: true,
+        headers: {
+          'Authorization': `Basic ${basicAuth}`
+        }
       });
       setUser(null);
       localStorage.removeItem('session_token');
