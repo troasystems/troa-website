@@ -292,6 +292,40 @@ async def get_all_users(request: Request):
         logger.error(f"Error fetching users: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch users")
 
+@api_router.post("/users", response_model=User)
+async def add_user_to_whitelist(user_data: UserCreate, request: Request):
+    """Add user to whitelist - admin only"""
+    try:
+        admin = await require_admin(request)
+        
+        # Check if user already exists
+        existing = await db.users.find_one({"email": user_data.email}, {"_id": 0})
+        if existing:
+            raise HTTPException(status_code=400, detail="User with this email already exists")
+        
+        # Determine role from email if not specified
+        from auth import get_user_role
+        default_role = get_user_role(user_data.email)
+        
+        # Create user
+        user_obj = User(
+            email=user_data.email,
+            name=user_data.name,
+            picture=user_data.picture or "",
+            provider=user_data.provider,
+            role=default_role,
+            is_admin=default_role == 'admin'
+        )
+        
+        await db.users.insert_one(user_obj.dict())
+        logger.info(f"User added to whitelist by {admin['email']}: {user_data.email}")
+        return user_obj
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error adding user to whitelist: {e}")
+        raise HTTPException(status_code=500, detail="Failed to add user")
+
 @api_router.patch("/users/{user_id}", response_model=User)
 async def update_user_role(user_id: str, update: UserUpdate, request: Request):
     """Update user role - admin only"""
