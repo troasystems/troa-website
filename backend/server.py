@@ -32,7 +32,8 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # Create the main app without a prefix
-app = FastAPI()
+# redirect_slashes=False prevents 307 redirects when trailing slash is missing
+app = FastAPI(redirect_slashes=False)
 
 # Health check endpoint at root level (no /api prefix) for Kubernetes
 @app.get("/health")
