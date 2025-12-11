@@ -236,8 +236,10 @@ async def google_callback(code: str, state: str, request: Request):
             )
             
             if token_response.status_code != 200:
-                logger.error(f"Token exchange failed: {token_response.text}")
-                raise HTTPException(status_code=400, detail="Failed to exchange code for token")
+                logger.error(f"Token exchange failed with status {token_response.status_code}")
+                logger.error(f"Token exchange response: {token_response.text}")
+                logger.error(f"Used redirect_uri: {redirect_uri}")
+                raise HTTPException(status_code=400, detail=f"Failed to exchange code for token: {token_response.text}")
             
             token_data = token_response.json()
             access_token = token_data.get('access_token')
