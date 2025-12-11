@@ -75,7 +75,8 @@ class User(BaseModel):
     name: str
     picture: Optional[str] = None
     provider: str = "google"  # google, facebook
-    is_admin: bool = False
+    role: str = "user"  # admin, manager, user
+    is_admin: bool = False  # Deprecated - use role instead
     created_at: datetime = Field(default_factory=datetime.utcnow)
     last_login: Optional[datetime] = Field(default_factory=datetime.utcnow)
 
@@ -84,3 +85,6 @@ class UserCreate(BaseModel):
     name: str
     picture: Optional[str] = None
     provider: str = "google"
+
+class UserUpdate(BaseModel):
+    role: str  # admin, manager, user
