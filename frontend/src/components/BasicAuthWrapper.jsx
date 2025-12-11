@@ -75,10 +75,15 @@ const BasicAuthWrapper = ({ children }) => {
                   <h3 className="text-sm font-bold text-orange-900 mb-1">
                     🔬 Dogfooding Phase - Authentication Required
                   </h3>
-                  <p className="text-sm text-orange-800">
+                  <p className="text-sm text-orange-800 mb-2">
                     This application is currently in the <strong>dogfooding phase</strong> for internal testing and feedback. 
                     Access is restricted to authorized users only. Please use the provided credentials to continue.
                   </p>
+                  <div className="mt-3 pt-3 border-t border-orange-300">
+                    <p className="text-xs text-orange-700 font-semibold">
+                      ℹ️ Note: This authentication layer is temporary and will be removed once the website goes live to the public.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
