@@ -34,6 +34,12 @@ db = client[os.environ['DB_NAME']]
 # Create the main app without a prefix
 app = FastAPI()
 
+# Health check endpoint at root level (no /api prefix) for Kubernetes
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Kubernetes - no authentication required"""
+    return {"status": "healthy"}
+
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
