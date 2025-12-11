@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from '../hooks/use-toast';
 import { Toaster } from '../components/ui/toaster';
-import { Users, FileText, Shield } from 'lucide-react';
+import { Users, FileText, Shield, MessageSquare } from 'lucide-react';
 import MembershipManagement from '../components/MembershipManagement';
 import UserManagement from '../components/UserManagement';
+import FeedbackManagement from '../components/FeedbackManagement';
 
 const AdminPortal = () => {
   const { isAdmin, isManager, role, loading: authLoading } = useAuth();
