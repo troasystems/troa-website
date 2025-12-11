@@ -212,15 +212,11 @@ async def create_membership_application(application: MembershipApplicationCreate
         raise HTTPException(status_code=500, detail="Failed to submit membership application")
 
 @api_router.get("/membership", response_model=List[MembershipApplication])
-async def get_membership_applications(request: Request, admin = None):
-    """Get membership applications - admin only for full access"""
+async def get_membership_applications(request: Request):
+    """Get membership applications - admin and manager access"""
     try:
-        # Check if user is admin
-        try:
-            await require_admin(request)
-        except Exception:
-            # Non-admin users can't see applications
-            raise HTTPException(status_code=403, detail="Admin access required")
+        # Check if user is admin or manager
+        await require_manager_or_admin(request)
         
         applications = await db.membership_applications.find().sort("created_at", -1).to_list(1000)
         return [MembershipApplication(**app) for app in applications]
