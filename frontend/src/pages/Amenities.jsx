@@ -380,15 +380,29 @@ const Amenities = () => {
                       </h3>
                       <p className="text-gray-600 leading-relaxed mb-4">{amenity.description}</p>
                       
-                      {/* Book Now Button - Only for authenticated users */}
-                      {isAuthenticated && (
-                        <button
-                          onClick={() => setBookingAmenity(amenity)}
-                          className="w-full mt-4 flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-300"
-                        >
-                          <Calendar className="w-5 h-5" />
-                          <span>Book Now</span>
-                        </button>
+                      {/* Booking Section */}
+                      {isBookable(amenity.name) ? (
+                        isAuthenticated ? (
+                          <button
+                            onClick={() => setBookingAmenity(amenity)}
+                            className="w-full mt-4 flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-300"
+                          >
+                            <Calendar className="w-5 h-5" />
+                            <span>Book Now</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={login}
+                            className="w-full mt-4 flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-300"
+                          >
+                            <LogIn className="w-5 h-5" />
+                            <span>Login to Book Amenities</span>
+                          </button>
+                        )
+                      ) : (
+                        <div className="mt-4 px-6 py-3 bg-gray-100 text-gray-600 rounded-lg text-center">
+                          <span className="text-sm">Available for all residents</span>
+                        </div>
                       )}
                     </div>
                   </>
