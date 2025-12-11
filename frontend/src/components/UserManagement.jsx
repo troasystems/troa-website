@@ -19,9 +19,13 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('session_token');
+      const basicAuth = btoa('dogfooding:skywalker');
       const response = await axios.get(`${API}/users`, {
         withCredentials: true,
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        headers: {
+          'Authorization': `Basic ${basicAuth}`,
+          ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
+        }
       });
       setUsers(response.data);
       setLoading(false);
