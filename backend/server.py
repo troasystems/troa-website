@@ -228,9 +228,9 @@ async def get_membership_applications(request: Request):
 
 @api_router.patch("/membership/{application_id}", response_model=MembershipApplication)
 async def update_membership_application(application_id: str, update: MembershipApplicationUpdate, request: Request):
-    """Update membership application status - admin only"""
+    """Update membership application status - admin and manager access"""
     try:
-        admin = await require_admin(request)
+        user = await require_manager_or_admin(request)
         
         from datetime import datetime
         result = await db.membership_applications.find_one_and_update(
