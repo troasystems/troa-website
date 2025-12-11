@@ -2,10 +2,11 @@ from fastapi import Request, HTTPException, status
 from fastapi.responses import Response
 import base64
 import secrets
+import os
 
-# Basic auth credentials
-BASIC_AUTH_USERNAME = "dogfooding"
-BASIC_AUTH_PASSWORD = "skywalker"
+# Basic auth credentials from environment variables
+BASIC_AUTH_USERNAME = os.getenv('BASIC_AUTH_USERNAME', 'dogfooding')
+BASIC_AUTH_PASSWORD = os.getenv('BASIC_AUTH_PASSWORD', 'skywalker')
 
 def verify_basic_auth(auth_header: str) -> bool:
     """Verify basic authentication credentials"""

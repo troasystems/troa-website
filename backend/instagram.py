@@ -10,9 +10,9 @@ logger = logging.getLogger(__name__)
 
 instagram_router = APIRouter(prefix="/instagram")
 
-# Instagram credentials
-INSTAGRAM_APP_ID = os.getenv('INSTAGRAM_APP_ID', '691752764014284')
-INSTAGRAM_APP_SECRET = os.getenv('INSTAGRAM_APP_SECRET', '03639918c4ea4f101d8c760f8d5f0fe2')
+# Instagram credentials from environment variables
+INSTAGRAM_APP_ID = os.getenv('INSTAGRAM_APP_ID')
+INSTAGRAM_APP_SECRET = os.getenv('INSTAGRAM_APP_SECRET')
 INSTAGRAM_REDIRECT_URI = os.getenv('INSTAGRAM_REDIRECT_URI', '')
 
 # MongoDB connection
