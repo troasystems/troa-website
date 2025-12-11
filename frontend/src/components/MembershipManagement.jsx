@@ -42,12 +42,16 @@ const MembershipManagement = () => {
   const handleApprove = async (applicationId) => {
     try {
       const token = localStorage.getItem('session_token');
+      const basicAuth = btoa('dogfooding:skywalker');
       await axios.patch(
         `${API}/membership/${applicationId}`,
         { status: 'approved' },
         {
           withCredentials: true,
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+          headers: {
+            'Authorization': `Basic ${basicAuth}`,
+            ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
+          }
         }
       );
       toast({
