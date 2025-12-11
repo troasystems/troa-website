@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Users, Shield, UserCog, User as UserIcon, Trash2, Edit2, Save, X, UserPlus } from 'lucide-react';
+import { Users, Shield, UserCog, User as UserIcon, Trash2, Edit2, Save, X, UserPlus, Mail, AtSign } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -14,6 +14,8 @@ const UserManagement = () => {
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserName, setNewUserName] = useState('');
+  const [newUserRole, setNewUserRole] = useState('user');
+  const [addingUserLoading, setAddingUserLoading] = useState(false);
 
   useEffect(() => {
     fetchUsers();
