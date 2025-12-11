@@ -110,10 +110,15 @@ class UserWhitelistTestClient:
         success_count = 0
         
         for i, test_user in enumerate(test_users):
+            import base64
+            basic_auth = base64.b64encode(b"dogfooding:skywalker").decode()
             response = self.client.post(
                 "/api/users",
                 json=test_user,
-                headers={"X-Session-Token": f"Bearer {self.admin_session_token}"}
+                headers={
+                    "Authorization": f"Basic {basic_auth}",
+                    "X-Session-Token": f"Bearer {self.admin_session_token}"
+                }
             )
             
             if response.status_code in [200, 201]:
