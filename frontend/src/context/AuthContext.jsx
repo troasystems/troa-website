@@ -37,10 +37,14 @@ export const AuthProvider = ({ children }) => {
     try {
       // Get token from localStorage
       const token = localStorage.getItem('session_token');
+      const basicAuth = btoa('dogfooding:skywalker');
       
       const response = await axios.get(`${API}/auth/user`, {
         withCredentials: true,
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        headers: {
+          'Authorization': `Basic ${basicAuth}`,
+          ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
+        }
       });
       setUser(response.data);
     } catch (error) {
