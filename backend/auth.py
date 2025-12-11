@@ -128,55 +128,49 @@ async def require_manager_or_admin(request: Request):
 @auth_router.get('/google/login')
 async def google_login(request: Request):
     """Initiate Google OAuth login"""
-    # Construct the full redirect URI dynamically from the request
-    # This allows the same code to work on any domain (preview, production, custom)
+    # Check for custom domain override in environment variable
+    # This is useful when the app is behind a CDN/proxy that doesn't forward original host
+    custom_domain = os.getenv('OAUTH_REDIRECT_DOMAIN')
     
-    # Log all relevant headers for debugging
-    logger.info(f"OAuth login - Headers: host={request.headers.get('host')}, "
-                f"x-forwarded-host={request.headers.get('x-forwarded-host')}, "
-                f"x-forwarded-proto={request.headers.get('x-forwarded-proto')}, "
-                f"origin={request.headers.get('origin')}, "
-                f"referer={request.headers.get('referer')}")
-    
-    # Priority order for determining the origin:
-    # 1. x-forwarded-host (set by reverse proxies for the original host)
-    # 2. referer header (contains the original URL)
-    # 3. origin header
-    # 4. host header (fallback)
-    
-    origin = None
-    scheme = request.headers.get('x-forwarded-proto', 'https')
-    
-    # Try x-forwarded-host first (most reliable for proxied requests)
-    forwarded_host = request.headers.get('x-forwarded-host')
-    if forwarded_host:
-        # Take the first host if multiple are chained
-        forwarded_host = forwarded_host.split(',')[0].strip()
-        origin = f"{scheme}://{forwarded_host}"
-        logger.info(f"Using x-forwarded-host: {origin}")
-    
-    # Try referer header
-    if not origin:
-        referer = request.headers.get('referer')
-        if referer:
-            # Extract origin from referer URL
-            from urllib.parse import urlparse
-            parsed = urlparse(referer)
-            if parsed.scheme and parsed.netloc:
-                origin = f"{parsed.scheme}://{parsed.netloc}"
-                logger.info(f"Using referer: {origin}")
-    
-    # Try origin header
-    if not origin:
-        origin = request.headers.get('origin')
-        if origin:
-            logger.info(f"Using origin header: {origin}")
-    
-    # Fallback to host header
-    if not origin:
-        host = request.headers.get('host', '')
-        origin = f"{scheme}://{host}"
-        logger.info(f"Using host header fallback: {origin}")
+    if custom_domain:
+        # Use the configured custom domain
+        origin = custom_domain.rstrip('/')
+        logger.info(f"Using configured OAUTH_REDIRECT_DOMAIN: {origin}")
+    else:
+        # Try to detect from headers
+        origin = None
+        scheme = request.headers.get('x-forwarded-proto', 'https')
+        
+        # Log all relevant headers for debugging
+        logger.info(f"OAuth login - Headers: host={request.headers.get('host')}, "
+                    f"x-forwarded-host={request.headers.get('x-forwarded-host')}, "
+                    f"x-forwarded-proto={request.headers.get('x-forwarded-proto')}, "
+                    f"origin={request.headers.get('origin')}, "
+                    f"referer={request.headers.get('referer')}")
+        
+        # Try x-forwarded-host first
+        forwarded_host = request.headers.get('x-forwarded-host')
+        if forwarded_host:
+            forwarded_host = forwarded_host.split(',')[0].strip()
+            origin = f"{scheme}://{forwarded_host}"
+        
+        # Try referer header
+        if not origin:
+            referer = request.headers.get('referer')
+            if referer:
+                from urllib.parse import urlparse
+                parsed = urlparse(referer)
+                if parsed.scheme and parsed.netloc:
+                    origin = f"{parsed.scheme}://{parsed.netloc}"
+        
+        # Try origin header
+        if not origin:
+            origin = request.headers.get('origin')
+        
+        # Fallback to host header
+        if not origin:
+            host = request.headers.get('host', '')
+            origin = f"{scheme}://{host}"
     
     redirect_uri = f"{origin}/api/auth/google/callback"
     logger.info(f"OAuth login initiated with redirect_uri: {redirect_uri}")
