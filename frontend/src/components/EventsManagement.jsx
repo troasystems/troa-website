@@ -87,18 +87,27 @@ const EventsManagement = () => {
     }
   };
 
-  const handleReject = async (registrationId) => {
-    if (!window.confirm('Are you sure you want to reject this registration?')) return;
+  const handleReject = async (registrationId, isModification = false) => {
+    const confirmMsg = isModification 
+      ? 'Are you sure you want to reject this modification request?' 
+      : 'Are you sure you want to reject this registration?';
+    if (!window.confirm(confirmMsg)) return;
     
     const token = localStorage.getItem('session_token');
     try {
-      await axios.post(
-        `${API}/events/registrations/${registrationId}/reject`,
-        {},
-        { headers: { 'X-Session-Token': `Bearer ${token}` } }
-      );
-      toast({ title: 'Registration Rejected', description: 'The user has been notified.' });
+      const endpoint = isModification
+        ? `${API}/events/registrations/${registrationId}/reject-modification`
+        : `${API}/events/registrations/${registrationId}/reject`;
+      
+      await axios.post(endpoint, {}, { headers: { 'X-Session-Token': `Bearer ${token}` } });
+      toast({ 
+        title: isModification ? 'Modification Rejected' : 'Registration Rejected', 
+        description: 'The modification has been cancelled.' 
+      });
       fetchData();
+      if (selectedEvent) {
+        fetchEventRegistrations(selectedEvent.id);
+      }
     } catch (error) {
       toast({
         title: 'Error',
