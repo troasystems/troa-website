@@ -193,10 +193,10 @@ const MyBookings = () => {
                           <div className="flex items-start space-x-3 text-gray-700">
                             <Users className="w-5 h-5 text-purple-600 flex-shrink-0 mt-1" />
                             <div>
-                              <p className="font-medium mb-1">Additional Users:</p>
+                              <p className="font-medium mb-1">Additional Guests:</p>
                               <ul className="text-sm space-y-1">
-                                {booking.additional_users.map((email, index) => (
-                                  <li key={index} className="text-gray-600">• {email}</li>
+                                {booking.additional_users.map((name, index) => (
+                                  <li key={index} className="text-gray-600">• {name}</li>
                                 ))}
                               </ul>
                             </div>
