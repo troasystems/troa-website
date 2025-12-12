@@ -17,10 +17,34 @@ export const API = `${BACKEND_URL}/api`;
 // Helper function to get full image URL
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return '';
-  // If already a full URL, return as-is
+  
+  // If it's a full URL, check if it needs hostname replacement
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    // List of old hostnames that should be replaced with current origin
+    const oldHostnames = [
+      'villaportal.emergent.host',
+      'villaportal.preview.emergentagent.com',
+      'localhost:8001',
+      'localhost:3000'
+    ];
+    
+    try {
+      const url = new URL(imagePath);
+      const currentOrigin = typeof window !== 'undefined' ? window.location.origin : BACKEND_URL;
+      
+      // Check if the URL uses an old hostname
+      if (oldHostnames.some(host => url.hostname === host || url.host === host)) {
+        // Replace with current origin, keeping the path
+        return `${currentOrigin}${url.pathname}`;
+      }
+    } catch (e) {
+      // If URL parsing fails, return as-is
+      return imagePath;
+    }
+    
     return imagePath;
   }
+  
   // If relative path, prepend backend URL
   return `${BACKEND_URL}${imagePath}`;
 };
