@@ -688,6 +688,7 @@ const MyEvents = () => {
                               <div>
                                 <p className="font-semibold text-gray-900">Online</p>
                                 <p className="text-xs text-gray-500">Razorpay</p>
+                                <p className="text-xs text-orange-600 mt-1">2% surcharge</p>
                               </div>
                             </div>
                           </button>
