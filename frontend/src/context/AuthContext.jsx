@@ -22,9 +22,14 @@ export const AuthProvider = ({ children }) => {
     // Check for token in URL (from OAuth callback)
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
+    const authSuccess = urlParams.get('auth_success');
+    
+    console.log('[Auth] URL params - token:', token ? 'present' : 'missing', 'auth_success:', authSuccess);
+    console.log('[Auth] Current localStorage token:', localStorage.getItem('session_token') ? 'present' : 'missing');
     
     if (token) {
       // Store token in localStorage
+      console.log('[Auth] Storing token in localStorage');
       localStorage.setItem('session_token', token);
       // Remove token from URL
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -37,6 +42,7 @@ export const AuthProvider = ({ children }) => {
     try {
       // Get token from localStorage
       const token = localStorage.getItem('session_token');
+      console.log('[Auth] Checking auth with token:', token ? 'present' : 'missing');
       
       const response = await axios.get(`${API}/auth/user`, {
         withCredentials: true,
@@ -44,8 +50,10 @@ export const AuthProvider = ({ children }) => {
           ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
         }
       });
+      console.log('[Auth] User authenticated:', response.data.email);
       setUser(response.data);
     } catch (error) {
+      console.log('[Auth] Auth check failed:', error.response?.status, error.response?.data);
       setUser(null);
       // Clear invalid token
       localStorage.removeItem('session_token');
