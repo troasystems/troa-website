@@ -364,7 +364,7 @@ const Amenities = () => {
                     <div className="relative h-64 overflow-hidden">
                       <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-orange-500/20 z-10 group-hover:opacity-0 transition-opacity duration-300"></div>
                       <img
-                        src={amenity.image}
+                        src={getImageUrl(amenity.image)}
                         alt={amenity.name}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       />
