@@ -453,6 +453,13 @@ const EventsManagement = () => {
                               <CheckCircle className="w-3 h-3" />
                               <span>Approve</span>
                             </button>
+                            <button
+                              onClick={() => handleReject(reg.id, true)}
+                              className="flex items-center space-x-1 px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+                            >
+                              <XCircle className="w-3 h-3" />
+                              <span>Reject</span>
+                            </button>
                           </div>
                         </div>
                       )}
