@@ -285,7 +285,7 @@ const Amenities = () => {
             {amenities.map((amenity) => (
               <div
                 key={amenity.id}
-                className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden"
+                className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col h-full"
               >
                 {editingId === amenity.id ? (
                   // Edit Mode
