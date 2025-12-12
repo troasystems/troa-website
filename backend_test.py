@@ -40,8 +40,10 @@ class TROAAPITester:
         
         # Setup authentication headers
         self.basic_auth = base64.b64encode(f"{BASIC_AUTH_USERNAME}:{BASIC_AUTH_PASSWORD}".encode()).decode()
+        self.session_token = "ymsHGpK7iiNm9K79Arw3qk8DY9Z8erRkR92dKxvDqv4"  # Valid admin session token
         self.auth_headers = {
             'Authorization': f'Basic {self.basic_auth}',
+            'X-Session-Token': f'Bearer {self.session_token}',
             'Content-Type': 'application/json'
         }
         
