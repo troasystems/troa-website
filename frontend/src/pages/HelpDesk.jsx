@@ -219,7 +219,7 @@ const HelpDesk = () => {
       <section className="relative py-20 bg-gradient-to-br from-purple-600 via-pink-600 to-orange-600 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">Help Desk</h1>
+            <h1 className="text-5xl md:text-6xl font-bold mb-6">Resources</h1>
             <p className="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto">
               Your one-stop resource for community services and information
             </p>
