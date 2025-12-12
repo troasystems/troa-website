@@ -626,10 +626,20 @@ app.add_middleware(
     secret_key=os.getenv('SECRET_KEY', 'your-secret-key-change-in-production')
 )
 
+# CORS configuration - must specify exact origins when using credentials
+CORS_ORIGINS = [
+    "https://troa.in",
+    "http://troa.in",
+    "https://tenant-assist-6.preview.emergentagent.com",
+    "https://tenant-assist-6.emergent.host",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
