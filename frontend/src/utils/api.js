@@ -1,9 +1,8 @@
 import axios from 'axios';
 
-// Use current origin for API calls (works in production with custom domain)
-// Fall back to env variable for local development
-const getBackendUrl = () => {
-  // In production, use the same origin as the frontend
+// Dynamic function to get backend URL - always use current origin in production
+export const getBackendUrl = () => {
+  // In production (non-localhost), use the same origin as the frontend
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
     return window.location.origin;
   }
@@ -11,8 +10,12 @@ const getBackendUrl = () => {
   return process.env.REACT_APP_BACKEND_URL || '';
 };
 
+// For backwards compatibility, but components should prefer getBackendUrl()
 export const BACKEND_URL = getBackendUrl();
-export const API = `${BACKEND_URL}/api`;
+
+// Dynamic API base - use this for API calls
+export const getApiBase = () => `${getBackendUrl()}/api`;
+export const API = getApiBase();
 
 // Helper function to get full image URL
 export const getImageUrl = (imagePath) => {
