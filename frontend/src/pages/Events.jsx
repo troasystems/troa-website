@@ -204,7 +204,7 @@ const Events = () => {
     try {
       // Step 1: Create registration
       const regResponse = await axios.post(
-        `${API}/events/${selectedEvent.id}/register`,
+        `${getAPI()}/events/${selectedEvent.id}/register`,
         {
           event_id: selectedEvent.id,
           registrants: validRegistrants,
@@ -228,7 +228,7 @@ const Events = () => {
       } else {
         // Online payment - create Razorpay order
         const orderResponse = await axios.post(
-          `${API}/events/${selectedEvent.id}/create-payment-order?registration_id=${registration.id}`,
+          `${getAPI()}/events/${selectedEvent.id}/create-payment-order?registration_id=${registration.id}`,
           {},
           { headers: { 'X-Session-Token': `Bearer ${token}` } }
         );
@@ -247,7 +247,7 @@ const Events = () => {
             // Verify payment
             try {
               await axios.post(
-                `${API}/events/registrations/${registration.id}/complete-payment?payment_id=${response.razorpay_payment_id}`,
+                `${getAPI()}/events/registrations/${registration.id}/complete-payment?payment_id=${response.razorpay_payment_id}`,
                 {},
                 { headers: { 'X-Session-Token': `Bearer ${token}` } }
               );
