@@ -60,6 +60,20 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
     const slotStart = hours * 60 + minutes;
     const slotEnd = slotStart + duration;
 
+    // Check if slot is at least 1 hour in the future
+    const now = new Date();
+    const selectedDateObj = new Date(selectedDate);
+    const isToday = selectedDateObj.toDateString() === now.toDateString();
+    
+    if (isToday) {
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const minimumBookingTime = currentMinutes + 60; // At least 1 hour from now
+      
+      if (slotStart < minimumBookingTime) {
+        return false; // Slot is too soon
+      }
+    }
+
     return !existingBookings.some(booking => {
       const [bStartH, bStartM] = booking.start_time.split(':').map(Number);
       const [bEndH, bEndM] = booking.end_time.split(':').map(Number);
@@ -68,6 +82,27 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
 
       return (slotStart < bookingEnd && slotEnd > bookingStart);
     });
+  };
+
+  // Check if a slot is in the past or too soon (for display purposes)
+  const isSlotTooSoon = (time) => {
+    const [hours, minutes] = time.split(':').map(Number);
+    const slotStart = hours * 60 + minutes;
+    
+    const now = new Date();
+    const selectedDateObj = new Date(selectedDate);
+    const isToday = selectedDateObj.toDateString() === now.toDateString();
+    
+    if (isToday) {
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const minimumBookingTime = currentMinutes + 60; // At least 1 hour from now
+      
+      if (slotStart < minimumBookingTime) {
+        return true;
+      }
+    }
+    
+    return false;
   };
 
   const handleAddUser = () => {
