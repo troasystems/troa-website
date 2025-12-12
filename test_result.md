@@ -607,18 +607,17 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Events Feature - Frontend Events Page UI"
-    - "Events Feature - Frontend My Events Page UI"
-    - "Events Feature - Frontend Navigation Integration"
-    - "Events Feature - Frontend Mobile Responsiveness"
-    - "Events Feature - Frontend Admin Portal Integration"
+    - "Events registration status check - users can see if already registered"
+    - "Events modification - add/remove registrants from existing registration"
+    - "Events modification payment flow - online and offline"
+    - "Events page shows 'Already registered' with link to My Events"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
     - agent: "main"
-      message: "Implemented comprehensive Events feature: 1) Backend - Complete CRUD for events in /app/backend/events.py with admin-only create/update/delete, user registration with online (Razorpay) or offline payment options, admin approval endpoints for offline payments. 2) Frontend - Events.jsx page with event grid, admin create/edit modal, user registration modal with payment method selection. MyEvents.jsx for viewing registrations with status badges. EventsManagement.jsx for admin portal with pending approvals view. 3) Updated models.py - EventRegistration now has payment_method (online/offline), admin_approved, approval_note fields. AmenityBooking model changed from additional_users to additional_guests. 4) Updated App.js with /events and /my-events routes. 5) Updated Navbar with Events link. Ready for testing."
+      message: "Implemented registration modification feature: 1) Backend - Added GET /api/events/my/status to check user's registration status, PATCH /api/events/registrations/{id}/modify to add/remove registrants, payment order and completion endpoints for modifications. 2) Frontend Events.jsx - Now checks user registration status and shows 'You're already registered! Add/Remove Members' with link to My Events. 3) Frontend MyEvents.jsx - Added Modify button that opens modal to add/remove people, calculates additional payment needed, supports online (Razorpay) or offline payment for adding people."
     - agent: "testing"
       message: "Comprehensive backend API testing completed successfully. All 8 endpoints (4 GET, 4 POST) are working correctly. Created backend_test.py and backend_error_test.py for thorough testing. All APIs return proper responses, handle errors correctly (404 for invalid endpoints, 422 for validation errors), and maintain data integrity. Database contains proper seed data: 10 committee members, 7 amenities, 9 gallery images, and 1 membership application. Error handling and data validation working as expected."
     - agent: "testing"
