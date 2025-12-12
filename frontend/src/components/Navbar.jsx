@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, LogOut, Shield, MessageSquare, Calendar } from 'lucide-react';
+import { Menu, X, User, LogOut, Shield, MessageSquare, Calendar, PartyPopper } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
@@ -14,6 +14,7 @@ const Navbar = () => {
     { name: 'About', path: '/about' },
     { name: 'Committee', path: '/committee' },
     { name: 'Amenities', path: '/amenities' },
+    { name: 'Events', path: '/events' },
     { name: 'Gallery', path: '/gallery' },
     { name: 'Help Desk', path: '/help-desk' },
     { name: 'Contact', path: '/contact' }
