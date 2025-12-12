@@ -43,13 +43,19 @@ const Navbar = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
+                className={`relative px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
                   isActive(item.path)
                     ? 'bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white shadow-lg'
                     : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-100 hover:to-pink-100'
                 }`}
               >
                 {item.name}
+                {/* Book Now bubble for Amenities when logged in */}
+                {item.name === 'Amenities' && isAuthenticated && (
+                  <span className="absolute -top-2 -right-2 px-2 py-0.5 text-[10px] font-bold bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full shadow-lg animate-pulse">
+                    Book Now
+                  </span>
+                )}
               </Link>
             ))}
             
