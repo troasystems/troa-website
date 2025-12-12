@@ -361,6 +361,9 @@ async def google_callback(code: str, state: str, request: Request):
             path='/'
         )
         
+        # Clear the oauth_origin cookie
+        response.delete_cookie('oauth_origin')
+        
         mongo_client.close()
         return response
         
