@@ -12,13 +12,14 @@ import {
   Users,
   Plus,
   X,
-  Image as ImageIcon,
-  Edit,
+  Edit2,
   Trash2,
   CheckCircle,
   AlertCircle,
   CreditCard,
-  Banknote
+  Banknote,
+  Save,
+  Upload
 } from 'lucide-react';
 
 const API = `${BACKEND_URL}/api`;
@@ -69,6 +70,34 @@ const Events = () => {
       console.error('Error fetching events:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const token = localStorage.getItem('session_token');
+      const response = await axios.post(`${API}/upload/image`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
+        }
+      });
+      
+      setEventForm({ ...eventForm, image: response.data.url });
+      
+      toast({
+        title: 'Success',
+        description: 'Image uploaded successfully'
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to upload image',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -329,161 +358,170 @@ const Events = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
+      <div className="min-h-screen pt-20 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 py-12 px-4">
+    <div className="min-h-screen pt-20">
       <Toaster />
       
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
-            Community Events
-          </h1>
-          <p className="text-gray-600 text-lg">
-            Join us for exciting events and gatherings at The Retreat
-          </p>
-          
-          {canManageEvents && (
-            <button
-              onClick={() => {
-                resetEventForm();
-                setEditingEvent(null);
-                setShowCreateModal(true);
-              }}
-              className="mt-6 inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full font-semibold hover:shadow-lg transition-all"
-            >
-              <Plus className="w-5 h-5" />
-              <span>Create Event</span>
-            </button>
-          )}
-        </div>
-
-        {/* Events Grid */}
-        {events.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl shadow-lg">
-            <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-600">No Upcoming Events</h3>
-            <p className="text-gray-500">Check back later for new events!</p>
+      {/* Hero Section - Same as Amenities/Committee */}
+      <section className="relative py-20 bg-gradient-to-br from-purple-600 via-pink-600 to-orange-600 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h1 className="text-5xl md:text-6xl font-bold mb-6">Community Events</h1>
+            <p className="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto">
+              Join us for exciting events and gatherings at The Retreat
+            </p>
           </div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {events.map((event) => (
-              <div
-                key={event.id}
-                className={`bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all hover:scale-[1.02] hover:shadow-xl ${
-                  isPastEvent(event.event_date) ? 'opacity-60' : ''
-                }`}
-              >
-                {/* Event Image */}
-                <div className="relative h-48">
-                  <img
-                    src={getImageUrl(event.image) || '/placeholder-event.jpg'}
-                    alt={event.name}
-                    className="w-full h-full object-cover"
-                  />
-                  {isPastEvent(event.event_date) && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <span className="text-white font-bold text-lg">Event Ended</span>
-                    </div>
-                  )}
-                  {canManageEvents && (
-                    <div className="absolute top-2 right-2 flex space-x-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEventForm({
-                            name: event.name,
-                            description: event.description,
-                            image: event.image,
-                            event_date: event.event_date,
-                            event_time: event.event_time,
-                            amount: event.amount.toString(),
-                            payment_type: event.payment_type,
-                            preferences: event.preferences || [],
-                            max_registrations: event.max_registrations?.toString() || ''
-                          });
-                          setEditingEvent(event);
-                          setShowCreateModal(true);
-                        }}
-                        className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                      >
-                        <Edit className="w-4 h-4 text-purple-600" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteEvent(event.id);
-                        }}
-                        className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </button>
-                    </div>
-                  )}
-                </div>
+        </div>
+      </section>
 
-                {/* Event Details */}
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{event.name}</h3>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{event.description}</p>
-                  
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center text-gray-600">
-                      <Calendar className="w-4 h-4 mr-2 text-purple-600" />
-                      <span className="text-sm">{formatDate(event.event_date)}</span>
-                    </div>
-                    <div className="flex items-center text-gray-600">
-                      <Clock className="w-4 h-4 mr-2 text-pink-600" />
-                      <span className="text-sm">{event.event_time}</span>
-                    </div>
-                    <div className="flex items-center text-gray-600">
-                      <IndianRupee className="w-4 h-4 mr-2 text-orange-600" />
-                      <span className="text-sm">
-                        ₹{event.amount} {event.payment_type === 'per_person' ? 'per person' : 'per villa'}
-                      </span>
-                    </div>
+      {/* Events Grid Section */}
+      <section className="py-20 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {canManageEvents && (
+            <div className="text-center mb-12">
+              <button
+                onClick={() => {
+                  resetEventForm();
+                  setEditingEvent(null);
+                  setShowCreateModal(true);
+                }}
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300 shadow-lg"
+              >
+                + Create Event
+              </button>
+            </div>
+          )}
+
+          {/* Events Grid */}
+          {events.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-2xl shadow-lg">
+              <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-600">No Upcoming Events</h3>
+              <p className="text-gray-500">Check back later for new events!</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {events.map((event) => (
+                <div
+                  key={event.id}
+                  className={`group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden ${
+                    isPastEvent(event.event_date) ? 'opacity-60' : ''
+                  }`}
+                >
+                  {/* Event Image */}
+                  <div className="relative h-48 overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-orange-500/20 z-10 group-hover:opacity-0 transition-opacity duration-300"></div>
+                    <img
+                      src={getImageUrl(event.image) || '/placeholder-event.jpg'}
+                      alt={event.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    {isPastEvent(event.event_date) && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
+                        <span className="text-white font-bold text-lg">Event Ended</span>
+                      </div>
+                    )}
+                    {canManageEvents && (
+                      <div className="absolute top-4 right-4 z-20 flex space-x-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEventForm({
+                              name: event.name,
+                              description: event.description,
+                              image: event.image,
+                              event_date: event.event_date,
+                              event_time: event.event_time,
+                              amount: event.amount.toString(),
+                              payment_type: event.payment_type,
+                              preferences: event.preferences || [],
+                              max_registrations: event.max_registrations?.toString() || ''
+                            });
+                            setEditingEvent(event);
+                            setShowCreateModal(true);
+                          }}
+                          className="w-10 h-10 bg-white/90 hover:bg-blue-500 rounded-lg flex items-center justify-center text-gray-700 hover:text-white transition-all duration-300 shadow-lg"
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteEvent(event.id);
+                          }}
+                          className="w-10 h-10 bg-white/90 hover:bg-red-500 rounded-lg flex items-center justify-center text-gray-700 hover:text-white transition-all duration-300 shadow-lg"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  {!isPastEvent(event.event_date) && (
-                    <button
-                      onClick={() => {
-                        if (!user) {
-                          navigate('/login-info');
-                          return;
-                        }
-                        setSelectedEvent(event);
-                        resetRegistrationForm();
-                        setShowRegisterModal(true);
-                      }}
-                      className="w-full py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all"
-                    >
-                      {user ? 'Register Now' : 'Login to Register'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                  {/* Event Details */}
+                  <div className="p-6">
+                    <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+                      {event.name}
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{event.description}</p>
+                    
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center text-gray-600">
+                        <Calendar className="w-4 h-4 mr-2 text-purple-600" />
+                        <span className="text-sm">{formatDate(event.event_date)}</span>
+                      </div>
+                      <div className="flex items-center text-gray-600">
+                        <Clock className="w-4 h-4 mr-2 text-pink-600" />
+                        <span className="text-sm">{event.event_time}</span>
+                      </div>
+                      <div className="flex items-center text-gray-600">
+                        <IndianRupee className="w-4 h-4 mr-2 text-orange-600" />
+                        <span className="text-sm">
+                          ₹{event.amount} {event.payment_type === 'per_person' ? 'per person' : 'per villa'}
+                        </span>
+                      </div>
+                    </div>
 
-        {/* View My Events Link */}
-        {user && (
-          <div className="text-center mt-12">
-            <button
-              onClick={() => navigate('/my-events')}
-              className="text-purple-600 font-semibold hover:text-purple-700 underline"
-            >
-              View My Event Registrations →
-            </button>
-          </div>
-        )}
-      </div>
+                    {!isPastEvent(event.event_date) && (
+                      <button
+                        onClick={() => {
+                          if (!user) {
+                            navigate('/login-info');
+                            return;
+                          }
+                          setSelectedEvent(event);
+                          resetRegistrationForm();
+                          setShowRegisterModal(true);
+                        }}
+                        className="w-full py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all"
+                      >
+                        {user ? 'Register Now' : 'Login to Register'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* View My Events Link */}
+          {user && (
+            <div className="text-center mt-12">
+              <button
+                onClick={() => navigate('/my-events')}
+                className="text-purple-600 font-semibold hover:text-purple-700 underline"
+              >
+                View My Event Registrations →
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Create/Edit Event Modal */}
       {showCreateModal && (
@@ -519,16 +557,34 @@ const Events = () => {
                 />
               </div>
 
+              {/* Image Upload Section */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Image URL *</label>
-                <input
-                  type="text"
-                  value={eventForm.image}
-                  onChange={(e) => setEventForm({ ...eventForm, image: e.target.value })}
-                  placeholder="https://example.com/image.jpg or /uploads/image.jpg"
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  required
-                />
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Image *</label>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-4">
+                    <label className="flex-1 flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-500 transition-colors">
+                      <Upload className="w-5 h-5 mr-2 text-gray-500" />
+                      <span className="text-gray-600">Upload Image</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e.target.files[0])}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                  <div className="text-center text-sm text-gray-500">OR</div>
+                  <input
+                    type="text"
+                    value={eventForm.image}
+                    onChange={(e) => setEventForm({ ...eventForm, image: e.target.value })}
+                    placeholder="Paste Image URL"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                  {eventForm.image && (
+                    <img src={getImageUrl(eventForm.image)} alt="Preview" className="w-full h-40 object-cover rounded-lg" />
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
