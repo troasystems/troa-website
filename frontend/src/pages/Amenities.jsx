@@ -5,23 +5,12 @@ import { useAuth } from '../context/AuthContext';
 import { toast } from '../hooks/use-toast';
 import { Toaster } from '../components/ui/toaster';
 import BookingCalendar from '../components/BookingCalendar';
+import { getImageUrl, BACKEND_URL } from '../utils/api';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 // Amenities that cannot be booked
 const NON_BOOKABLE_AMENITIES = ['Landscaped Gardens', 'Children\'s Play Area'];
-
-// Helper function to get full image URL
-const getImageUrl = (imagePath) => {
-  if (!imagePath) return '';
-  // If already a full URL, return as-is
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-    return imagePath;
-  }
-  // If relative path, prepend backend URL
-  return `${BACKEND_URL}${imagePath}`;
-};
 
 const Amenities = () => {
   const [amenities, setAmenities] = useState([]);
