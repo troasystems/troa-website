@@ -423,7 +423,7 @@ const Committee = () => {
                     <div className="relative h-80 overflow-hidden">
                       <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-orange-500/20 z-10"></div>
                       <img
-                        src={member.image}
+                        src={getImageUrl(member.image)}
                         alt={member.name}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       />
