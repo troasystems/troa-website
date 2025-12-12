@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/use-toast';
 import { Toaster } from '../components/ui/toaster';
-import { getImageUrl, BACKEND_URL } from '../utils/api';
+import { getImageUrl, getBackendUrl } from '../utils/api';
 import {
   Calendar,
   Clock,
@@ -23,7 +23,7 @@ import {
   X
 } from 'lucide-react';
 
-const API = `${BACKEND_URL}/api`;
+const getAPI = () => `${getBackendUrl()}/api`;
 
 const REFUND_EMAILS = "troa.systems@gmail.com, troa.treasurer@gmail.com, troa.secretary@gmail.com, president.troa@gmail.com";
 
