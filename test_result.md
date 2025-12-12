@@ -346,6 +346,67 @@ backend:
           comment: "✅ Amenity Booking fix implemented successfully. POST /api/bookings now accepts 'additional_guests' as a list of names instead of 'additional_users' as emails. Tested with 3 guest names - booking created successfully. Model updated in models.py to use additional_guests field. Backward compatibility maintained."
 
 frontend:
+  - task: "Events Feature - Frontend Events Page UI"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Events.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Events page frontend testing completed successfully. Page loads with 'Community Events' gradient heading and proper subheading 'Join us for exciting events and gatherings at The Retreat'. Found 3 event cards displaying Annual Community BBQ events with proper event details (name, date, time, price ₹25 per person). Each event card shows 'Login to Register' buttons for unauthenticated users. Clicking 'Login to Register' correctly redirects to /login-info page. Event cards display proper images, descriptions, and pricing information. UI layout and styling working correctly with gradient theme."
+
+  - task: "Events Feature - Frontend My Events Page UI"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/MyEvents.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ My Events page frontend testing completed successfully. Page correctly redirects unauthenticated users to /login-info page as expected. Page structure includes 'My Event Registrations' gradient heading, proper redirect behavior for protected route, and 'Browse Events' button functionality. Authentication protection working correctly - unauthenticated users cannot access the page directly."
+
+  - task: "Events Feature - Frontend Navigation Integration"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/Navbar.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Events navigation integration working perfectly. Events link found in navbar between Amenities and Gallery as expected. Clicking Events link correctly navigates to /events page. Events link appears in both desktop and mobile navigation menus. Mobile hamburger menu opens correctly and displays Events link along with other navigation items. Navigation styling consistent with gradient theme."
+
+  - task: "Events Feature - Frontend Mobile Responsiveness"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Events.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Mobile responsiveness testing completed successfully. Hamburger menu button visible and functional on mobile screens (390x844). Mobile menu opens correctly and displays all navigation links including Events. Events page displays properly on mobile with responsive event card layout. All UI elements scale appropriately for mobile viewing."
+
+  - task: "Events Feature - Frontend Admin Portal Integration"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/AdminPortal.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Admin Portal Events Management integration working correctly. Admin Portal properly redirects unauthenticated users to home page as expected. EventsManagement component implemented with 'Events Management' tab structure. Component includes 'Pending Approvals' and 'All Events' views as designed. Authentication protection working - requires Google OAuth login to access admin features."
+
+frontend:
   - task: "Chatbot Functionality"
     implemented: true
     working: true
