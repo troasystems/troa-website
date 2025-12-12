@@ -520,7 +520,7 @@ const Events = () => {
                               onClick={() => navigate('/my-events')}
                               className="w-full py-3 border-2 border-purple-600 text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-all"
                             >
-                              Add/Remove Members →
+                              Modify Registration →
                             </button>
                           </div>
                         ) : (
