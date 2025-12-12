@@ -373,7 +373,7 @@ async def logout(request: Request):
     """Logout user"""
     token = request.cookies.get('session_token')
     if token:
-        delete_session(token)
+        await delete_session(token)
     
     response = Response(content='{"message": "Logged out successfully"}')
     response.delete_cookie('session_token')
