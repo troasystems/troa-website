@@ -1,7 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+// Use current origin for API calls (works in production with custom domain)
+// Fall back to env variable for local development
+const getBackendUrl = () => {
+  // In production, use the same origin as the frontend
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return window.location.origin;
+  }
+  // In development, use the env variable
+  return process.env.REACT_APP_BACKEND_URL || '';
+};
+
+const BACKEND_URL = getBackendUrl();
 const API = `${BACKEND_URL}/api`;
 
 const AuthContext = createContext();
