@@ -131,8 +131,8 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
       return;
     }
 
-    // Filter out empty email addresses
-    const validUsers = additionalUsers.filter(email => email.trim() !== '');
+    // Filter out empty names
+    const validGuests = additionalUsers.filter(name => name.trim() !== '');
 
     setLoading(true);
     try {
@@ -147,7 +147,7 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
           booking_date: selectedDate,
           start_time: selectedTime,
           duration_minutes: duration,
-          additional_users: validUsers
+          additional_guests: validGuests
         },
         {
           withCredentials: true,
