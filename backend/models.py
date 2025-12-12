@@ -134,3 +134,57 @@ class FeedbackCreate(BaseModel):
 
 class UserUpdate(BaseModel):
     role: str  # admin, manager, user
+
+# Event Models
+class EventPreference(BaseModel):
+    name: str  # e.g., "Food Preference"
+    options: list  # e.g., ["Vegetarian", "Non-Vegetarian"]
+
+class Event(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: str
+    image: str
+    event_date: str  # YYYY-MM-DD format
+    event_time: str  # HH:MM format
+    amount: float
+    payment_type: str  # "per_person" or "per_villa"
+    preferences: list = []  # List of EventPreference dicts
+    max_registrations: Optional[int] = None  # Optional limit
+    is_active: bool = True
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class EventCreate(BaseModel):
+    name: str
+    description: str
+    image: str
+    event_date: str  # YYYY-MM-DD
+    event_time: str  # HH:MM
+    amount: float
+    payment_type: str  # "per_person" or "per_villa"
+    preferences: Optional[list] = []  # List of preference objects
+    max_registrations: Optional[int] = None
+
+class EventRegistrant(BaseModel):
+    name: str
+    preferences: dict = {}  # e.g., {"Food Preference": "Vegetarian"}
+
+class EventRegistration(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    event_id: str
+    event_name: str
+    user_email: str
+    user_name: str
+    registrants: list = []  # List of EventRegistrant dicts
+    total_amount: float
+    payment_status: str = "pending"  # pending, completed
+    payment_id: Optional[str] = None
+    status: str = "registered"  # registered, withdrawn
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class EventRegistrationCreate(BaseModel):
+    event_id: str
+    registrants: list  # List of registrant objects with name and preferences
