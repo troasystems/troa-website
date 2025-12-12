@@ -618,11 +618,7 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Events registration status check - users can see if already registered"
-    - "Events modification - add/remove registrants from existing registration"
-    - "Events modification payment flow - online and offline"
-    - "Events page shows 'Already registered' with link to My Events"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
