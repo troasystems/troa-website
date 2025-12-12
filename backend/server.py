@@ -620,6 +620,7 @@ app.include_router(auth_router, prefix="/api")
 app.include_router(instagram_router, prefix="/api")
 app.include_router(upload_router, prefix="/api")
 app.include_router(payment_router, prefix="/api")
+app.include_router(chatbot_router, prefix="/api")
 
 # Add session middleware
 app.add_middleware(
