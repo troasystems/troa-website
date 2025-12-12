@@ -54,7 +54,7 @@ const MyEvents = () => {
   const fetchRegistrations = async () => {
     const token = localStorage.getItem('session_token');
     try {
-      const response = await axios.get(`${API}/events/my/registrations`, {
+      const response = await axios.get(`${getAPI()}/events/my/registrations`, {
         headers: { 'X-Session-Token': `Bearer ${token}` }
       });
       setRegistrations(response.data);
@@ -69,7 +69,7 @@ const MyEvents = () => {
     const token = localStorage.getItem('session_token');
     try {
       const response = await axios.post(
-        `${API}/events/registrations/${selectedRegistration.id}/withdraw`,
+        `${getAPI()}/events/registrations/${selectedRegistration.id}/withdraw`,
         {},
         { headers: { 'X-Session-Token': `Bearer ${token}` } }
       );
@@ -149,7 +149,7 @@ const MyEvents = () => {
 
     try {
       const response = await axios.patch(
-        `${API}/events/registrations/${selectedRegistration.id}/modify`,
+        `${getAPI()}/events/registrations/${selectedRegistration.id}/modify`,
         {
           registrants: validRegistrants,
           payment_method: modifyPaymentMethod
@@ -169,7 +169,7 @@ const MyEvents = () => {
         } else {
           // Online payment - create order and open Razorpay
           const orderResponse = await axios.post(
-            `${API}/events/registrations/${selectedRegistration.id}/create-modification-order`,
+            `${getAPI()}/events/registrations/${selectedRegistration.id}/create-modification-order`,
             {},
             { headers: { 'X-Session-Token': `Bearer ${token}` } }
           );
@@ -186,7 +186,7 @@ const MyEvents = () => {
             handler: async function (razorpayResponse) {
               try {
                 await axios.post(
-                  `${API}/events/registrations/${selectedRegistration.id}/complete-modification-payment?payment_id=${razorpayResponse.razorpay_payment_id}`,
+                  `${getAPI()}/events/registrations/${selectedRegistration.id}/complete-modification-payment?payment_id=${razorpayResponse.razorpay_payment_id}`,
                   {},
                   { headers: { 'X-Session-Token': `Bearer ${token}` } }
                 );
