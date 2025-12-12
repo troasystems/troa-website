@@ -342,14 +342,19 @@ async def google_callback(code: str, state: str, request: Request):
         # Redirect to frontend with session token in URL
         # Use the same origin that initiated the request
         frontend_url = origin
-        logger.info(f"Redirecting to frontend: {frontend_url}")
+        logger.info(f"Redirecting to frontend: {frontend_url} with token: {session_token[:20]}...")
         response = RedirectResponse(url=f'{frontend_url}/?auth_success=true&token={session_token}')
+        
+        # Set cookie with proper settings for production
+        # Note: samesite='none' requires secure=True for HTTPS
+        is_secure = frontend_url.startswith('https')
         response.set_cookie(
             key='session_token',
             value=session_token,
             httponly=False,
+            secure=is_secure,
             max_age=7 * 24 * 60 * 60,  # 7 days
-            samesite='lax',
+            samesite='none' if is_secure else 'lax',
             path='/'
         )
         
