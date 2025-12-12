@@ -201,7 +201,7 @@ const MyEvents = () => {
           <div className="text-center py-16 bg-white rounded-2xl shadow-lg">
             <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-600">No Registrations Yet</h3>
-            <p className="text-gray-500 mb-6">You haven't registered for any events</p>
+            <p className="text-gray-500 mb-6">You have not registered for any events</p>
             <button
               onClick={() => navigate('/events')}
               className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:shadow-lg"

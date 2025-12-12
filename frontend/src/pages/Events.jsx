@@ -690,7 +690,7 @@ const Events = () => {
                 <div className="flex justify-between items-center mb-3">
                   <label className="text-lg font-semibold text-gray-700">
                     <Users className="w-5 h-5 inline mr-2" />
-                    Who's Attending?
+                    Who&apos;s Attending?
                   </label>
                   <button
                     type="button"
