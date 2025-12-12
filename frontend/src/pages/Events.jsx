@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/use-toast';
 import { Toaster } from '../components/ui/toaster';
-import { getImageUrl, BACKEND_URL } from '../utils/api';
+import { getImageUrl, getBackendUrl } from '../utils/api';
 import {
   Calendar,
   Clock,
@@ -22,7 +22,8 @@ import {
   Upload
 } from 'lucide-react';
 
-const API = `${BACKEND_URL}/api`;
+// Use dynamic API base
+const getAPI = () => `${getBackendUrl()}/api`;
 
 const Events = () => {
   const { user } = useAuth();
