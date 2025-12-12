@@ -135,14 +135,14 @@ const Events = () => {
       
       if (editingEvent) {
         await axios.patch(
-          `${API}/events/${editingEvent.id}`,
+          `${getAPI()}/events/${editingEvent.id}`,
           payload,
           { headers: { 'X-Session-Token': `Bearer ${token}` } }
         );
         toast({ title: 'Success', description: 'Event updated successfully!' });
       } else {
         await axios.post(
-          `${API}/events`,
+          `${getAPI()}/events`,
           payload,
           { headers: { 'X-Session-Token': `Bearer ${token}` } }
         );
@@ -167,7 +167,7 @@ const Events = () => {
     
     const token = localStorage.getItem('session_token');
     try {
-      await axios.delete(`${API}/events/${eventId}`, {
+      await axios.delete(`${getAPI()}/events/${eventId}`, {
         headers: { 'X-Session-Token': `Bearer ${token}` }
       });
       toast({ title: 'Success', description: 'Event deleted successfully!' });
