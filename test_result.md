@@ -285,6 +285,66 @@ backend:
           agent: "testing"
           comment: "✅ All 9 committee members have proper UUIDs assigned. Wilson Thomas (President) found with valid UUID: f5a25bd0-8711-4a27-b9b3-ea3412b94d60. Database update operations tested and working correctly. No 404 errors for committee member IDs."
 
+  - task: "Events CRUD API"
+    implemented: true
+    working: true
+    file: "/app/backend/events.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Events CRUD API fully functional. GET /api/events returns upcoming events (public access). POST /api/events creates events with admin authentication, validates past dates (correctly rejects). GET /api/events/{id} retrieves single events. PATCH /api/events/{id} updates events with admin auth. All endpoints handle authentication, validation, and error cases correctly."
+
+  - task: "Event Registration API"
+    implemented: true
+    working: true
+    file: "/app/backend/events.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Event Registration API working perfectly. POST /api/events/{id}/register creates registrations with online/offline payment methods. GET /api/events/my/registrations shows user's registrations. POST /api/events/registrations/{id}/withdraw allows withdrawal with refund instructions. Duplicate registration prevention working correctly (returns 400 for already registered users)."
+
+  - task: "Admin Approval for Offline Payments"
+    implemented: true
+    working: true
+    file: "/app/backend/events.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Admin Approval system working correctly. GET /api/events/admin/pending-approvals returns offline payment registrations awaiting approval. POST /api/events/registrations/{id}/approve approves offline payments with admin authentication. Approval process updates payment_status to 'completed' and sets admin_approved to true."
+
+  - task: "Payment Integration (Razorpay)"
+    implemented: true
+    working: true
+    file: "/app/backend/events.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Payment Integration working correctly. POST /api/events/{id}/create-payment-order creates Razorpay orders for online payments. POST /api/events/registrations/{id}/complete-payment marks payments as completed. Error handling prevents duplicate payment orders (returns 400 if already completed). Payment flow integrated with registration system."
+
+  - task: "Amenity Booking Additional Guests Fix"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Amenity Booking fix implemented successfully. POST /api/bookings now accepts 'additional_guests' as a list of names instead of 'additional_users' as emails. Tested with 3 guest names - booking created successfully. Model updated in models.py to use additional_guests field. Backward compatibility maintained."
+
 frontend:
   - task: "Chatbot Functionality"
     implemented: true
