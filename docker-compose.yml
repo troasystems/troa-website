@@ -29,10 +29,15 @@ services:
     environment:
       - MONGO_URL=mongodb://mongodb:27017
       - DB_NAME=troa_db
-    env_file:
-      - ./backend/.env.docker
+      # Add your credentials here or use .env file
+      # - GOOGLE_CLIENT_ID=your_client_id
+      # - GOOGLE_CLIENT_SECRET=your_client_secret
+      # - RAZORPAY_KEY_ID=your_key_id
+      # - RAZORPAY_KEY_SECRET=your_key_secret
+      # - SESSION_SECRET=your_secret_key
     volumes:
       - ./backend/uploads:/app/uploads
+      - ./backend/.env:/app/.env:ro
     depends_on:
       mongodb:
         condition: service_healthy
