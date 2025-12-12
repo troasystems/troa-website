@@ -38,13 +38,13 @@ const EventsManagement = () => {
     const token = localStorage.getItem('session_token');
     try {
       // Fetch pending approvals (now includes modifications)
-      const pendingResponse = await axios.get(`${API}/events/admin/pending-approvals`, {
+      const pendingResponse = await axios.get(`${getAPI()}/events/admin/pending-approvals`, {
         headers: { 'X-Session-Token': `Bearer ${token}` }
       });
       setPendingApprovals(pendingResponse.data);
 
       // Fetch all events
-      const eventsResponse = await axios.get(`${API}/events?include_past=true`);
+      const eventsResponse = await axios.get(`${getAPI()}/events?include_past=true`);
       setEvents(eventsResponse.data);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -56,7 +56,7 @@ const EventsManagement = () => {
   const fetchEventRegistrations = async (eventId) => {
     const token = localStorage.getItem('session_token');
     try {
-      const response = await axios.get(`${API}/events/${eventId}/registrations`, {
+      const response = await axios.get(`${getAPI()}/events/${eventId}/registrations`, {
         headers: { 'X-Session-Token': `Bearer ${token}` }
       });
       setEventRegistrations(response.data);
@@ -69,8 +69,8 @@ const EventsManagement = () => {
     const token = localStorage.getItem('session_token');
     try {
       const endpoint = isModification
-        ? `${API}/events/registrations/${registrationId}/approve-modification`
-        : `${API}/events/registrations/${registrationId}/approve`;
+        ? `${getAPI()}/events/registrations/${registrationId}/approve-modification`
+        : `${getAPI()}/events/registrations/${registrationId}/approve`;
       
       await axios.post(endpoint, {}, { headers: { 'X-Session-Token': `Bearer ${token}` } });
       toast({ title: 'Success', description: isModification ? 'Modification approved!' : 'Registration approved!' });
@@ -96,8 +96,8 @@ const EventsManagement = () => {
     const token = localStorage.getItem('session_token');
     try {
       const endpoint = isModification
-        ? `${API}/events/registrations/${registrationId}/reject-modification`
-        : `${API}/events/registrations/${registrationId}/reject`;
+        ? `${getAPI()}/events/registrations/${registrationId}/reject-modification`
+        : `${getAPI()}/events/registrations/${registrationId}/reject`;
       
       await axios.post(endpoint, {}, { headers: { 'X-Session-Token': `Bearer ${token}` } });
       toast({ 
