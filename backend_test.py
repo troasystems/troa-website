@@ -438,6 +438,9 @@ class TROAAPITester:
                 self.test_results['events']['patch'] = False
                 self.log_error(f"/events/{self.created_event_id}", "PATCH", f"Exception: {str(e)}")
 
+        # Test DELETE /api/events/{event_id} (admin only) - Test at the end
+        # We'll test this after all other tests to avoid breaking the flow
+
     def test_event_registration(self):
         """Test Event Registration endpoints"""
         print("\n🧪 Testing Event Registration API...")
