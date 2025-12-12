@@ -99,7 +99,10 @@ const MyBookings = () => {
 
   const isPastBooking = (bookingDate, endTime) => {
     const now = new Date();
-    const bookingDateTime = new Date(`${bookingDate}T${endTime}`);
+    // Parse the booking date and time properly
+    const [year, month, day] = bookingDate.split('-').map(Number);
+    const [hours, minutes] = endTime.split(':').map(Number);
+    const bookingDateTime = new Date(year, month - 1, day, hours, minutes);
     return bookingDateTime < now;
   };
 
