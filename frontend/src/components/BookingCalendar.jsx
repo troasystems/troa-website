@@ -4,8 +4,8 @@ import axios from 'axios';
 import { Calendar, Clock, Users, X, Check, AlertCircle } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 
-import { BACKEND_URL } from '../utils/api';
-const API = `${BACKEND_URL}/api`;
+import { getBackendUrl } from '../utils/api';
+const getAPI = () => `${getBackendUrl()}/api`;
 
 const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -26,7 +26,7 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
       const token = localStorage.getItem('session_token');
       
       
-      const response = await axios.get(`${API}/bookings`, {
+      const response = await axios.get(`${getAPI()}/bookings`, {
         params: {
           amenity_id: amenity.id,
           date: selectedDate
@@ -140,7 +140,7 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
       
 
       await axios.post(
-        `${API}/bookings`,
+        `${getAPI()}/bookings`,
         {
           amenity_id: amenity.id,
           amenity_name: amenity.name,

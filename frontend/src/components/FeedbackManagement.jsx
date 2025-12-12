@@ -4,8 +4,8 @@ import axios from 'axios';
 import { Star, ThumbsUp, MessageSquare, Lightbulb, Trash2, TrendingUp } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 
-import { BACKEND_URL } from '../utils/api';
-const API = `${BACKEND_URL}/api`;
+import { getBackendUrl } from '../utils/api';
+const getAPI = () => `${getBackendUrl()}/api`;
 
 const FeedbackManagement = () => {
   const [feedback, setFeedback] = useState([]);
@@ -20,7 +20,7 @@ const FeedbackManagement = () => {
       const token = localStorage.getItem('session_token');
       
       
-      const response = await axios.get(`${API}/feedback`, {
+      const response = await axios.get(`${getAPI()}/feedback`, {
         withCredentials: true,
         headers: {
           
@@ -46,7 +46,7 @@ const FeedbackManagement = () => {
       
       
       await axios.post(
-        `${API}/feedback/${feedbackId}/vote`,
+        `${getAPI()}/feedback/${feedbackId}/vote`,
         {},
         {
           withCredentials: true,
@@ -75,7 +75,7 @@ const FeedbackManagement = () => {
       const token = localStorage.getItem('session_token');
       
       
-      await axios.delete(`${API}/feedback/${feedbackId}`, {
+      await axios.delete(`${getAPI()}/feedback/${feedbackId}`, {
         withCredentials: true,
         headers: {
           

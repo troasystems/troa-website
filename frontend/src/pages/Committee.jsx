@@ -5,9 +5,9 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from '../hooks/use-toast';
 import { Toaster } from '../components/ui/toaster';
-import { getImageUrl, BACKEND_URL } from '../utils/api';
+import { getImageUrl, getBackendUrl } from '../utils/api';
 
-const API = `${BACKEND_URL}/api`;
+const getAPI = () => `${getBackendUrl()}/api`;
 
 const Committee = () => {
   const [members, setMembers] = useState([]);
@@ -32,7 +32,7 @@ const Committee = () => {
   const fetchMembers = async () => {
     try {
       
-      const response = await axios.get(`${API}/committee`, {
+      const response = await axios.get(`${getAPI()}/committee`, {
         headers: {
           
         }
@@ -61,7 +61,7 @@ const Committee = () => {
     try {
       const token = localStorage.getItem('session_token');
       await axios.patch(
-        `${API}/committee/${memberId}`,
+        `${getAPI()}/committee/${memberId}`,
         editForm,
         { 
           withCredentials: true,
@@ -90,7 +90,7 @@ const Committee = () => {
 
     try {
       const token = localStorage.getItem('session_token');
-      await axios.delete(`${API}/committee/${memberId}`, {
+      await axios.delete(`${getAPI()}/committee/${memberId}`, {
         withCredentials: true,
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
@@ -119,7 +119,7 @@ const Committee = () => {
 
     try {
       const token = localStorage.getItem('session_token');
-      const response = await axios.post(`${API}/upload/image`, formData, {
+      const response = await axios.post(`${getAPI()}/upload/image`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
@@ -149,7 +149,7 @@ const Committee = () => {
     try {
       const token = localStorage.getItem('session_token');
       await axios.post(
-        `${API}/committee`,
+        `${getAPI()}/committee`,
         newMemberForm,
         { 
           withCredentials: true,

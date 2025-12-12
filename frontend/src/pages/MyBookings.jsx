@@ -7,8 +7,8 @@ import { useAuth } from '../context/AuthContext';
 import { toast } from '../hooks/use-toast';
 import { Toaster } from '../components/ui/toaster';
 
-import { BACKEND_URL } from '../utils/api';
-const API = `${BACKEND_URL}/api`;
+import { getBackendUrl } from '../utils/api';
+const getAPI = () => `${getBackendUrl()}/api`;
 
 const MyBookings = () => {
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -34,7 +34,7 @@ const MyBookings = () => {
       const token = localStorage.getItem('session_token');
       
 
-      const response = await axios.get(`${API}/bookings/my`, {
+      const response = await axios.get(`${getAPI()}/bookings/my`, {
         withCredentials: true,
         headers: {
           
@@ -64,7 +64,7 @@ const MyBookings = () => {
       const token = localStorage.getItem('session_token');
       
 
-      await axios.delete(`${API}/bookings/${bookingId}`, {
+      await axios.delete(`${getAPI()}/bookings/${bookingId}`, {
         withCredentials: true,
         headers: {
           

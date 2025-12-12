@@ -4,8 +4,8 @@ import { toast } from '../hooks/use-toast';
 import { Mail, Phone, MapPin, Send, CreditCard } from 'lucide-react';
 import { Toaster } from '../components/ui/toaster';
 
-import { BACKEND_URL } from '../utils/api';
-const API = `${BACKEND_URL}/api`;
+import { getBackendUrl } from '../utils/api';
+const getAPI = () => `${getBackendUrl()}/api`;
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -31,7 +31,7 @@ const Contact = () => {
     setLoading(true);
 
     try {
-      await axios.post(`${API}/membership`, formData);
+      await axios.post(`${getAPI()}/membership`, formData);
       toast({
         title: 'Success!',
         description: 'Your membership application has been submitted successfully.',
@@ -51,7 +51,7 @@ const Contact = () => {
   const handlePayMembership = async () => {
     try {
       // Create order
-      const orderResponse = await axios.post(`${API}/payment/create-order`, {
+      const orderResponse = await axios.post(`${getAPI()}/payment/create-order`, {
         payment_type: 'membership',
         name: `${formData.firstName} ${formData.lastName}`,
         email: formData.email,
@@ -71,7 +71,7 @@ const Contact = () => {
         handler: async function (response) {
           try {
             // Verify payment
-            await axios.post(`${API}/payment/verify`, {
+            await axios.post(`${getAPI()}/payment/verify`, {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,

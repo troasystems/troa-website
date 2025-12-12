@@ -4,8 +4,8 @@ import axios from 'axios';
 import { Users, Shield, UserCog, User as UserIcon, Trash2, Edit2, Save, X, UserPlus, Mail, AtSign } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 
-import { BACKEND_URL } from '../utils/api';
-const API = `${BACKEND_URL}/api`;
+import { getBackendUrl } from '../utils/api';
+const getAPI = () => `${getBackendUrl()}/api`;
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -26,7 +26,7 @@ const UserManagement = () => {
     try {
       const token = localStorage.getItem('session_token');
       
-      const response = await axios.get(`${API}/users`, {
+      const response = await axios.get(`${getAPI()}/users`, {
         withCredentials: true,
         headers: {
           
@@ -56,7 +56,7 @@ const UserManagement = () => {
       const token = localStorage.getItem('session_token');
       
       await axios.patch(
-        `${API}/users/${userId}`,
+        `${getAPI()}/users/${userId}`,
         { role: editingRole },
         {
           withCredentials: true,
@@ -89,7 +89,7 @@ const UserManagement = () => {
     try {
       const token = localStorage.getItem('session_token');
       
-      await axios.delete(`${API}/users/${userId}`, {
+      await axios.delete(`${getAPI()}/users/${userId}`, {
         withCredentials: true,
         headers: {
           
@@ -138,7 +138,7 @@ const UserManagement = () => {
       const token = localStorage.getItem('session_token');
       
       await axios.post(
-        `${API}/users`,
+        `${getAPI()}/users`,
         {
           email: newUserEmail.trim(),
           name: newUserName.trim() || '',

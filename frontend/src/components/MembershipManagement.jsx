@@ -4,8 +4,8 @@ import axios from 'axios';
 import { Check, X, Trash2, Clock, Mail, Phone, Home, User } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 
-import { BACKEND_URL } from '../utils/api';
-const API = `${BACKEND_URL}/api`;
+import { getBackendUrl } from '../utils/api';
+const getAPI = () => `${getBackendUrl()}/api`;
 
 const MembershipManagement = () => {
   const [applications, setApplications] = useState([]);
@@ -20,7 +20,7 @@ const MembershipManagement = () => {
     try {
       const token = localStorage.getItem('session_token');
       
-      const response = await axios.get(`${API}/membership`, {
+      const response = await axios.get(`${getAPI()}/membership`, {
         withCredentials: true,
         headers: {
           
@@ -45,7 +45,7 @@ const MembershipManagement = () => {
       const token = localStorage.getItem('session_token');
       
       await axios.patch(
-        `${API}/membership/${applicationId}`,
+        `${getAPI()}/membership/${applicationId}`,
         { status: 'approved' },
         {
           withCredentials: true,
@@ -74,7 +74,7 @@ const MembershipManagement = () => {
       const token = localStorage.getItem('session_token');
       
       await axios.patch(
-        `${API}/membership/${applicationId}`,
+        `${getAPI()}/membership/${applicationId}`,
         { status: 'rejected' },
         {
           withCredentials: true,
@@ -106,7 +106,7 @@ const MembershipManagement = () => {
     try {
       const token = localStorage.getItem('session_token');
       
-      await axios.delete(`${API}/membership/${applicationId}`, {
+      await axios.delete(`${getAPI()}/membership/${applicationId}`, {
         withCredentials: true,
         headers: {
           

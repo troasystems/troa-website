@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, User, Loader2, Mail } from 'lucide-react';
-import { BACKEND_URL } from '../utils/api';
+import { getBackendUrl } from '../utils/api';
 import axios from 'axios';
 
-const API = `${BACKEND_URL}/api`;
+const getAPI = () => `${getBackendUrl()}/api`;
 
 const Chatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -43,7 +43,7 @@ const Chatbot = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(`${API}/chatbot/chat`, {
+      const response = await axios.post(`${getAPI()}/chatbot/chat`, {
         message: userMessage,
         session_id: sessionId
       });

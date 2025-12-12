@@ -6,9 +6,9 @@ import { useAuth } from '../context/AuthContext';
 import { toast } from '../hooks/use-toast';
 import { Toaster } from '../components/ui/toaster';
 import BookingCalendar from '../components/BookingCalendar';
-import { getImageUrl, BACKEND_URL } from '../utils/api';
+import { getImageUrl, getBackendUrl } from '../utils/api';
 
-const API = `${BACKEND_URL}/api`;
+const getAPI = () => `${getBackendUrl()}/api`;
 
 // Amenities that cannot be booked
 const NON_BOOKABLE_AMENITIES = ['Landscaped Gardens', 'Children\'s Play Area'];
@@ -41,7 +41,7 @@ const Amenities = () => {
 
   const fetchAmenities = async () => {
     try {
-      const response = await axios.get(`${API}/amenities`);
+      const response = await axios.get(`${getAPI()}/amenities`);
       setAmenities(response.data);
       setLoading(false);
     } catch (error) {
@@ -63,7 +63,7 @@ const Amenities = () => {
     try {
       const token = localStorage.getItem('session_token');
       await axios.patch(
-        `${API}/amenities/${amenityId}`,
+        `${getAPI()}/amenities/${amenityId}`,
         editForm,
         { 
           withCredentials: true,
@@ -92,7 +92,7 @@ const Amenities = () => {
 
     try {
       const token = localStorage.getItem('session_token');
-      await axios.delete(`${API}/amenities/${amenityId}`, {
+      await axios.delete(`${getAPI()}/amenities/${amenityId}`, {
         withCredentials: true,
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
@@ -119,7 +119,7 @@ const Amenities = () => {
     try {
       const token = localStorage.getItem('session_token');
       await axios.post(
-        `${API}/amenities`,
+        `${getAPI()}/amenities`,
         newAmenityForm,
         { 
           withCredentials: true,
@@ -161,7 +161,7 @@ const Amenities = () => {
 
     try {
       const token = localStorage.getItem('session_token');
-      const response = await axios.post(`${API}/upload/image`, formData, {
+      const response = await axios.post(`${getAPI()}/upload/image`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})

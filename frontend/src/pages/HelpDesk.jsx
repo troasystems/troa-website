@@ -4,8 +4,8 @@ import axios from 'axios';
 import { toast } from '../hooks/use-toast';
 import { Toaster } from '../components/ui/toaster';
 
-import { BACKEND_URL } from '../utils/api';
-const API = `${BACKEND_URL}/api`;
+import { getBackendUrl } from '../utils/api';
+const getAPI = () => `${getBackendUrl()}/api`;
 
 const HelpDesk = () => {
   const [paymentModal, setPaymentModal] = useState(null);
@@ -23,7 +23,7 @@ const HelpDesk = () => {
 
     try {
       // Create order
-      const orderResponse = await axios.post(`${API}/payment/create-order`, {
+      const orderResponse = await axios.post(`${getAPI()}/payment/create-order`, {
         payment_type: paymentType,
         name: paymentForm.name,
         email: paymentForm.email,
@@ -43,7 +43,7 @@ const HelpDesk = () => {
         handler: async function (response) {
           try {
             // Verify payment
-            await axios.post(`${API}/payment/verify`, {
+            await axios.post(`${getAPI()}/payment/verify`, {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
