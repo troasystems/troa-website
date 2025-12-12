@@ -5,7 +5,7 @@ import os
 import logging
 from dotenv import load_dotenv
 from models import Event, EventCreate, EventRegistration, EventRegistrationCreate
-from auth import require_admin, require_auth
+from auth import require_admin, require_auth, require_manager_or_admin
 
 load_dotenv()
 
@@ -175,6 +175,17 @@ async def register_for_event(event_id: str, registration_data: EventRegistration
         else:  # per_villa
             total_amount = event["amount"]
         
+        # Validate payment method
+        payment_method = registration_data.payment_method
+        if payment_method not in ["online", "offline"]:
+            payment_method = "online"
+        
+        # Determine payment status based on method
+        if payment_method == "offline":
+            payment_status = "pending_approval"  # Offline payments need admin approval
+        else:
+            payment_status = "pending"  # Online payments start as pending until Razorpay confirms
+        
         # Create registration
         registration = EventRegistration(
             event_id=event_id,
@@ -183,11 +194,13 @@ async def register_for_event(event_id: str, registration_data: EventRegistration
             user_name=user["name"],
             registrants=registration_data.registrants,
             total_amount=total_amount,
-            payment_status="pending"
+            payment_method=payment_method,
+            payment_status=payment_status,
+            admin_approved=False
         )
         
         await db.event_registrations.insert_one(registration.dict())
-        logger.info(f"Event registration created: {user['email']} for {event['name']}")
+        logger.info(f"Event registration created: {user['email']} for {event['name']} (payment: {payment_method})")
         
         return registration.dict()
     finally:
@@ -196,7 +209,7 @@ async def register_for_event(event_id: str, registration_data: EventRegistration
 
 @events_router.post("/registrations/{registration_id}/complete-payment")
 async def complete_registration_payment(registration_id: str, payment_id: str, request: Request):
-    """Mark registration payment as completed"""
+    """Mark registration payment as completed (for online Razorpay payments)"""
     user = await require_auth(request)
     
     db, client = await get_db()
@@ -214,6 +227,7 @@ async def complete_registration_payment(registration_id: str, payment_id: str, r
             {"$set": {
                 "payment_status": "completed",
                 "payment_id": payment_id,
+                "admin_approved": True,  # Online payments auto-approve
                 "updated_at": datetime.utcnow()
             }}
         )
@@ -280,16 +294,172 @@ async def withdraw_from_event(registration_id: str, request: Request):
 
 @events_router.get("/{event_id}/registrations")
 async def get_event_registrations(event_id: str, request: Request):
-    """Get all registrations for an event (admin only)"""
-    await require_admin(request)
+    """Get all registrations for an event (admin/manager only)"""
+    await require_manager_or_admin(request)
     
     db, client = await get_db()
     try:
         registrations = await db.event_registrations.find(
-            {"event_id": event_id, "status": "registered"},
+            {"event_id": event_id},
             {"_id": 0}
         ).to_list(500)
         
         return registrations
+    finally:
+        client.close()
+
+
+# ============ ADMIN APPROVAL ENDPOINTS ============
+
+@events_router.get("/admin/pending-approvals")
+async def get_pending_approvals(request: Request):
+    """Get all registrations pending admin approval (for offline payments)"""
+    await require_manager_or_admin(request)
+    
+    db, client = await get_db()
+    try:
+        pending = await db.event_registrations.find(
+            {
+                "payment_method": "offline",
+                "payment_status": "pending_approval",
+                "status": "registered"
+            },
+            {"_id": 0}
+        ).sort("created_at", 1).to_list(100)
+        
+        # Enrich with event details
+        for reg in pending:
+            event = await db.events.find_one({"id": reg["event_id"]}, {"_id": 0})
+            if event:
+                reg["event"] = event
+        
+        return pending
+    finally:
+        client.close()
+
+
+@events_router.post("/registrations/{registration_id}/approve")
+async def approve_offline_payment(registration_id: str, request: Request, approval_note: str = ""):
+    """Approve an offline payment registration (admin/manager only)"""
+    admin = await require_manager_or_admin(request)
+    
+    db, client = await get_db()
+    try:
+        registration = await db.event_registrations.find_one({
+            "id": registration_id,
+            "payment_method": "offline",
+            "payment_status": "pending_approval"
+        })
+        
+        if not registration:
+            raise HTTPException(status_code=404, detail="Registration not found or not pending approval")
+        
+        await db.event_registrations.update_one(
+            {"id": registration_id},
+            {"$set": {
+                "payment_status": "completed",
+                "admin_approved": True,
+                "approval_note": approval_note or f"Approved by {admin['email']}",
+                "updated_at": datetime.utcnow()
+            }}
+        )
+        
+        logger.info(f"Offline payment approved: {registration_id} by {admin['email']}")
+        
+        return {"message": "Registration approved successfully"}
+    finally:
+        client.close()
+
+
+@events_router.post("/registrations/{registration_id}/reject")
+async def reject_offline_payment(registration_id: str, request: Request, rejection_reason: str = ""):
+    """Reject an offline payment registration (admin/manager only)"""
+    admin = await require_manager_or_admin(request)
+    
+    db, client = await get_db()
+    try:
+        registration = await db.event_registrations.find_one({
+            "id": registration_id,
+            "payment_method": "offline",
+            "payment_status": "pending_approval"
+        })
+        
+        if not registration:
+            raise HTTPException(status_code=404, detail="Registration not found or not pending approval")
+        
+        await db.event_registrations.update_one(
+            {"id": registration_id},
+            {"$set": {
+                "status": "withdrawn",
+                "approval_note": rejection_reason or f"Rejected by {admin['email']}",
+                "updated_at": datetime.utcnow()
+            }}
+        )
+        
+        logger.info(f"Offline payment rejected: {registration_id} by {admin['email']}")
+        
+        return {"message": "Registration rejected"}
+    finally:
+        client.close()
+
+
+# ============ PAYMENT ORDER ENDPOINT (for Razorpay) ============
+
+@events_router.post("/{event_id}/create-payment-order")
+async def create_event_payment_order(event_id: str, registration_id: str, request: Request):
+    """Create a Razorpay order for event registration"""
+    import razorpay
+    import uuid as uuid_lib
+    
+    user = await require_auth(request)
+    
+    RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID')
+    RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET')
+    
+    if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
+        raise HTTPException(status_code=500, detail="Payment gateway not configured")
+    
+    razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+    
+    db, client = await get_db()
+    try:
+        # Get registration details
+        registration = await db.event_registrations.find_one({
+            "id": registration_id,
+            "user_email": user["email"],
+            "event_id": event_id
+        })
+        
+        if not registration:
+            raise HTTPException(status_code=404, detail="Registration not found")
+        
+        if registration["payment_status"] == "completed":
+            raise HTTPException(status_code=400, detail="Payment already completed")
+        
+        # Create Razorpay order
+        amount_in_paise = int(registration["total_amount"] * 100)
+        
+        order_data = {
+            'amount': amount_in_paise,
+            'currency': 'INR',
+            'receipt': f'event_{uuid_lib.uuid4().hex[:10]}',
+            'notes': {
+                'registration_id': registration_id,
+                'event_id': event_id,
+                'user_email': user["email"],
+                'event_name': registration["event_name"]
+            }
+        }
+        
+        order = razorpay_client.order.create(data=order_data)
+        
+        return {
+            'order_id': order['id'],
+            'amount': amount_in_paise,
+            'currency': 'INR',
+            'key_id': RAZORPAY_KEY_ID,
+            'registration_id': registration_id
+        }
+        
     finally:
         client.close()
