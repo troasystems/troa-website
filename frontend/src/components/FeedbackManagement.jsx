@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Star, ThumbsUp, MessageSquare, Lightbulb, Trash2, TrendingUp } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+import { BACKEND_URL } from '../utils/api';
 const API = `${BACKEND_URL}/api`;
 
 const FeedbackManagement = () => {

@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Users, Shield, UserCog, User as UserIcon, Trash2, Edit2, Save, X, UserPlus, Mail, AtSign } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+import { BACKEND_URL } from '../utils/api';
 const API = `${BACKEND_URL}/api`;
 
 const UserManagement = () => {

@@ -7,7 +7,7 @@ import { Star, MessageSquare, Lightbulb, ThumbsUp, Send } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 import { Toaster } from '../components/ui/toaster';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+import { BACKEND_URL } from '../utils/api';
 const API = `${BACKEND_URL}/api`;
 
 const Feedback = () => {
