@@ -214,7 +214,12 @@ const MyBookings = () => {
                         </p>
                       </div>
 
-                      {!isPast && (
+                      {isPast ? (
+                        <div className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-green-50 text-green-600 rounded-lg font-semibold">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Booking Fulfilled</span>
+                        </div>
+                      ) : (
                         <button
                           onClick={() => handleCancelBooking(booking.id)}
                           className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-50 text-red-600 rounded-lg font-semibold hover:bg-red-100 transition-colors"
