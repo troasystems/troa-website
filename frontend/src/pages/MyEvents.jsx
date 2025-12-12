@@ -1,52 +1,60 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, Users, IndianRupee, CheckCircle, XCircle, AlertCircle, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { toast } from '../hooks/use-toast';
-import { Toaster } from '../components/ui/toaster';
-import { BACKEND_URL, getImageUrl } from '../utils/api';
+import { useNavigate } from 'react-router-dom';
+import { useToast, Toaster } from '../hooks/use-toast';
+import { getImageUrl, BACKEND_URL } from '../utils/api';
+import {
+  Calendar,
+  Clock,
+  IndianRupee,
+  Users,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  Mail,
+  Hourglass
+} from 'lucide-react';
 
 const API = `${BACKEND_URL}/api`;
 
-const REFUND_EMAILS = 'troa.systems@gmail.com, troa.treasurer@gmail.com, troa.secretary@gmail.com, president.troa@gmail.com';
+const REFUND_EMAILS = "troa.systems@gmail.com, troa.treasurer@gmail.com, troa.secretary@gmail.com, president.troa@gmail.com";
 
 const MyEvents = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [selectedRegistration, setSelectedRegistration] = useState(null);
-  const { isAuthenticated, user } = useAuth();
-  const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!user) {
       navigate('/login-info');
       return;
     }
     fetchRegistrations();
-  }, [isAuthenticated, navigate]);
+  }, [user, navigate]);
 
   const fetchRegistrations = async () => {
+    const token = localStorage.getItem('session_token');
     try {
-      const token = localStorage.getItem('session_token');
       const response = await axios.get(`${API}/events/my/registrations`, {
         headers: { 'X-Session-Token': `Bearer ${token}` }
       });
       setRegistrations(response.data);
     } catch (error) {
       console.error('Error fetching registrations:', error);
-      toast({ title: 'Error', description: 'Failed to load registrations', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
   };
 
   const handleWithdraw = async () => {
-    if (!selectedRegistration) return;
-
+    const token = localStorage.getItem('session_token');
     try {
-      const token = localStorage.getItem('session_token');
       const response = await axios.post(
         `${API}/events/registrations/${selectedRegistration.id}/withdraw`,
         {},
@@ -71,6 +79,7 @@ const MyEvents = () => {
   };
 
   const isPastEvent = (eventDate) => {
+    if (!eventDate) return false;
     const today = new Date().toISOString().split('T')[0];
     return eventDate < today;
   };
@@ -85,6 +94,7 @@ const MyEvents = () => {
   };
 
   const getStatusBadge = (registration) => {
+    // Withdrawn status
     if (registration.status === 'withdrawn') {
       return (
         <span className="inline-flex items-center space-x-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm">
@@ -93,6 +103,8 @@ const MyEvents = () => {
         </span>
       );
     }
+    
+    // Past event - attended
     if (isPastEvent(registration.event?.event_date)) {
       return (
         <span className="inline-flex items-center space-x-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
@@ -101,10 +113,62 @@ const MyEvents = () => {
         </span>
       );
     }
+    
+    // Pending approval (offline payment)
+    if (registration.payment_status === 'pending_approval') {
+      return (
+        <span className="inline-flex items-center space-x-1 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm">
+          <Hourglass className="w-4 h-4" />
+          <span>Pending Approval</span>
+        </span>
+      );
+    }
+    
+    // Payment pending (online payment not completed)
+    if (registration.payment_status === 'pending') {
+      return (
+        <span className="inline-flex items-center space-x-1 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm">
+          <AlertCircle className="w-4 h-4" />
+          <span>Payment Pending</span>
+        </span>
+      );
+    }
+    
+    // Confirmed (payment completed)
     return (
       <span className="inline-flex items-center space-x-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
         <Calendar className="w-4 h-4" />
-        <span>Upcoming</span>
+        <span>Confirmed</span>
+      </span>
+    );
+  };
+
+  const getPaymentBadge = (registration) => {
+    const isOffline = registration.payment_method === 'offline';
+    const isPaid = registration.payment_status === 'completed';
+    
+    if (isPaid) {
+      return (
+        <span className="text-sm text-green-600 font-medium">
+          <CheckCircle className="w-4 h-4 inline mr-1" />
+          Paid {isOffline ? '(Offline)' : '(Online)'}
+        </span>
+      );
+    }
+    
+    if (registration.payment_status === 'pending_approval') {
+      return (
+        <span className="text-sm text-amber-600 font-medium">
+          <Hourglass className="w-4 h-4 inline mr-1" />
+          Awaiting Admin Approval
+        </span>
+      );
+    }
+    
+    return (
+      <span className="text-sm text-yellow-600 font-medium">
+        <AlertCircle className="w-4 h-4 inline mr-1" />
+        Payment Pending
       </span>
     );
   };
@@ -171,7 +235,10 @@ const MyEvents = () => {
                       <div>
                         <h3 className="text-xl font-bold text-gray-900">{reg.event_name}</h3>
                         {reg.event && (
-                          <p className="text-gray-600">{formatDate(reg.event.event_date)} at {reg.event.event_time}</p>
+                          <p className="text-gray-600">
+                            <Calendar className="w-4 h-4 inline mr-1" />
+                            {formatDate(reg.event.event_date)} at {reg.event.event_time}
+                          </p>
                         )}
                       </div>
                       {getStatusBadge(reg)}
@@ -179,9 +246,12 @@ const MyEvents = () => {
 
                     {/* Registrants */}
                     <div className="mb-4">
-                      <p className="font-medium text-gray-700 mb-2">Registered People ({reg.registrants.length}):</p>
+                      <p className="font-medium text-gray-700 mb-2">
+                        <Users className="w-4 h-4 inline mr-1" />
+                        Registered People ({reg.registrants?.length || 0}):
+                      </p>
                       <div className="flex flex-wrap gap-2">
-                        {reg.registrants.map((person, index) => (
+                        {reg.registrants?.map((person, index) => (
                           <div key={index} className="bg-purple-50 px-3 py-1 rounded-full">
                             <span className="text-sm text-purple-700">{person.name}</span>
                             {Object.keys(person.preferences || {}).length > 0 && (
@@ -194,35 +264,54 @@ const MyEvents = () => {
                       </div>
                     </div>
 
-                    {/* Amount */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center text-gray-600">
-                        <IndianRupee className="w-5 h-5 mr-1" />
-                        <span className="font-semibold text-lg">₹{reg.total_amount}</span>
-                        <span className="ml-2 text-sm">
-                          ({reg.payment_status === 'completed' ? 'Paid' : 'Pending'})
-                        </span>
+                    {/* Payment & Amount */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center text-gray-600 mb-1">
+                          <IndianRupee className="w-5 h-5 mr-1" />
+                          <span className="font-semibold text-lg">₹{reg.total_amount}</span>
+                        </div>
+                        {getPaymentBadge(reg)}
                       </div>
 
                       {/* Actions */}
-                      {reg.status === 'registered' && !isPastEvent(reg.event?.event_date) && (
-                        <button
-                          onClick={() => {
-                            setSelectedRegistration(reg);
-                            setShowWithdrawModal(true);
-                          }}
-                          className="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
-                        >
-                          Withdraw
-                        </button>
-                      )}
+                      <div className="flex space-x-3">
+                        {reg.status === 'registered' && !isPastEvent(reg.event?.event_date) && (
+                          <button
+                            onClick={() => {
+                              setSelectedRegistration(reg);
+                              setShowWithdrawModal(true);
+                            }}
+                            className="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+                          >
+                            Withdraw
+                          </button>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Approval Note */}
+                    {reg.approval_note && (
+                      <div className="mt-4 bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+                        <strong>Note:</strong> {reg.approval_note}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             ))}
           </div>
         )}
+
+        {/* Back to Events */}
+        <div className="text-center mt-8">
+          <button
+            onClick={() => navigate('/events')}
+            className="text-purple-600 font-semibold hover:text-purple-700"
+          >
+            ← Back to Events
+          </button>
+        </div>
       </div>
 
       {/* Withdraw Confirmation Modal */}
