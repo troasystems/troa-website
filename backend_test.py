@@ -606,10 +606,10 @@ class TROAAPITester:
         try:
             future_date = (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d')
             booking_data = {
-                "amenity_id": "test-amenity-123",
-                "amenity_name": "Swimming Pool",
+                "amenity_id": "test-amenity-456",
+                "amenity_name": "Tennis Court",
                 "booking_date": future_date,
-                "start_time": "10:00",
+                "start_time": "14:00",  # Different time to avoid conflicts
                 "duration_minutes": 60,
                 "additional_guests": ["Alice Johnson", "Bob Wilson", "Carol Davis"]  # Names instead of emails
             }
