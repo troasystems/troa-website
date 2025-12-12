@@ -843,3 +843,60 @@ async def approve_modification(registration_id: str, request: Request):
     finally:
         client.close()
 
+
+@events_router.post("/registrations/{registration_id}/reject-modification")
+async def reject_modification(registration_id: str, request: Request, rejection_reason: str = ""):
+    """Reject offline payment for registration modification (admin/manager only)"""
+    admin = await require_manager_or_admin(request)
+    
+    db, client = await get_db()
+    try:
+        registration = await db.event_registrations.find_one({
+            "id": registration_id,
+            "modification_status": "pending_modification_approval"
+        })
+        
+        if not registration:
+            raise HTTPException(status_code=404, detail="No pending modification found")
+        
+        # Create audit log entry
+        old_count = len(registration.get("registrants", []))
+        new_count = len(registration.get("pending_registrants", []))
+        additional_amount = registration.get("additional_amount", 0)
+        
+        audit_entry = {
+            "action": "modification_rejected",
+            "timestamp": datetime.utcnow().isoformat(),
+            "by_name": admin.get('name', admin['email']),
+            "by_email": admin['email'],
+            "details": rejection_reason or f"Modification rejected. Attempted to add {new_count - old_count} person(s). Amount: ₹{additional_amount}",
+            "old_count": old_count,
+            "new_count": new_count,
+            "rejected_amount": additional_amount
+        }
+        
+        # Clear the pending modification without applying it
+        await db.event_registrations.update_one(
+            {"id": registration_id},
+            {
+                "$set": {
+                    "updated_at": datetime.utcnow()
+                },
+                "$unset": {
+                    "pending_registrants": "",
+                    "pending_total": "",
+                    "additional_amount": "",
+                    "modification_payment_method": "",
+                    "modification_status": ""
+                },
+                "$push": {
+                    "audit_log": audit_entry
+                }
+            }
+        )
+        
+        logger.info(f"Modification rejected: {registration_id} by {admin['email']}")
+        return {"message": "Modification rejected successfully"}
+    finally:
+        client.close()
+
