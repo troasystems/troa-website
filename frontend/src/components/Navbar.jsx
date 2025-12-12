@@ -29,7 +29,7 @@ const Navbar = () => {
   useEffect(() => {
     const checkUpcomingEvents = async () => {
       try {
-        const response = await axios.get(`${API}/events`);
+        const response = await axios.get(`${getAPI()}/events`);
         const events = response.data;
         
         if (events && events.length > 0) {
