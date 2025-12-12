@@ -1,9 +1,31 @@
 import axios from 'axios';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+// Use current origin for API calls (works in production with custom domain)
+// Fall back to env variable for local development
+const getBackendUrl = () => {
+  // In production, use the same origin as the frontend
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return window.location.origin;
+  }
+  // In development, use the env variable
+  return process.env.REACT_APP_BACKEND_URL || '';
+};
+
+export const BACKEND_URL = getBackendUrl();
 export const API = `${BACKEND_URL}/api`;
 
-// Basic auth credentials from environment variables
+// Helper function to get full image URL
+export const getImageUrl = (imagePath) => {
+  if (!imagePath) return '';
+  // If already a full URL, return as-is
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+  // If relative path, prepend backend URL
+  return `${BACKEND_URL}${imagePath}`;
+};
+
+// Basic auth credentials from environment variables (no longer needed but kept for compatibility)
 const BASIC_AUTH_USERNAME = process.env.REACT_APP_BASIC_AUTH_USERNAME || 'dogfooding';
 const BASIC_AUTH_PASSWORD = process.env.REACT_APP_BASIC_AUTH_PASSWORD || 'skywalker';
 
@@ -13,13 +35,10 @@ export const basicAuthToken = btoa(`${BASIC_AUTH_USERNAME}:${BASIC_AUTH_PASSWORD
 // Helper function to get basic auth string
 export const getBasicAuth = () => btoa(`${BASIC_AUTH_USERNAME}:${BASIC_AUTH_PASSWORD}`);
 
-// Create axios instance with basic auth
+// Create axios instance
 export const apiClient = axios.create({
   baseURL: API,
-  withCredentials: true,
-  headers: {
-    'Authorization': `Basic ${basicAuthToken}`
-  }
+  withCredentials: true
 });
 
 // Add interceptor to include session token if available
@@ -27,7 +46,6 @@ apiClient.interceptors.request.use(
   (config) => {
     const sessionToken = localStorage.getItem('session_token');
     if (sessionToken) {
-      // Add Bearer token in addition to basic auth
       config.headers['X-Session-Token'] = `Bearer ${sessionToken}`;
     }
     return config;
