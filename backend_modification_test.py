@@ -342,74 +342,100 @@ class EventsModificationTester:
         """Test POST /api/events/registrations/{id}/approve-modification (admin only)"""
         print("\n🧪 Testing Approve Modification (Admin Only)...")
         
-        # Create a new registration for offline modification testing
+        # Create a new event for offline modification testing to avoid duplicate registration
         try:
-            # Create another registration for offline modification
-            registration_data = {
-                "event_id": self.created_event_id,
-                "registrants": [
-                    {"name": "Test User", "preferences": {"Food Preference": "Vegetarian", "Dietary Restrictions": "None"}}
+            future_date = (datetime.now() + timedelta(days=35)).strftime('%Y-%m-%d')
+            offline_test_event = {
+                "name": "Offline Modification Test Event",
+                "description": "Event for testing offline modification approval",
+                "image": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800",
+                "event_date": future_date,
+                "event_time": "19:00",
+                "amount": 75.0,
+                "payment_type": "per_person",
+                "preferences": [
+                    {"name": "Food Preference", "options": ["Vegetarian", "Non-Vegetarian"]}
                 ],
-                "payment_method": "offline"
+                "max_registrations": 50
             }
             
-            reg_response = requests.post(f"{self.base_url}/events/{self.created_event_id}/register", 
-                                       json=registration_data, 
-                                       headers=self.auth_headers,
-                                       timeout=10)
+            event_response = requests.post(f"{self.base_url}/events", 
+                                         json=offline_test_event, 
+                                         headers=self.auth_headers,
+                                         timeout=10)
             
-            if reg_response.status_code == 200:
-                offline_reg_id = reg_response.json()['id']
+            if event_response.status_code == 200:
+                offline_event_id = event_response.json()['id']
                 
-                # Approve the initial registration
-                approve_response = requests.post(f"{self.base_url}/events/registrations/{offline_reg_id}/approve", 
-                                               headers=self.auth_headers,
-                                               timeout=10)
+                # Create a registration for offline modification
+                registration_data = {
+                    "event_id": offline_event_id,
+                    "registrants": [
+                        {"name": "Offline Test User", "preferences": {"Food Preference": "Vegetarian"}}
+                    ],
+                    "payment_method": "offline"
+                }
                 
-                if approve_response.status_code == 200:
-                    # Create an offline modification
-                    modification_data = {
-                        "registrants": [
-                            {"name": "Test User", "preferences": {"Food Preference": "Vegetarian", "Dietary Restrictions": "None"}},
-                            {"name": "Test User 2", "preferences": {"Food Preference": "Non-Vegetarian", "Dietary Restrictions": "None"}}
-                        ],
-                        "payment_method": "offline"
-                    }
+                reg_response = requests.post(f"{self.base_url}/events/{offline_event_id}/register", 
+                                           json=registration_data, 
+                                           headers=self.auth_headers,
+                                           timeout=10)
+                
+                if reg_response.status_code == 200:
+                    offline_reg_id = reg_response.json()['id']
                     
-                    modify_response = requests.patch(f"{self.base_url}/events/registrations/{offline_reg_id}/modify", 
-                                                   json=modification_data, 
+                    # Approve the initial registration
+                    approve_response = requests.post(f"{self.base_url}/events/registrations/{offline_reg_id}/approve", 
                                                    headers=self.auth_headers,
                                                    timeout=10)
                     
-                    if modify_response.status_code == 200:
-                        # Now test approving the modification
-                        response = requests.post(f"{self.base_url}/events/registrations/{offline_reg_id}/approve-modification", 
-                                               headers=self.auth_headers,
-                                               timeout=10)
+                    if approve_response.status_code == 200:
+                        # Create an offline modification
+                        modification_data = {
+                            "registrants": [
+                                {"name": "Offline Test User", "preferences": {"Food Preference": "Vegetarian"}},
+                                {"name": "Offline Test User 2", "preferences": {"Food Preference": "Non-Vegetarian"}}
+                            ],
+                            "payment_method": "offline"
+                        }
                         
-                        if response.status_code == 200:
-                            data = response.json()
-                            if 'message' in data:
-                                self.test_results['approve_modification'] = True
-                                self.log_success(f"/events/registrations/{offline_reg_id}/approve-modification", "POST", 
-                                               "- Approved offline modification successfully")
+                        modify_response = requests.patch(f"{self.base_url}/events/registrations/{offline_reg_id}/modify", 
+                                                       json=modification_data, 
+                                                       headers=self.auth_headers,
+                                                       timeout=10)
+                        
+                        if modify_response.status_code == 200:
+                            # Now test approving the modification
+                            response = requests.post(f"{self.base_url}/events/registrations/{offline_reg_id}/approve-modification", 
+                                                   headers=self.auth_headers,
+                                                   timeout=10)
+                            
+                            if response.status_code == 200:
+                                data = response.json()
+                                if 'message' in data:
+                                    self.test_results['approve_modification'] = True
+                                    self.log_success(f"/events/registrations/{offline_reg_id}/approve-modification", "POST", 
+                                                   "- Approved offline modification successfully")
+                                else:
+                                    self.test_results['approve_modification'] = False
+                                    self.log_error(f"/events/registrations/{offline_reg_id}/approve-modification", "POST", 
+                                                 "Invalid response structure")
                             else:
                                 self.test_results['approve_modification'] = False
                                 self.log_error(f"/events/registrations/{offline_reg_id}/approve-modification", "POST", 
-                                             "Invalid response structure")
+                                             f"Status code: {response.status_code}, Response: {response.text}")
                         else:
                             self.test_results['approve_modification'] = False
-                            self.log_error(f"/events/registrations/{offline_reg_id}/approve-modification", "POST", 
-                                         f"Status code: {response.status_code}, Response: {response.text}")
+                            self.log_error("Approve Modification", "SETUP", f"Failed to create offline modification: {modify_response.status_code}, Response: {modify_response.text}")
                     else:
                         self.test_results['approve_modification'] = False
-                        self.log_error("Approve Modification", "SETUP", f"Failed to create offline modification: {modify_response.status_code}")
+                        self.log_error("Approve Modification", "SETUP", f"Failed to approve initial registration: {approve_response.status_code}")
                 else:
                     self.test_results['approve_modification'] = False
-                    self.log_error("Approve Modification", "SETUP", f"Failed to approve initial registration: {approve_response.status_code}")
+                    self.log_error("Approve Modification", "SETUP", f"Failed to create offline registration: {reg_response.status_code}, Response: {reg_response.text}")
             else:
                 self.test_results['approve_modification'] = False
-                self.log_error("Approve Modification", "SETUP", f"Failed to create offline registration: {reg_response.status_code}")
+                self.log_error("Approve Modification", "SETUP", f"Failed to create offline test event: {event_response.status_code}")
                 
         except Exception as e:
             self.test_results['approve_modification'] = False
