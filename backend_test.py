@@ -755,6 +755,9 @@ class TROAAPITester:
         # Test Amenity Booking fix
         self.test_amenity_booking_fix()
         
+        # Test edge cases
+        self.test_edge_cases()
+        
         # Print summary
         self.print_summary()
         
