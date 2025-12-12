@@ -27,9 +27,23 @@ class TROAAPITester:
             'committee': {'get': None, 'post': None},
             'amenities': {'get': None, 'post': None},
             'gallery': {'get': None, 'post': None},
-            'membership': {'get': None, 'post': None}
+            'membership': {'get': None, 'post': None},
+            'events': {'get': None, 'post': None, 'get_single': None, 'patch': None, 'delete': None},
+            'event_registration': {'register': None, 'my_registrations': None, 'withdraw': None},
+            'admin_approval': {'pending_approvals': None, 'approve': None, 'reject': None},
+            'payment_integration': {'create_order': None, 'complete_payment': None},
+            'amenity_booking': {'create_booking': None}
         }
         self.errors = []
+        self.created_event_id = None
+        self.created_registration_id = None
+        
+        # Setup authentication headers
+        self.basic_auth = base64.b64encode(f"{BASIC_AUTH_USERNAME}:{BASIC_AUTH_PASSWORD}".encode()).decode()
+        self.auth_headers = {
+            'Authorization': f'Basic {self.basic_auth}',
+            'Content-Type': 'application/json'
+        }
         
     def log_error(self, endpoint: str, method: str, error: str):
         """Log errors for detailed reporting"""
