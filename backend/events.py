@@ -798,22 +798,46 @@ async def approve_modification(registration_id: str, request: Request):
         if not registration:
             raise HTTPException(status_code=404, detail="No pending modification found")
         
+        # Create audit log entry
+        old_count = len(registration.get("registrants", []))
+        new_count = len(registration.get("pending_registrants", []))
+        additional_amount = registration.get("additional_amount", 0)
+        
+        audit_entry = {
+            "action": "modification_approved",
+            "timestamp": datetime.utcnow().isoformat(),
+            "by_name": admin.get('name', admin['email']),
+            "by_email": admin['email'],
+            "details": f"Offline payment approved. Added {new_count - old_count} person(s). Amount: ₹{additional_amount}",
+            "old_count": old_count,
+            "new_count": new_count,
+            "payment_amount": additional_amount,
+            "payment_method": "offline"
+        }
+        
         # Apply the pending modification
         await db.event_registrations.update_one(
             {"id": registration_id},
-            {"$set": {
-                "registrants": registration["pending_registrants"],
-                "total_amount": registration["pending_total"],
-                "approval_note": f"Modification approved by {admin['email']}",
-                "updated_at": datetime.utcnow()
-            },
-            "$unset": {
-                "pending_registrants": "",
-                "pending_total": "",
-                "additional_amount": "",
-                "modification_payment_method": "",
-                "modification_status": ""
-            }}
+            {
+                "$set": {
+                    "registrants": registration["pending_registrants"],
+                    "total_amount": registration["pending_total"],
+                    "approved_by_name": admin.get('name', admin['email']),
+                    "approved_by_email": admin['email'],
+                    "approval_note": f"Modification approved by {admin.get('name', admin['email'])}",
+                    "updated_at": datetime.utcnow()
+                },
+                "$unset": {
+                    "pending_registrants": "",
+                    "pending_total": "",
+                    "additional_amount": "",
+                    "modification_payment_method": "",
+                    "modification_status": ""
+                },
+                "$push": {
+                    "audit_log": audit_entry
+                }
+            }
         )
         
         logger.info(f"Modification approved: {registration_id} by {admin['email']}")
