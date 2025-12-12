@@ -263,15 +263,13 @@ const EventsManagement = () => {
                           <CheckCircle className="w-4 h-4" />
                           <span>Approve</span>
                         </button>
-                        {!isMod && (
-                          <button
-                            onClick={() => handleReject(reg.id)}
-                            className="flex items-center space-x-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                          >
-                            <XCircle className="w-4 h-4" />
-                            <span>Reject</span>
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleReject(reg.id, isMod)}
+                          className="flex items-center space-x-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          <span>Reject</span>
+                        </button>
                       </div>
                     </div>
                   </div>
