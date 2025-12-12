@@ -684,22 +684,45 @@ async def complete_modification_payment(registration_id: str, payment_id: str, r
         if not registration:
             raise HTTPException(status_code=404, detail="No pending modification found")
         
+        # Create audit log entry
+        old_count = len(registration.get("registrants", []))
+        new_count = len(registration.get("pending_registrants", []))
+        additional_amount = registration.get("additional_amount", 0)
+        
+        audit_entry = {
+            "action": "modification_payment_completed",
+            "timestamp": datetime.utcnow().isoformat(),
+            "by_name": user.get('name', user['email']),
+            "by_email": user['email'],
+            "details": f"Online payment completed. Added {new_count - old_count} person(s). Payment: ₹{additional_amount}",
+            "old_count": old_count,
+            "new_count": new_count,
+            "payment_amount": additional_amount,
+            "payment_id": payment_id,
+            "payment_method": "online"
+        }
+        
         # Apply the pending modification
         await db.event_registrations.update_one(
             {"id": registration_id},
-            {"$set": {
-                "registrants": registration["pending_registrants"],
-                "total_amount": registration["pending_total"],
-                "modification_payment_id": payment_id,
-                "updated_at": datetime.utcnow()
-            },
-            "$unset": {
-                "pending_registrants": "",
-                "pending_total": "",
-                "additional_amount": "",
-                "modification_payment_method": "",
-                "modification_status": ""
-            }}
+            {
+                "$set": {
+                    "registrants": registration["pending_registrants"],
+                    "total_amount": registration["pending_total"],
+                    "modification_payment_id": payment_id,
+                    "updated_at": datetime.utcnow()
+                },
+                "$unset": {
+                    "pending_registrants": "",
+                    "pending_total": "",
+                    "additional_amount": "",
+                    "modification_payment_method": "",
+                    "modification_status": ""
+                },
+                "$push": {
+                    "audit_log": audit_entry
+                }
+            }
         )
         
         return {"message": "Modification payment completed successfully"}
