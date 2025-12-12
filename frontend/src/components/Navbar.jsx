@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, User, LogOut, Shield, MessageSquare, Calendar, PartyPopper } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
+import { BACKEND_URL } from '../utils/api';
+
+const API = `${BACKEND_URL}/api`;
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [hasUpcomingEvent, setHasUpcomingEvent] = useState(false);
   const location = useLocation();
   const { isAuthenticated, user, logout, login, isAdmin } = useAuth();
 
@@ -16,9 +21,36 @@ const Navbar = () => {
     { name: 'Amenities', path: '/amenities' },
     { name: 'Events', path: '/events' },
     { name: 'Gallery', path: '/gallery' },
-    { name: 'Help Desk', path: '/help-desk' },
+    { name: 'Resources', path: '/help-desk' },
     { name: 'Contact', path: '/contact' }
   ];
+
+  // Check for upcoming events in next 30 days
+  useEffect(() => {
+    const checkUpcomingEvents = async () => {
+      try {
+        const response = await axios.get(`${API}/events`);
+        const events = response.data;
+        
+        if (events && events.length > 0) {
+          const today = new Date();
+          const thirtyDaysLater = new Date();
+          thirtyDaysLater.setDate(today.getDate() + 30);
+          
+          const hasUpcoming = events.some(event => {
+            const eventDate = new Date(event.event_date);
+            return eventDate >= today && eventDate <= thirtyDaysLater;
+          });
+          
+          setHasUpcomingEvent(hasUpcoming);
+        }
+      } catch (error) {
+        console.error('Error checking events:', error);
+      }
+    };
+
+    checkUpcomingEvents();
+  }, []);
 
   const isActive = (path) => location.pathname === path;
 
@@ -44,7 +76,7 @@ const Navbar = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`relative px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
+                className={`relative px-3 py-2 rounded-lg font-medium transition-all duration-300 whitespace-nowrap ${
                   isActive(item.path)
                     ? 'bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white shadow-lg'
                     : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-100 hover:to-pink-100'
@@ -57,6 +89,12 @@ const Navbar = () => {
                     Book Now
                   </span>
                 )}
+                {/* Upcoming bubble for Events when there's an event in next 30 days */}
+                {item.name === 'Events' && hasUpcomingEvent && (
+                  <span className="absolute -top-2 -right-2 px-2 py-0.5 text-[10px] font-bold bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full shadow-lg animate-pulse">
+                    Upcoming
+                  </span>
+                )}
               </Link>
             ))}
             
@@ -64,7 +102,7 @@ const Navbar = () => {
             {isAuthenticated && (
               <Link
                 to="/feedback"
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
+                className={`px-3 py-2 rounded-lg font-medium transition-all duration-300 whitespace-nowrap ${
                   isActive('/feedback')
                     ? 'bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white shadow-lg'
                     : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-100 hover:to-pink-100'
@@ -186,6 +224,12 @@ const Navbar = () => {
                   {item.name === 'Amenities' && isAuthenticated && (
                     <span className="px-2 py-0.5 text-[10px] font-bold bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full shadow-lg">
                       Book Now
+                    </span>
+                  )}
+                  {/* Upcoming bubble for Events when there's an event in next 30 days */}
+                  {item.name === 'Events' && hasUpcomingEvent && (
+                    <span className="px-2 py-0.5 text-[10px] font-bold bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full shadow-lg">
+                      Upcoming
                     </span>
                   )}
                 </span>
