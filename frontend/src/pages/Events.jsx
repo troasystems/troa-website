@@ -1,25 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, Users, IndianRupee, Plus, Edit2, Trash2, X, Upload, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { toast } from '../hooks/use-toast';
-import { Toaster } from '../components/ui/toaster';
-import { BACKEND_URL, getImageUrl } from '../utils/api';
+import { useNavigate } from 'react-router-dom';
+import { useToast, Toaster } from '../hooks/use-toast';
+import { getImageUrl, BACKEND_URL } from '../utils/api';
+import {
+  Calendar,
+  Clock,
+  IndianRupee,
+  Users,
+  Plus,
+  X,
+  Image as ImageIcon,
+  Edit,
+  Trash2,
+  CheckCircle,
+  AlertCircle,
+  CreditCard,
+  Banknote
+} from 'lucide-react';
 
 const API = `${BACKEND_URL}/api`;
 
 const Events = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const { isAdmin, isAuthenticated, user } = useAuth();
-  const navigate = useNavigate();
-
-  // Create event form state
-  const [newEvent, setNewEvent] = useState({
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [editingEvent, setEditingEvent] = useState(null);
+  
+  // Admin form state
+  const [eventForm, setEventForm] = useState({
     name: '',
     description: '',
     image: '',
@@ -30,11 +46,15 @@ const Events = () => {
     preferences: [],
     max_registrations: ''
   });
-  const [newPreference, setNewPreference] = useState({ name: '', options: '' });
-  const [uploading, setUploading] = useState(false);
-
+  
   // Registration form state
   const [registrants, setRegistrants] = useState([{ name: '', preferences: {} }]);
+  const [paymentMethod, setPaymentMethod] = useState('online');
+  const [registering, setRegistering] = useState(false);
+
+  const isAdmin = user?.role === 'admin';
+  const isManager = user?.role === 'manager';
+  const canManageEvents = isAdmin || isManager;
 
   useEffect(() => {
     fetchEvents();
@@ -42,10 +62,7 @@ const Events = () => {
 
   const fetchEvents = async () => {
     try {
-      const token = localStorage.getItem('session_token');
-      const response = await axios.get(`${API}/events`, {
-        headers: token ? { 'X-Session-Token': `Bearer ${token}` } : {}
-      });
+      const response = await axios.get(`${API}/events?include_past=${canManageEvents}`);
       setEvents(response.data);
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -54,73 +71,41 @@ const Events = () => {
     }
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const token = localStorage.getItem('session_token');
-      const response = await axios.post(`${API}/upload/image`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
-        }
-      });
-      setNewEvent({ ...newEvent, image: response.data.url });
-      toast({ title: 'Success', description: 'Image uploaded successfully' });
-    } catch (error) {
-      toast({ title: 'Error', description: 'Failed to upload image', variant: 'destructive' });
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const addPreference = () => {
-    if (newPreference.name && newPreference.options) {
-      const options = newPreference.options.split(',').map(o => o.trim()).filter(o => o);
-      setNewEvent({
-        ...newEvent,
-        preferences: [...newEvent.preferences, { name: newPreference.name, options }]
-      });
-      setNewPreference({ name: '', options: '' });
-    }
-  };
-
-  const removePreference = (index) => {
-    setNewEvent({
-      ...newEvent,
-      preferences: newEvent.preferences.filter((_, i) => i !== index)
-    });
-  };
-
   const handleCreateEvent = async (e) => {
     e.preventDefault();
+    const token = localStorage.getItem('session_token');
     
     try {
-      const token = localStorage.getItem('session_token');
-      await axios.post(`${API}/events`, {
-        ...newEvent,
-        amount: parseFloat(newEvent.amount),
-        max_registrations: newEvent.max_registrations ? parseInt(newEvent.max_registrations) : null
-      }, {
-        headers: { 'X-Session-Token': `Bearer ${token}` }
-      });
+      const payload = {
+        ...eventForm,
+        amount: parseFloat(eventForm.amount),
+        max_registrations: eventForm.max_registrations ? parseInt(eventForm.max_registrations) : null
+      };
       
-      toast({ title: 'Success', description: 'Event created successfully' });
-      setShowCreateForm(false);
-      setNewEvent({
-        name: '', description: '', image: '', event_date: '', event_time: '',
-        amount: '', payment_type: 'per_person', preferences: [], max_registrations: ''
-      });
+      if (editingEvent) {
+        await axios.patch(
+          `${API}/events/${editingEvent.id}`,
+          payload,
+          { headers: { 'X-Session-Token': `Bearer ${token}` } }
+        );
+        toast({ title: 'Success', description: 'Event updated successfully!' });
+      } else {
+        await axios.post(
+          `${API}/events`,
+          payload,
+          { headers: { 'X-Session-Token': `Bearer ${token}` } }
+        );
+        toast({ title: 'Success', description: 'Event created successfully!' });
+      }
+      
+      setShowCreateModal(false);
+      setEditingEvent(null);
+      resetEventForm();
       fetchEvents();
     } catch (error) {
       toast({
         title: 'Error',
-        description: error.response?.data?.detail || 'Failed to create event',
+        description: error.response?.data?.detail || 'Failed to save event',
         variant: 'destructive'
       });
     }
@@ -129,30 +114,187 @@ const Events = () => {
   const handleDeleteEvent = async (eventId) => {
     if (!window.confirm('Are you sure you want to delete this event?')) return;
     
+    const token = localStorage.getItem('session_token');
     try {
-      const token = localStorage.getItem('session_token');
       await axios.delete(`${API}/events/${eventId}`, {
         headers: { 'X-Session-Token': `Bearer ${token}` }
       });
-      toast({ title: 'Success', description: 'Event deleted successfully' });
+      toast({ title: 'Success', description: 'Event deleted successfully!' });
       fetchEvents();
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to delete event', variant: 'destructive' });
+      toast({
+        title: 'Error',
+        description: error.response?.data?.detail || 'Failed to delete event',
+        variant: 'destructive'
+      });
     }
   };
 
-  const openRegisterModal = (event) => {
-    if (!isAuthenticated) {
+  const handleRegister = async () => {
+    if (!user) {
       navigate('/login-info');
       return;
     }
-    setSelectedEvent(event);
+    
+    // Validate registrants
+    const validRegistrants = registrants.filter(r => r.name.trim());
+    if (validRegistrants.length === 0) {
+      toast({
+        title: 'Error',
+        description: 'Please add at least one person to register',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    setRegistering(true);
+    const token = localStorage.getItem('session_token');
+    
+    try {
+      // Step 1: Create registration
+      const regResponse = await axios.post(
+        `${API}/events/${selectedEvent.id}/register`,
+        {
+          event_id: selectedEvent.id,
+          registrants: validRegistrants,
+          payment_method: paymentMethod
+        },
+        { headers: { 'X-Session-Token': `Bearer ${token}` } }
+      );
+      
+      const registration = regResponse.data;
+      
+      if (paymentMethod === 'offline') {
+        // Offline payment - registration complete, pending approval
+        toast({
+          title: 'Registration Submitted!',
+          description: 'Your registration is pending approval. Please complete the payment via cash or bank transfer and inform the admin.'
+        });
+        setShowRegisterModal(false);
+        setSelectedEvent(null);
+        resetRegistrationForm();
+        navigate('/my-events');
+      } else {
+        // Online payment - create Razorpay order
+        const orderResponse = await axios.post(
+          `${API}/events/${selectedEvent.id}/create-payment-order?registration_id=${registration.id}`,
+          {},
+          { headers: { 'X-Session-Token': `Bearer ${token}` } }
+        );
+        
+        const order = orderResponse.data;
+        
+        // Open Razorpay checkout
+        const options = {
+          key: order.key_id,
+          amount: order.amount,
+          currency: order.currency,
+          name: 'TROA Events',
+          description: `Registration for ${selectedEvent.name}`,
+          order_id: order.order_id,
+          handler: async function (response) {
+            // Verify payment
+            try {
+              await axios.post(
+                `${API}/events/registrations/${registration.id}/complete-payment?payment_id=${response.razorpay_payment_id}`,
+                {},
+                { headers: { 'X-Session-Token': `Bearer ${token}` } }
+              );
+              
+              toast({
+                title: 'Payment Successful!',
+                description: 'You have been registered for the event.'
+              });
+              setShowRegisterModal(false);
+              setSelectedEvent(null);
+              resetRegistrationForm();
+              navigate('/my-events');
+            } catch (err) {
+              toast({
+                title: 'Payment Verification Failed',
+                description: 'Please contact support.',
+                variant: 'destructive'
+              });
+            }
+          },
+          prefill: {
+            name: user?.name || '',
+            email: user?.email || ''
+          },
+          theme: {
+            color: '#9333ea'
+          }
+        };
+        
+        const razorpay = new window.Razorpay(options);
+        razorpay.open();
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.detail || 'Failed to register',
+        variant: 'destructive'
+      });
+    } finally {
+      setRegistering(false);
+    }
+  };
+
+  const resetEventForm = () => {
+    setEventForm({
+      name: '',
+      description: '',
+      image: '',
+      event_date: '',
+      event_time: '',
+      amount: '',
+      payment_type: 'per_person',
+      preferences: [],
+      max_registrations: ''
+    });
+  };
+
+  const resetRegistrationForm = () => {
     setRegistrants([{ name: '', preferences: {} }]);
-    setShowRegisterModal(true);
+    setPaymentMethod('online');
+  };
+
+  const addPreference = () => {
+    setEventForm({
+      ...eventForm,
+      preferences: [...eventForm.preferences, { name: '', options: [''] }]
+    });
+  };
+
+  const updatePreference = (index, field, value) => {
+    const newPrefs = [...eventForm.preferences];
+    if (field === 'name') {
+      newPrefs[index].name = value;
+    } else if (field === 'options') {
+      newPrefs[index].options = value.split(',').map(o => o.trim());
+    }
+    setEventForm({ ...eventForm, preferences: newPrefs });
+  };
+
+  const removePreference = (index) => {
+    setEventForm({
+      ...eventForm,
+      preferences: eventForm.preferences.filter((_, i) => i !== index)
+    });
   };
 
   const addRegistrant = () => {
     setRegistrants([...registrants, { name: '', preferences: {} }]);
+  };
+
+  const updateRegistrant = (index, field, value) => {
+    const newRegistrants = [...registrants];
+    if (field === 'name') {
+      newRegistrants[index].name = value;
+    } else {
+      newRegistrants[index].preferences[field] = value;
+    }
+    setRegistrants(newRegistrants);
   };
 
   const removeRegistrant = (index) => {
@@ -161,62 +303,13 @@ const Events = () => {
     }
   };
 
-  const updateRegistrant = (index, field, value) => {
-    const updated = [...registrants];
-    if (field === 'name') {
-      updated[index].name = value;
-    } else {
-      updated[index].preferences[field] = value;
-    }
-    setRegistrants(updated);
-  };
-
-  const calculateTotalAmount = () => {
+  const calculateTotal = () => {
     if (!selectedEvent) return 0;
+    const validRegistrants = registrants.filter(r => r.name.trim());
     if (selectedEvent.payment_type === 'per_person') {
-      return selectedEvent.amount * registrants.length;
+      return selectedEvent.amount * validRegistrants.length;
     }
     return selectedEvent.amount;
-  };
-
-  const handleRegister = async () => {
-    // Validate all registrants have names
-    const validRegistrants = registrants.filter(r => r.name.trim());
-    if (validRegistrants.length === 0) {
-      toast({ title: 'Error', description: 'Please enter at least one registrant name', variant: 'destructive' });
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('session_token');
-      const response = await axios.post(`${API}/events/${selectedEvent.id}/register`, {
-        event_id: selectedEvent.id,
-        registrants: validRegistrants
-      }, {
-        headers: { 'X-Session-Token': `Bearer ${token}` }
-      });
-
-      // For now, simulate payment completion
-      // In production, integrate with Razorpay here
-      await axios.post(`${API}/events/registrations/${response.data.id}/complete-payment?payment_id=simulated_${Date.now()}`, {}, {
-        headers: { 'X-Session-Token': `Bearer ${token}` }
-      });
-
-      toast({ title: 'Success', description: 'Successfully registered for the event!' });
-      setShowRegisterModal(false);
-      fetchEvents();
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: error.response?.data?.detail || 'Failed to register',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const isPastEvent = (eventDate) => {
-    const today = new Date().toISOString().split('T')[0];
-    return eventDate < today;
   };
 
   const formatDate = (dateStr) => {
@@ -228,8 +321,9 @@ const Events = () => {
     });
   };
 
-  const getMinDate = () => {
-    return new Date().toISOString().split('T')[0];
+  const isPastEvent = (eventDate) => {
+    const today = new Date().toISOString().split('T')[0];
+    return eventDate < today;
   };
 
   if (loading) {
@@ -250,168 +344,24 @@ const Events = () => {
           <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
             Community Events
           </h1>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Join our community events and connect with your neighbors
+          <p className="text-gray-600 text-lg">
+            Join us for exciting events and gatherings at The Retreat
           </p>
-        </div>
-
-        {/* Admin: Create Event Button */}
-        {isAdmin && (
-          <div className="mb-8 text-center">
+          
+          {canManageEvents && (
             <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all"
+              onClick={() => {
+                resetEventForm();
+                setEditingEvent(null);
+                setShowCreateModal(true);
+              }}
+              className="mt-6 inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full font-semibold hover:shadow-lg transition-all"
             >
               <Plus className="w-5 h-5" />
-              <span>{showCreateForm ? 'Cancel' : 'Create New Event'}</span>
+              <span>Create Event</span>
             </button>
-          </div>
-        )}
-
-        {/* Create Event Form */}
-        {isAdmin && showCreateForm && (
-          <div className="bg-white rounded-2xl shadow-xl p-8 mb-12">
-            <h2 className="text-2xl font-bold mb-6">Create New Event</h2>
-            <form onSubmit={handleCreateEvent} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Event Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newEvent.name}
-                    onChange={(e) => setNewEvent({ ...newEvent, name: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                    placeholder="e.g., Diwali Celebration"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Event Image *</label>
-                  <div className="flex items-center space-x-4">
-                    <label className="flex items-center space-x-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg cursor-pointer hover:bg-purple-200">
-                      <Upload className="w-4 h-4" />
-                      <span>{uploading ? 'Uploading...' : 'Upload Image'}</span>
-                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                    </label>
-                    {newEvent.image && (
-                      <img src={getImageUrl(newEvent.image)} alt="Preview" className="h-10 w-10 object-cover rounded" />
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Event Date *</label>
-                  <input
-                    type="date"
-                    required
-                    min={getMinDate()}
-                    value={newEvent.event_date}
-                    onChange={(e) => setNewEvent({ ...newEvent, event_date: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Event Time *</label>
-                  <input
-                    type="time"
-                    required
-                    value={newEvent.event_time}
-                    onChange={(e) => setNewEvent({ ...newEvent, event_time: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Amount (₹) *</label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    step="0.01"
-                    value={newEvent.amount}
-                    onChange={(e) => setNewEvent({ ...newEvent, amount: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                    placeholder="500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Payment Type *</label>
-                  <select
-                    value={newEvent.payment_type}
-                    onChange={(e) => setNewEvent({ ...newEvent, payment_type: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                  >
-                    <option value="per_person">Per Person</option>
-                    <option value="per_villa">Per Villa</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Description *</label>
-                <textarea
-                  required
-                  rows={3}
-                  value={newEvent.description}
-                  onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                  placeholder="Describe the event..."
-                />
-              </div>
-
-              {/* Preferences Section */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Preferences (Optional)</label>
-                <div className="flex space-x-2 mb-2">
-                  <input
-                    type="text"
-                    value={newPreference.name}
-                    onChange={(e) => setNewPreference({ ...newPreference, name: e.target.value })}
-                    className="flex-1 px-4 py-2 border rounded-lg"
-                    placeholder="Preference name (e.g., Food Preference)"
-                  />
-                  <input
-                    type="text"
-                    value={newPreference.options}
-                    onChange={(e) => setNewPreference({ ...newPreference, options: e.target.value })}
-                    className="flex-1 px-4 py-2 border rounded-lg"
-                    placeholder="Options (comma-separated: Veg, Non-Veg)"
-                  />
-                  <button
-                    type="button"
-                    onClick={addPreference}
-                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                  >
-                    Add
-                  </button>
-                </div>
-                {newEvent.preferences.length > 0 && (
-                  <div className="space-y-2">
-                    {newEvent.preferences.map((pref, index) => (
-                      <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                        <span><strong>{pref.name}:</strong> {pref.options.join(', ')}</span>
-                        <button type="button" onClick={() => removePreference(index)} className="text-red-500">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                disabled={!newEvent.image}
-                className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:shadow-lg disabled:opacity-50"
-              >
-                Create Event
-              </button>
-            </form>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Events Grid */}
         {events.length === 0 ? (
@@ -421,161 +371,465 @@ const Events = () => {
             <p className="text-gray-500">Check back later for new events!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {events.map((event) => (
-              <div key={event.id} className="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-xl transition-all">
-                <div className="relative h-48 overflow-hidden">
+              <div
+                key={event.id}
+                className={`bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all hover:scale-[1.02] hover:shadow-xl ${
+                  isPastEvent(event.event_date) ? 'opacity-60' : ''
+                }`}
+              >
+                {/* Event Image */}
+                <div className="relative h-48">
                   <img
-                    src={getImageUrl(event.image)}
+                    src={getImageUrl(event.image) || '/placeholder-event.jpg'}
                     alt={event.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    className="w-full h-full object-cover"
                   />
-                  {isAdmin && (
-                    <button
-                      onClick={() => handleDeleteEvent(event.id)}
-                      className="absolute top-4 right-4 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                  {isPastEvent(event.event_date) && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <span className="text-white font-bold text-lg">Event Ended</span>
+                    </div>
                   )}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                    <p className="text-white font-medium">{formatDate(event.event_date)}</p>
-                  </div>
+                  {canManageEvents && (
+                    <div className="absolute top-2 right-2 flex space-x-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEventForm({
+                            name: event.name,
+                            description: event.description,
+                            image: event.image,
+                            event_date: event.event_date,
+                            event_time: event.event_time,
+                            amount: event.amount.toString(),
+                            payment_type: event.payment_type,
+                            preferences: event.preferences || [],
+                            max_registrations: event.max_registrations?.toString() || ''
+                          });
+                          setEditingEvent(event);
+                          setShowCreateModal(true);
+                        }}
+                        className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
+                      >
+                        <Edit className="w-4 h-4 text-purple-600" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteEvent(event.id);
+                        }}
+                        className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </button>
+                    </div>
+                  )}
                 </div>
-                
+
+                {/* Event Details */}
                 <div className="p-6">
-                  <h3 className="text-xl font-bold mb-2 text-gray-900">{event.name}</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{event.name}</h3>
                   <p className="text-gray-600 text-sm mb-4 line-clamp-2">{event.description}</p>
                   
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center text-gray-600">
-                      <Clock className="w-4 h-4 mr-2" />
-                      <span>{event.event_time}</span>
+                      <Calendar className="w-4 h-4 mr-2 text-purple-600" />
+                      <span className="text-sm">{formatDate(event.event_date)}</span>
                     </div>
                     <div className="flex items-center text-gray-600">
-                      <IndianRupee className="w-4 h-4 mr-2" />
-                      <span>₹{event.amount} {event.payment_type === 'per_person' ? 'per person' : 'per villa'}</span>
+                      <Clock className="w-4 h-4 mr-2 text-pink-600" />
+                      <span className="text-sm">{event.event_time}</span>
                     </div>
-                    {event.preferences && event.preferences.length > 0 && (
-                      <div className="flex items-start text-gray-600">
-                        <Users className="w-4 h-4 mr-2 mt-0.5" />
-                        <span className="text-sm">Preferences required</span>
-                      </div>
-                    )}
+                    <div className="flex items-center text-gray-600">
+                      <IndianRupee className="w-4 h-4 mr-2 text-orange-600" />
+                      <span className="text-sm">
+                        ₹{event.amount} {event.payment_type === 'per_person' ? 'per person' : 'per villa'}
+                      </span>
+                    </div>
                   </div>
 
-                  <button
-                    onClick={() => openRegisterModal(event)}
-                    disabled={isPastEvent(event.event_date)}
-                    className={`w-full py-3 rounded-lg font-semibold transition-all ${
-                      isPastEvent(event.event_date)
-                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-lg'
-                    }`}
-                  >
-                    {isPastEvent(event.event_date) ? 'Event Ended' : isAuthenticated ? 'Register Now' : 'Login to Register'}
-                  </button>
+                  {!isPastEvent(event.event_date) && (
+                    <button
+                      onClick={() => {
+                        if (!user) {
+                          navigate('/login-info');
+                          return;
+                        }
+                        setSelectedEvent(event);
+                        resetRegistrationForm();
+                        setShowRegisterModal(true);
+                      }}
+                      className="w-full py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all"
+                    >
+                      {user ? 'Register Now' : 'Login to Register'}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         )}
+
+        {/* View My Events Link */}
+        {user && (
+          <div className="text-center mt-12">
+            <button
+              onClick={() => navigate('/my-events')}
+              className="text-purple-600 font-semibold hover:text-purple-700 underline"
+            >
+              View My Event Registrations →
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Create/Edit Event Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white p-6 rounded-t-2xl flex justify-between items-center">
+              <h2 className="text-2xl font-bold">{editingEvent ? 'Edit Event' : 'Create New Event'}</h2>
+              <button onClick={() => setShowCreateModal(false)} className="hover:bg-white/20 p-2 rounded-lg">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateEvent} className="p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Name *</label>
+                <input
+                  type="text"
+                  value={eventForm.name}
+                  onChange={(e) => setEventForm({ ...eventForm, name: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Description *</label>
+                <textarea
+                  value={eventForm.description}
+                  onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  rows={3}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Image URL *</label>
+                <input
+                  type="text"
+                  value={eventForm.image}
+                  onChange={(e) => setEventForm({ ...eventForm, image: e.target.value })}
+                  placeholder="https://example.com/image.jpg or /uploads/image.jpg"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Event Date *</label>
+                  <input
+                    type="date"
+                    value={eventForm.event_date}
+                    onChange={(e) => setEventForm({ ...eventForm, event_date: e.target.value })}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Event Time *</label>
+                  <input
+                    type="time"
+                    value={eventForm.event_time}
+                    onChange={(e) => setEventForm({ ...eventForm, event_time: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Amount (₹) *</label>
+                  <input
+                    type="number"
+                    value={eventForm.amount}
+                    onChange={(e) => setEventForm({ ...eventForm, amount: e.target.value })}
+                    min="0"
+                    step="0.01"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Payment Type *</label>
+                  <select
+                    value={eventForm.payment_type}
+                    onChange={(e) => setEventForm({ ...eventForm, payment_type: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="per_person">Per Person</option>
+                    <option value="per_villa">Per Villa</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Max Registrations (Optional)</label>
+                <input
+                  type="number"
+                  value={eventForm.max_registrations}
+                  onChange={(e) => setEventForm({ ...eventForm, max_registrations: e.target.value })}
+                  min="1"
+                  placeholder="Leave empty for unlimited"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Preferences */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-sm font-semibold text-gray-700">Custom Preferences (Optional)</label>
+                  <button
+                    type="button"
+                    onClick={addPreference}
+                    className="text-purple-600 text-sm font-medium hover:text-purple-700"
+                  >
+                    + Add Preference
+                  </button>
+                </div>
+                {eventForm.preferences.map((pref, index) => (
+                  <div key={index} className="flex space-x-2 mb-2">
+                    <input
+                      type="text"
+                      value={pref.name}
+                      onChange={(e) => updatePreference(index, 'name', e.target.value)}
+                      placeholder="Preference name (e.g., Food Choice)"
+                      className="flex-1 px-3 py-2 border rounded-lg"
+                    />
+                    <input
+                      type="text"
+                      value={pref.options.join(', ')}
+                      onChange={(e) => updatePreference(index, 'options', e.target.value)}
+                      placeholder="Options (comma-separated)"
+                      className="flex-1 px-3 py-2 border rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removePreference(index)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex space-x-4 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:shadow-lg"
+                >
+                  {editingEvent ? 'Update Event' : 'Create Event'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Registration Modal */}
       {showRegisterModal && selectedEvent && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold">Register for {selectedEvent.name}</h2>
-                <button onClick={() => setShowRegisterModal(false)} className="text-gray-500 hover:text-gray-700">
-                  <X className="w-6 h-6" />
-                </button>
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white p-6 rounded-t-2xl flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold">Register for Event</h2>
+                <p className="text-sm opacity-90">{selectedEvent.name}</p>
               </div>
+              <button onClick={() => setShowRegisterModal(false)} className="hover:bg-white/20 p-2 rounded-lg">
+                <X className="w-6 h-6" />
+              </button>
             </div>
 
             <div className="p-6 space-y-6">
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <p className="text-sm text-purple-700">
-                  <strong>Payment Type:</strong> {selectedEvent.payment_type === 'per_person' ? 'Per Person' : 'Per Villa'}
-                </p>
-                <p className="text-sm text-purple-700">
-                  <strong>Amount:</strong> ₹{selectedEvent.amount} {selectedEvent.payment_type === 'per_person' && 'x each person'}
-                </p>
+              {/* Event Summary */}
+              <div className="bg-purple-50 rounded-lg p-4">
+                <div className="flex items-center space-x-4">
+                  <img
+                    src={getImageUrl(selectedEvent.image)}
+                    alt={selectedEvent.name}
+                    className="w-20 h-20 object-cover rounded-lg"
+                  />
+                  <div>
+                    <h3 className="font-bold text-gray-900">{selectedEvent.name}</h3>
+                    <p className="text-sm text-gray-600">{formatDate(selectedEvent.event_date)} at {selectedEvent.event_time}</p>
+                    <p className="text-sm font-semibold text-purple-600">
+                      ₹{selectedEvent.amount} {selectedEvent.payment_type === 'per_person' ? 'per person' : 'per villa'}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Registrants */}
               <div>
                 <div className="flex justify-between items-center mb-3">
-                  <label className="font-semibold">Registrants</label>
+                  <label className="text-lg font-semibold text-gray-700">
+                    <Users className="w-5 h-5 inline mr-2" />
+                    Who's Attending?
+                  </label>
                   <button
                     type="button"
                     onClick={addRegistrant}
-                    className="text-sm text-purple-600 hover:text-purple-800"
+                    className="text-purple-600 text-sm font-medium hover:text-purple-700"
                   >
                     + Add Person
                   </button>
                 </div>
 
-                <div className="space-y-4">
-                  {registrants.map((registrant, index) => (
-                    <div key={index} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-medium">Person {index + 1}</span>
-                        {registrants.length > 1 && (
-                          <button
-                            onClick={() => removeRegistrant(index)}
-                            className="text-red-500 text-sm"
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-                      
-                      <input
-                        type="text"
-                        value={registrant.name}
-                        onChange={(e) => updateRegistrant(index, 'name', e.target.value)}
-                        placeholder="Full Name"
-                        className="w-full px-4 py-2 border rounded-lg mb-2"
-                      />
-
-                      {/* Preferences */}
-                      {selectedEvent.preferences && selectedEvent.preferences.map((pref, pIndex) => (
-                        <div key={pIndex} className="mt-2">
-                          <label className="block text-sm text-gray-600 mb-1">{pref.name}</label>
-                          <select
-                            value={registrant.preferences[pref.name] || ''}
-                            onChange={(e) => updateRegistrant(index, pref.name, e.target.value)}
-                            className="w-full px-4 py-2 border rounded-lg"
-                          >
-                            <option value="">Select {pref.name}</option>
-                            {pref.options.map((opt, oIndex) => (
-                              <option key={oIndex} value={opt}>{opt}</option>
-                            ))}
-                          </select>
-                        </div>
-                      ))}
+                {registrants.map((registrant, index) => (
+                  <div key={index} className="border rounded-lg p-4 mb-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-medium text-gray-700">Person {index + 1}</span>
+                      {registrants.length > 1 && (
+                        <button
+                          onClick={() => removeRegistrant(index)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
-                  ))}
-                </div>
+                    <input
+                      type="text"
+                      value={registrant.name}
+                      onChange={(e) => updateRegistrant(index, 'name', e.target.value)}
+                      placeholder="Full Name"
+                      className="w-full px-4 py-2 border rounded-lg mb-2"
+                      required
+                    />
+                    
+                    {/* Preferences for this registrant */}
+                    {selectedEvent.preferences && selectedEvent.preferences.length > 0 && (
+                      <div className="space-y-2">
+                        {selectedEvent.preferences.map((pref, prefIndex) => (
+                          <div key={prefIndex}>
+                            <label className="text-sm text-gray-600">{pref.name}</label>
+                            <select
+                              value={registrant.preferences[pref.name] || ''}
+                              onChange={(e) => updateRegistrant(index, pref.name, e.target.value)}
+                              className="w-full px-3 py-2 border rounded-lg text-sm"
+                            >
+                              <option value="">Select {pref.name}</option>
+                              {pref.options.map((opt, optIndex) => (
+                                <option key={optIndex} value={opt}>{opt}</option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
 
-              {/* Total Amount */}
-              <div className="bg-green-50 p-4 rounded-lg">
+              {/* Payment Method */}
+              <div>
+                <label className="text-lg font-semibold text-gray-700 mb-3 block">
+                  <CreditCard className="w-5 h-5 inline mr-2" />
+                  Payment Method
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('online')}
+                    className={`p-4 border-2 rounded-lg text-left transition-all ${
+                      paymentMethod === 'online'
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-gray-200 hover:border-purple-300'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <CreditCard className={`w-6 h-6 ${paymentMethod === 'online' ? 'text-purple-600' : 'text-gray-400'}`} />
+                      <div>
+                        <p className="font-semibold text-gray-900">Online Payment</p>
+                        <p className="text-xs text-gray-500">Pay via Razorpay (Cards, UPI, etc.)</p>
+                      </div>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('offline')}
+                    className={`p-4 border-2 rounded-lg text-left transition-all ${
+                      paymentMethod === 'offline'
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-gray-200 hover:border-purple-300'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Banknote className={`w-6 h-6 ${paymentMethod === 'offline' ? 'text-purple-600' : 'text-gray-400'}`} />
+                      <div>
+                        <p className="font-semibold text-gray-900">Offline Payment</p>
+                        <p className="text-xs text-gray-500">Cash or Bank Transfer</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+                
+                {paymentMethod === 'offline' && (
+                  <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                    <div className="flex items-start space-x-2">
+                      <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-amber-800">
+                        Offline payments require admin approval. Your registration will be pending until the admin confirms receipt of payment.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Total */}
+              <div className="bg-gray-100 rounded-lg p-4">
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold">Total Amount:</span>
-                  <span className="text-2xl font-bold text-green-600">₹{calculateTotalAmount()}</span>
+                  <span className="text-lg font-semibold text-gray-700">Total Amount</span>
+                  <span className="text-2xl font-bold text-purple-600">₹{calculateTotal()}</span>
                 </div>
+                {selectedEvent.payment_type === 'per_person' && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    ₹{selectedEvent.amount} × {registrants.filter(r => r.name.trim()).length} person(s)
+                  </p>
+                )}
               </div>
 
-              <button
-                onClick={handleRegister}
-                className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-semibold hover:shadow-lg"
-              >
-                Pay & Register
-              </button>
+              {/* Actions */}
+              <div className="flex space-x-4 pt-4 border-t">
+                <button
+                  onClick={() => setShowRegisterModal(false)}
+                  className="flex-1 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRegister}
+                  disabled={registering}
+                  className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:shadow-lg disabled:opacity-50"
+                >
+                  {registering ? 'Processing...' : paymentMethod === 'online' ? 'Proceed to Pay' : 'Submit Registration'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
