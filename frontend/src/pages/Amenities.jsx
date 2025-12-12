@@ -25,7 +25,8 @@ const Amenities = () => {
     image: ''
   });
   const [bookingAmenity, setBookingAmenity] = useState(null);
-  const { isAdmin, isAuthenticated, login } = useAuth();
+  const { isAdmin, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   // Check if an amenity is bookable
   const isBookable = (amenityName) => {
