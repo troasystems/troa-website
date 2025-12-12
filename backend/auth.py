@@ -59,29 +59,52 @@ oauth.register(
 
 auth_router = APIRouter(prefix="/auth")
 
-# Session store (in production, use Redis or database)
-sessions = {}
+# MongoDB session store for production (replaces in-memory sessions)
+async def get_sessions_collection():
+    """Get the sessions collection from MongoDB"""
+    from motor.motor_asyncio import AsyncIOMotorClient
+    mongo_url = os.getenv('MONGO_URL', 'mongodb://localhost:27017')
+    db_name = os.getenv('DB_NAME', 'test_database')
+    client = AsyncIOMotorClient(mongo_url)
+    db = client[db_name]
+    return db.sessions, client
 
-def create_session(user_data: dict) -> str:
-    """Create a session token"""
+async def create_session(user_data: dict) -> str:
+    """Create a session token and store in MongoDB"""
     token = secrets.token_urlsafe(32)
-    sessions[token] = {
+    sessions_col, client = await get_sessions_collection()
+    
+    session_doc = {
+        'token': token,
         'user': user_data,
-        'expires': datetime.utcnow() + timedelta(days=7)
+        'expires': datetime.utcnow() + timedelta(days=7),
+        'created_at': datetime.utcnow()
     }
+    
+    await sessions_col.insert_one(session_doc)
+    client.close()
     return token
 
-def get_session(token: str) -> Optional[dict]:
-    """Get session data"""
-    session = sessions.get(token)
-    if session and session['expires'] > datetime.utcnow():
+async def get_session(token: str) -> Optional[dict]:
+    """Get session data from MongoDB"""
+    sessions_col, client = await get_sessions_collection()
+    
+    session = await sessions_col.find_one(
+        {'token': token, 'expires': {'$gt': datetime.utcnow()}},
+        {'_id': 0}
+    )
+    
+    client.close()
+    
+    if session:
         return session['user']
     return None
 
-def delete_session(token: str):
-    """Delete session"""
-    if token in sessions:
-        del sessions[token]
+async def delete_session(token: str):
+    """Delete session from MongoDB"""
+    sessions_col, client = await get_sessions_collection()
+    await sessions_col.delete_one({'token': token})
+    client.close()
 
 async def get_current_user(request: Request) -> Optional[dict]:
     """Get current logged in user from session"""
@@ -102,7 +125,7 @@ async def get_current_user(request: Request) -> Optional[dict]:
     
     if not token:
         return None
-    return get_session(token)
+    return await get_session(token)
 
 async def require_auth(request: Request):
     """Require authentication"""
