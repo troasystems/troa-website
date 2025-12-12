@@ -407,14 +407,10 @@ const Amenities = () => {
                             className="w-full mt-4 flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-300"
                           >
                             <LogIn className="w-5 h-5" />
-                            <span>Login to Book Amenities</span>
+                            <span>Login to Book</span>
                           </button>
                         )
-                      ) : (
-                        <div className="mt-4 px-6 py-3 bg-gray-100 text-gray-600 rounded-lg text-center">
-                          <span className="text-sm">Available for all residents</span>
-                        </div>
-                      )}
+                      ) : null}
                     </div>
                   </>
                 )}
