@@ -43,11 +43,13 @@ git clone https://github.com/your-username/troa.git
 cd troa
 
 # 2. Configure environment variables
-cp backend/.env.docker backend/.env.docker.local
-# Edit backend/.env.docker.local with your API keys (see Configuration section)
+# Option A: If backend/.env exists, edit it with your API keys
+# Option B: If not, create it from the example:
+cp backend/.env.example backend/.env
+# Then edit backend/.env with your API keys (see Configuration section below)
 
 # 3. Start the application
-docker-compose up -d
+docker-compose up -d --build
 
 # 4. View logs (optional)
 docker-compose logs -f
