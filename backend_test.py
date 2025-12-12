@@ -1,18 +1,24 @@
 #!/usr/bin/env python3
 """
 Backend API Testing for TROA (The Retreat Owners Association) Website
-Tests all backend APIs including Committee Members, Amenities, Gallery, and Membership Application endpoints.
+Tests all backend APIs including Committee Members, Amenities, Gallery, Membership Application, Events, and Amenity Booking endpoints.
 """
 
 import requests
 import json
 import os
-from datetime import datetime
+import base64
+from datetime import datetime, timedelta
 from typing import Dict, Any, List
 
 # Get backend URL from environment
 BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://villaportal.preview.emergentagent.com')
 API_BASE_URL = f"{BACKEND_URL}/api"
+
+# Authentication credentials
+BASIC_AUTH_USERNAME = "dogfooding"
+BASIC_AUTH_PASSWORD = "skywalker"
+ADMIN_EMAIL = "troa.systems@gmail.com"
 
 class TROAAPITester:
     def __init__(self):
