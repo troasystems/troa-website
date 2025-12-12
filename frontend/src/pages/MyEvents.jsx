@@ -14,7 +14,13 @@ import {
   CheckCircle,
   XCircle,
   Mail,
-  Hourglass
+  Hourglass,
+  Plus,
+  Minus,
+  Edit,
+  CreditCard,
+  Banknote,
+  X
 } from 'lucide-react';
 
 const API = `${BACKEND_URL}/api`;
@@ -29,7 +35,13 @@ const MyEvents = () => {
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showModifyModal, setShowModifyModal] = useState(false);
   const [selectedRegistration, setSelectedRegistration] = useState(null);
+  
+  // Modify registration state
+  const [modifyRegistrants, setModifyRegistrants] = useState([]);
+  const [modifyPaymentMethod, setModifyPaymentMethod] = useState('online');
+  const [modifying, setModifying] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -79,6 +91,153 @@ const MyEvents = () => {
     }
   };
 
+  const openModifyModal = (reg) => {
+    setSelectedRegistration(reg);
+    setModifyRegistrants(reg.registrants?.map(r => ({ ...r })) || [{ name: '', preferences: {} }]);
+    setModifyPaymentMethod('online');
+    setShowModifyModal(true);
+  };
+
+  const addRegistrant = () => {
+    setModifyRegistrants([...modifyRegistrants, { name: '', preferences: {} }]);
+  };
+
+  const removeRegistrant = (index) => {
+    if (modifyRegistrants.length > 1) {
+      setModifyRegistrants(modifyRegistrants.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateRegistrant = (index, field, value) => {
+    const updated = [...modifyRegistrants];
+    if (field === 'name') {
+      updated[index].name = value;
+    } else {
+      updated[index].preferences = { ...updated[index].preferences, [field]: value };
+    }
+    setModifyRegistrants(updated);
+  };
+
+  const calculateModificationCost = () => {
+    if (!selectedRegistration || !selectedRegistration.event) return { newTotal: 0, difference: 0 };
+    
+    const event = selectedRegistration.event;
+    const oldCount = selectedRegistration.registrants?.length || 0;
+    const newCount = modifyRegistrants.filter(r => r.name.trim()).length;
+    
+    if (event.payment_type === 'per_person') {
+      const newTotal = event.amount * newCount;
+      const oldTotal = selectedRegistration.total_amount || (event.amount * oldCount);
+      return { newTotal, difference: newTotal - oldTotal };
+    }
+    return { newTotal: event.amount, difference: 0 };
+  };
+
+  const handleModifySubmit = async () => {
+    const validRegistrants = modifyRegistrants.filter(r => r.name.trim());
+    if (validRegistrants.length === 0) {
+      toast({
+        title: 'Error',
+        description: 'At least one person must be registered',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setModifying(true);
+    const token = localStorage.getItem('session_token');
+
+    try {
+      const response = await axios.patch(
+        `${API}/events/registrations/${selectedRegistration.id}/modify`,
+        {
+          registrants: validRegistrants,
+          payment_method: modifyPaymentMethod
+        },
+        { headers: { 'X-Session-Token': `Bearer ${token}` } }
+      );
+
+      if (response.data.requires_payment) {
+        if (modifyPaymentMethod === 'offline') {
+          toast({
+            title: 'Modification Submitted',
+            description: 'Your modification is pending admin approval for offline payment.'
+          });
+          setShowModifyModal(false);
+          setSelectedRegistration(null);
+          fetchRegistrations();
+        } else {
+          // Online payment - create order and open Razorpay
+          const orderResponse = await axios.post(
+            `${API}/events/registrations/${selectedRegistration.id}/create-modification-order`,
+            {},
+            { headers: { 'X-Session-Token': `Bearer ${token}` } }
+          );
+
+          const order = orderResponse.data;
+
+          const options = {
+            key: order.key_id,
+            amount: order.amount,
+            currency: order.currency,
+            name: 'TROA Events',
+            description: `Additional payment for ${selectedRegistration.event_name}`,
+            order_id: order.order_id,
+            handler: async function (razorpayResponse) {
+              try {
+                await axios.post(
+                  `${API}/events/registrations/${selectedRegistration.id}/complete-modification-payment?payment_id=${razorpayResponse.razorpay_payment_id}`,
+                  {},
+                  { headers: { 'X-Session-Token': `Bearer ${token}` } }
+                );
+
+                toast({
+                  title: 'Payment Successful!',
+                  description: 'Your registration has been updated.'
+                });
+                setShowModifyModal(false);
+                setSelectedRegistration(null);
+                fetchRegistrations();
+              } catch (err) {
+                toast({
+                  title: 'Payment Verification Failed',
+                  description: 'Please contact support.',
+                  variant: 'destructive'
+                });
+              }
+            },
+            prefill: {
+              name: user?.name || '',
+              email: user?.email || ''
+            },
+            theme: {
+              color: '#9333ea'
+            }
+          };
+
+          const razorpay = new window.Razorpay(options);
+          razorpay.open();
+        }
+      } else {
+        toast({
+          title: 'Success',
+          description: 'Registration updated successfully!'
+        });
+        setShowModifyModal(false);
+        setSelectedRegistration(null);
+        fetchRegistrations();
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.detail || 'Failed to modify registration',
+        variant: 'destructive'
+      });
+    } finally {
+      setModifying(false);
+    }
+  };
+
   const isPastEvent = (eventDate) => {
     if (!eventDate) return false;
     const today = new Date().toISOString().split('T')[0];
@@ -95,7 +254,6 @@ const MyEvents = () => {
   };
 
   const getStatusBadge = (registration) => {
-    // Withdrawn status
     if (registration.status === 'withdrawn') {
       return (
         <span className="inline-flex items-center space-x-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm">
@@ -105,7 +263,6 @@ const MyEvents = () => {
       );
     }
     
-    // Past event - attended
     if (isPastEvent(registration.event?.event_date)) {
       return (
         <span className="inline-flex items-center space-x-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
@@ -115,7 +272,15 @@ const MyEvents = () => {
       );
     }
     
-    // Pending approval (offline payment)
+    if (registration.modification_status === 'pending_modification_approval') {
+      return (
+        <span className="inline-flex items-center space-x-1 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm">
+          <Hourglass className="w-4 h-4" />
+          <span>Modification Pending</span>
+        </span>
+      );
+    }
+    
     if (registration.payment_status === 'pending_approval') {
       return (
         <span className="inline-flex items-center space-x-1 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm">
@@ -125,7 +290,6 @@ const MyEvents = () => {
       );
     }
     
-    // Payment pending (online payment not completed)
     if (registration.payment_status === 'pending') {
       return (
         <span className="inline-flex items-center space-x-1 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm">
@@ -135,7 +299,6 @@ const MyEvents = () => {
       );
     }
     
-    // Confirmed (payment completed)
     return (
       <span className="inline-flex items-center space-x-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
         <Calendar className="w-4 h-4" />
@@ -265,6 +428,16 @@ const MyEvents = () => {
                       </div>
                     </div>
 
+                    {/* Pending Modification Notice */}
+                    {reg.modification_status === 'pending_modification_approval' && (
+                      <div className="mb-4 bg-orange-50 border border-orange-200 rounded-lg p-3">
+                        <p className="text-sm text-orange-800">
+                          <AlertCircle className="w-4 h-4 inline mr-1" />
+                          You have a pending modification awaiting admin approval for offline payment.
+                        </p>
+                      </div>
+                    )}
+
                     {/* Payment & Amount */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div>
@@ -278,15 +451,25 @@ const MyEvents = () => {
                       {/* Actions */}
                       <div className="flex space-x-3">
                         {reg.status === 'registered' && !isPastEvent(reg.event?.event_date) && (
-                          <button
-                            onClick={() => {
-                              setSelectedRegistration(reg);
-                              setShowWithdrawModal(true);
-                            }}
-                            className="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
-                          >
-                            Withdraw
-                          </button>
+                          <>
+                            <button
+                              onClick={() => openModifyModal(reg)}
+                              className="flex items-center space-x-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                            >
+                              <Edit className="w-4 h-4" />
+                              <span>Modify</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedRegistration(reg);
+                                setShowWithdrawModal(true);
+                              }}
+                              className="flex items-center space-x-1 px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+                            >
+                              <XCircle className="w-4 h-4" />
+                              <span>Withdraw</span>
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -359,6 +542,198 @@ const MyEvents = () => {
               >
                 Yes, Withdraw
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modify Registration Modal */}
+      {showModifyModal && selectedRegistration && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white p-6 rounded-t-2xl flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold">Modify Registration</h2>
+                <p className="text-sm opacity-90">{selectedRegistration.event_name}</p>
+              </div>
+              <button onClick={() => setShowModifyModal(false)} className="hover:bg-white/20 p-2 rounded-lg">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Current Info */}
+              <div className="bg-purple-50 rounded-lg p-4">
+                <p className="text-sm text-gray-600">
+                  Current registrants: <strong>{selectedRegistration.registrants?.length || 0}</strong> | 
+                  Current total: <strong>₹{selectedRegistration.total_amount}</strong>
+                </p>
+              </div>
+
+              {/* Registrants List */}
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <label className="text-lg font-semibold text-gray-700">
+                    <Users className="w-5 h-5 inline mr-2" />
+                    Registered People
+                  </label>
+                  <button
+                    type="button"
+                    onClick={addRegistrant}
+                    className="flex items-center space-x-1 text-purple-600 text-sm font-medium hover:text-purple-700"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add Person</span>
+                  </button>
+                </div>
+
+                {modifyRegistrants.map((registrant, index) => (
+                  <div key={index} className="border rounded-lg p-4 mb-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-medium text-gray-700">Person {index + 1}</span>
+                      {modifyRegistrants.length > 1 && (
+                        <button
+                          onClick={() => removeRegistrant(index)}
+                          className="text-red-600 hover:text-red-700 flex items-center space-x-1"
+                        >
+                          <Minus className="w-4 h-4" />
+                          <span className="text-sm">Remove</span>
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      value={registrant.name}
+                      onChange={(e) => updateRegistrant(index, 'name', e.target.value)}
+                      placeholder="Full Name"
+                      className="w-full px-4 py-2 border rounded-lg"
+                    />
+                    
+                    {/* Preferences */}
+                    {selectedRegistration.event?.preferences?.length > 0 && (
+                      <div className="mt-2 space-y-2">
+                        {selectedRegistration.event.preferences.map((pref, prefIndex) => (
+                          <div key={prefIndex}>
+                            <label className="text-sm text-gray-600">{pref.name}</label>
+                            <select
+                              value={registrant.preferences?.[pref.name] || ''}
+                              onChange={(e) => updateRegistrant(index, pref.name, e.target.value)}
+                              className="w-full px-3 py-2 border rounded-lg text-sm"
+                            >
+                              <option value="">Select {pref.name}</option>
+                              {pref.options?.map((opt, optIndex) => (
+                                <option key={optIndex} value={opt}>{opt}</option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Cost Calculation */}
+              {(() => {
+                const { newTotal, difference } = calculateModificationCost();
+                const hasAdditionalCost = difference > 0;
+                
+                return (
+                  <>
+                    <div className="bg-gray-100 rounded-lg p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-gray-600">New Total</span>
+                        <span className="text-xl font-bold text-purple-600">₹{newTotal}</span>
+                      </div>
+                      {difference !== 0 && (
+                        <div className={`flex justify-between items-center ${difference > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                          <span>{difference > 0 ? 'Additional Payment' : 'Refund Amount'}</span>
+                          <span className="font-semibold">₹{Math.abs(difference)}</span>
+                        </div>
+                      )}
+                      {difference < 0 && (
+                        <p className="text-xs text-gray-500 mt-2">
+                          * Refunds will be processed manually. Contact: {REFUND_EMAILS}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Payment Method (only if adding people) */}
+                    {hasAdditionalCost && (
+                      <div>
+                        <label className="text-lg font-semibold text-gray-700 mb-3 block">
+                          <CreditCard className="w-5 h-5 inline mr-2" />
+                          Payment Method for Additional Amount
+                        </label>
+                        <div className="grid grid-cols-2 gap-4">
+                          <button
+                            type="button"
+                            onClick={() => setModifyPaymentMethod('online')}
+                            className={`p-4 border-2 rounded-lg text-left transition-all ${
+                              modifyPaymentMethod === 'online'
+                                ? 'border-purple-500 bg-purple-50'
+                                : 'border-gray-200 hover:border-purple-300'
+                            }`}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <CreditCard className={`w-6 h-6 ${modifyPaymentMethod === 'online' ? 'text-purple-600' : 'text-gray-400'}`} />
+                              <div>
+                                <p className="font-semibold text-gray-900">Online</p>
+                                <p className="text-xs text-gray-500">Razorpay</p>
+                              </div>
+                            </div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setModifyPaymentMethod('offline')}
+                            className={`p-4 border-2 rounded-lg text-left transition-all ${
+                              modifyPaymentMethod === 'offline'
+                                ? 'border-purple-500 bg-purple-50'
+                                : 'border-gray-200 hover:border-purple-300'
+                            }`}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <Banknote className={`w-6 h-6 ${modifyPaymentMethod === 'offline' ? 'text-purple-600' : 'text-gray-400'}`} />
+                              <div>
+                                <p className="font-semibold text-gray-900">Offline</p>
+                                <p className="text-xs text-gray-500">Cash/Bank</p>
+                              </div>
+                            </div>
+                          </button>
+                        </div>
+                        
+                        {modifyPaymentMethod === 'offline' && (
+                          <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                            <div className="flex items-start space-x-2">
+                              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                              <p className="text-sm text-amber-800">
+                                Offline payments require admin approval before your modification is confirmed.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+
+              {/* Actions */}
+              <div className="flex space-x-4 pt-4 border-t">
+                <button
+                  onClick={() => setShowModifyModal(false)}
+                  className="flex-1 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleModifySubmit}
+                  disabled={modifying}
+                  className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:shadow-lg disabled:opacity-50"
+                >
+                  {modifying ? 'Processing...' : calculateModificationCost().difference > 0 ? 'Proceed to Pay' : 'Update Registration'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
