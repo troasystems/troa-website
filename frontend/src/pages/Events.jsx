@@ -867,6 +867,7 @@ const Events = () => {
                       <div>
                         <p className="font-semibold text-gray-900">Online Payment</p>
                         <p className="text-xs text-gray-500">Pay via Razorpay (Cards, UPI, etc.)</p>
+                        <p className="text-xs text-orange-600 mt-1">2% surcharge for online payments</p>
                       </div>
                     </div>
                   </button>
