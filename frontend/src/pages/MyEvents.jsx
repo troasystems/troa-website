@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { useToast, Toaster } from '../hooks/use-toast';
+import { useToast } from '../hooks/use-toast';
+import { Toaster } from '../components/ui/toaster';
 import { getImageUrl, BACKEND_URL } from '../utils/api';
 import {
   Calendar,
