@@ -345,6 +345,18 @@ backend:
           agent: "testing"
           comment: "✅ Amenity Booking fix implemented successfully. POST /api/bookings now accepts 'additional_guests' as a list of names instead of 'additional_users' as emails. Tested with 3 guest names - booking created successfully. Model updated in models.py to use additional_guests field. Backward compatibility maintained."
 
+  - task: "Events Registration Modification Feature"
+    implemented: true
+    working: true
+    file: "/app/backend/events.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Events Registration Modification Feature testing completed successfully. All 5 new endpoints working perfectly: 1) GET /api/events/my/status - Returns user's registration status mapping event_id to registration_id 2) PATCH /api/events/registrations/{id}/modify - Correctly handles adding people (requires payment for per_person events), removing people (updates directly), supports both online and offline payment methods 3) POST /api/events/registrations/{id}/create-modification-order - Creates Razorpay payment orders for additional payments 4) POST /api/events/registrations/{id}/complete-modification-payment - Completes online modification payments 5) POST /api/events/registrations/{id}/approve-modification - Admin approval for offline modification payments. All endpoints require proper authentication, handle edge cases correctly, and maintain data integrity. Payment calculations accurate (₹50 per additional person for per_person events). Feature is production-ready."
+
 frontend:
   - task: "Events Feature - Frontend Events Page UI"
     implemented: true
