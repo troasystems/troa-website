@@ -667,6 +667,68 @@ class TROAAPITester:
         except Exception as e:
             self.test_results['event_registration']['withdraw'] = False
             self.log_error(f"/events/registrations/{self.created_registration_id}/withdraw", "POST", f"Exception: {str(e)}")
+
+    def test_edge_cases(self):
+        """Test edge cases and error scenarios"""
+        print("\n🧪 Testing Edge Cases and Error Scenarios...")
+        
+        # Test creating event with past date (should fail)
+        try:
+            past_date = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+            past_event = {
+                "name": "Past Event Test",
+                "description": "This should fail",
+                "image": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800",
+                "event_date": past_date,
+                "event_time": "18:00",
+                "amount": 25.0,
+                "payment_type": "per_person"
+            }
+            
+            response = requests.post(f"{self.base_url}/events", 
+                                   json=past_event, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 400:
+                self.log_success("/events", "POST", "- Correctly rejected event with past date")
+            else:
+                self.log_error("/events", "POST", f"Should reject past date but got status: {response.status_code}")
+                
+        except Exception as e:
+            self.log_error("/events", "POST", f"Exception testing past date: {str(e)}")
+
+        # Test registering for non-existent event (should fail)
+        try:
+            fake_event_id = "non-existent-event-123"
+            registration_data = {
+                "event_id": fake_event_id,
+                "registrants": [{"name": "Test User", "preferences": {}}],
+                "payment_method": "online"
+            }
+            
+            response = requests.post(f"{self.base_url}/events/{fake_event_id}/register", 
+                                   json=registration_data, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 404:
+                self.log_success(f"/events/{fake_event_id}/register", "POST", "- Correctly returned 404 for non-existent event")
+            else:
+                self.log_error(f"/events/{fake_event_id}/register", "POST", f"Should return 404 but got status: {response.status_code}")
+                
+        except Exception as e:
+            self.log_error(f"/events/{fake_event_id}/register", "POST", f"Exception: {str(e)}")
+
+        # Test unauthenticated access to protected endpoints
+        try:
+            response = requests.get(f"{self.base_url}/events/my/registrations", timeout=10)
+            if response.status_code == 401:
+                self.log_success("/events/my/registrations", "GET", "- Correctly requires authentication")
+            else:
+                self.log_error("/events/my/registrations", "GET", f"Should require auth but got status: {response.status_code}")
+        except Exception as e:
+            self.log_error("/events/my/registrations", "GET", f"Exception: {str(e)}")
             
     def run_all_tests(self):
         """Run all API tests"""
