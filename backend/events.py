@@ -313,16 +313,27 @@ async def get_event_registrations(event_id: str, request: Request):
 
 @events_router.get("/admin/pending-approvals")
 async def get_pending_approvals(request: Request):
-    """Get all registrations pending admin approval (for offline payments)"""
+    """Get all registrations pending admin approval (for offline payments and modifications)"""
     await require_manager_or_admin(request)
     
     db, client = await get_db()
     try:
+        # Get pending initial registrations AND pending modifications
         pending = await db.event_registrations.find(
             {
-                "payment_method": "offline",
-                "payment_status": "pending_approval",
-                "status": "registered"
+                "$or": [
+                    # Initial offline registrations pending approval
+                    {
+                        "payment_method": "offline",
+                        "payment_status": "pending_approval",
+                        "status": "registered"
+                    },
+                    # Modifications pending approval
+                    {
+                        "modification_status": "pending_modification_approval",
+                        "status": "registered"
+                    }
+                ]
             },
             {"_id": 0}
         ).sort("created_at", 1).to_list(100)
@@ -354,19 +365,38 @@ async def approve_offline_payment(registration_id: str, request: Request, approv
         if not registration:
             raise HTTPException(status_code=404, detail="Registration not found or not pending approval")
         
+        # Create audit log entry
+        audit_entry = {
+            "action": "initial_registration_approved",
+            "timestamp": datetime.utcnow().isoformat(),
+            "by_name": admin.get('name', admin['email']),
+            "by_email": admin['email'],
+            "details": f"Initial registration approved. Total: ₹{registration.get('total_amount', 0)}",
+            "registrants_count": len(registration.get('registrants', []))
+        }
+        
         await db.event_registrations.update_one(
             {"id": registration_id},
-            {"$set": {
-                "payment_status": "completed",
-                "admin_approved": True,
-                "approval_note": approval_note or f"Approved by {admin['email']}",
-                "updated_at": datetime.utcnow()
-            }}
+            {
+                "$set": {
+                    "payment_status": "completed",
+                    "admin_approved": True,
+                    "approved_by_name": admin.get('name', admin['email']),
+                    "approved_by_email": admin['email'],
+                    "approval_note": approval_note or f"Approved by {admin.get('name', admin['email'])}",
+                    "updated_at": datetime.utcnow()
+                },
+                "$push": {
+                    "audit_log": audit_entry
+                }
+            }
         )
         
         logger.info(f"Offline payment approved: {registration_id} by {admin['email']}")
         
         return {"message": "Registration approved successfully"}
+    finally:
+        client.close()
     finally:
         client.close()
 
