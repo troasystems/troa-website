@@ -244,19 +244,24 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
               <Clock className="w-5 h-5 text-orange-600" />
               <span>Available Time Slots</span>
             </label>
+            <p className="text-xs text-gray-500 mb-2">Note: Bookings must be made at least 1 hour in advance</p>
             <div className="grid grid-cols-4 gap-2 max-h-64 overflow-y-auto p-2 border rounded-lg">
               {timeSlots.map((time) => {
                 const available = isSlotAvailable(time);
+                const tooSoon = isSlotTooSoon(time);
                 return (
                   <button
                     key={time}
                     onClick={() => available && setSelectedTime(time)}
                     disabled={!available}
+                    title={tooSoon ? 'Must book at least 1 hour in advance' : !available ? 'Already booked' : 'Available'}
                     className={`py-2 px-3 rounded-lg font-medium text-sm transition-all ${
                       selectedTime === time
                         ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
                         : available
                         ? 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
+                        : tooSoon
+                        ? 'bg-yellow-50 text-yellow-600 cursor-not-allowed border border-yellow-200'
                         : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     }`}
                   >
