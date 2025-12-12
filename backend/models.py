@@ -100,7 +100,7 @@ class AmenityBooking(BaseModel):
     start_time: str  # HH:MM format (24-hour)
     end_time: str  # HH:MM format (24-hour)
     duration_minutes: int  # 30 or 60
-    additional_users: list = []  # List of email addresses (1-3 users)
+    additional_guests: list = []  # List of guest names (1-3 users)
     status: str = "confirmed"  # confirmed, cancelled
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -111,7 +111,7 @@ class AmenityBookingCreate(BaseModel):
     booking_date: str  # YYYY-MM-DD
     start_time: str  # HH:MM (24-hour)
     duration_minutes: int  # 30 or 60 minutes
-    additional_users: Optional[list] = []  # Optional list of email addresses
+    additional_guests: Optional[list] = []  # Optional list of guest names
 
 class Feedback(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -179,8 +179,11 @@ class EventRegistration(BaseModel):
     user_name: str
     registrants: list = []  # List of EventRegistrant dicts
     total_amount: float
-    payment_status: str = "pending"  # pending, completed
+    payment_method: str = "online"  # "online" (Razorpay) or "offline" (cash/bank transfer)
+    payment_status: str = "pending"  # pending, completed, pending_approval
     payment_id: Optional[str] = None
+    admin_approved: bool = False  # For offline payments, admin must approve
+    approval_note: Optional[str] = None  # Admin can add a note when approving
     status: str = "registered"  # registered, withdrawn
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -188,3 +191,4 @@ class EventRegistration(BaseModel):
 class EventRegistrationCreate(BaseModel):
     event_id: str
     registrants: list  # List of registrant objects with name and preferences
+    payment_method: str = "online"  # "online" or "offline"
