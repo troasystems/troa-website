@@ -417,13 +417,30 @@ async def reject_offline_payment(registration_id: str, request: Request, rejecti
         if not registration:
             raise HTTPException(status_code=404, detail="Registration not found or not pending approval")
         
+        # Create audit log entry
+        audit_entry = {
+            "action": "initial_registration_rejected",
+            "timestamp": datetime.utcnow().isoformat(),
+            "by_name": admin.get('name', admin['email']),
+            "by_email": admin['email'],
+            "details": rejection_reason or "No reason provided",
+            "registrants_count": len(registration.get('registrants', []))
+        }
+        
         await db.event_registrations.update_one(
             {"id": registration_id},
-            {"$set": {
-                "status": "withdrawn",
-                "approval_note": rejection_reason or f"Rejected by {admin['email']}",
-                "updated_at": datetime.utcnow()
-            }}
+            {
+                "$set": {
+                    "status": "withdrawn",
+                    "rejected_by_name": admin.get('name', admin['email']),
+                    "rejected_by_email": admin['email'],
+                    "approval_note": rejection_reason or f"Rejected by {admin.get('name', admin['email'])}",
+                    "updated_at": datetime.utcnow()
+                },
+                "$push": {
+                    "audit_log": audit_entry
+                }
+            }
         )
         
         logger.info(f"Offline payment rejected: {registration_id} by {admin['email']}")
