@@ -262,7 +262,7 @@ const Amenities = () => {
                       className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
                     />
                     {newAmenityForm.image && (
-                      <img src={newAmenityForm.image} alt="Preview" className="mt-2 w-full h-32 object-cover rounded-lg" />
+                      <img src={getImageUrl(newAmenityForm.image)} alt="Preview" className="mt-2 w-full h-32 object-cover rounded-lg" />
                     )}
                   </div>
                   <div className="text-center text-sm text-gray-500">OR</div>
@@ -327,7 +327,7 @@ const Amenities = () => {
                           className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
                         />
                         {editForm.image && (
-                          <img src={editForm.image} alt="Preview" className="mt-2 w-full h-32 object-cover rounded-lg" />
+                          <img src={getImageUrl(editForm.image)} alt="Preview" className="mt-2 w-full h-32 object-cover rounded-lg" />
                         )}
                       </div>
                       <div className="text-center text-xs text-gray-500">OR</div>
