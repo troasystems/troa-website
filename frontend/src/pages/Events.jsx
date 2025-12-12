@@ -484,63 +484,68 @@ const Events = () => {
                   </div>
 
                   {/* Event Details */}
-                  <div className="p-6">
-                    <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
-                      {event.name}
-                    </h3>
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{event.description}</p>
-                    
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center text-gray-600">
-                        <Calendar className="w-4 h-4 mr-2 text-purple-600" />
-                        <span className="text-sm">{formatDate(event.event_date)}</span>
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <Clock className="w-4 h-4 mr-2 text-pink-600" />
-                        <span className="text-sm">{event.event_time}</span>
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <IndianRupee className="w-4 h-4 mr-2 text-orange-600" />
-                        <span className="text-sm">
-                          ₹{event.amount} {event.payment_type === 'per_person' ? 'per person' : 'per villa'}
-                        </span>
+                  <div className="p-6 flex flex-col flex-grow">
+                    <div className="flex-grow">
+                      <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+                        {event.name}
+                      </h3>
+                      <p className="text-gray-600 text-sm mb-4 line-clamp-2">{event.description}</p>
+                      
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center text-gray-600">
+                          <Calendar className="w-4 h-4 mr-2 text-purple-600" />
+                          <span className="text-sm">{formatDate(event.event_date)}</span>
+                        </div>
+                        <div className="flex items-center text-gray-600">
+                          <Clock className="w-4 h-4 mr-2 text-pink-600" />
+                          <span className="text-sm">{event.event_time}</span>
+                        </div>
+                        <div className="flex items-center text-gray-600">
+                          <IndianRupee className="w-4 h-4 mr-2 text-orange-600" />
+                          <span className="text-sm">
+                            ₹{event.amount} {event.payment_type === 'per_person' ? 'per person' : 'per villa'}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
-                    {!isPastEvent(event.event_date) && (
-                      <>
-                        {user && userRegistrations[event.id] ? (
-                          // User is already registered
-                          <div className="text-center">
-                            <div className="flex items-center justify-center space-x-2 text-green-600 mb-2">
-                              <CheckCircle className="w-5 h-5" />
-                              <span className="font-semibold">You&apos;re already registered!</span>
+                    {/* Button area - always at bottom */}
+                    <div className="mt-auto pt-4">
+                      {!isPastEvent(event.event_date) && (
+                        <>
+                          {user && userRegistrations[event.id] ? (
+                            // User is already registered
+                            <div className="text-center">
+                              <div className="flex items-center justify-center space-x-2 text-green-600 mb-2">
+                                <CheckCircle className="w-5 h-5" />
+                                <span className="font-semibold">You&apos;re already registered!</span>
+                              </div>
+                              <button
+                                onClick={() => navigate('/my-events')}
+                                className="w-full py-3 border-2 border-purple-600 text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-all"
+                              >
+                                Modify Registration →
+                              </button>
                             </div>
+                          ) : (
                             <button
-                              onClick={() => navigate('/my-events')}
-                              className="w-full py-3 border-2 border-purple-600 text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-all"
+                              onClick={() => {
+                                if (!user) {
+                                  navigate('/login-info');
+                                  return;
+                                }
+                                setSelectedEvent(event);
+                                resetRegistrationForm();
+                                setShowRegisterModal(true);
+                              }}
+                              className="w-full py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all"
                             >
-                              Modify Registration →
+                              {user ? 'Register Now' : 'Login to Register'}
                             </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              if (!user) {
-                                navigate('/login-info');
-                                return;
-                              }
-                              setSelectedEvent(event);
-                              resetRegistrationForm();
-                              setShowRegisterModal(true);
-                            }}
-                            className="w-full py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all"
-                          >
-                            {user ? 'Register Now' : 'Login to Register'}
-                          </button>
-                        )}
-                      </>
-                    )}
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
