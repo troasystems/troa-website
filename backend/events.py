@@ -463,3 +463,258 @@ async def create_event_payment_order(event_id: str, registration_id: str, reques
         
     finally:
         client.close()
+
+
+# ============ USER REGISTRATION STATUS & MODIFICATION ============
+
+@events_router.get("/my/status")
+async def get_my_registration_status(request: Request):
+    """Get user's registration status for all events (to show 'already registered' on events page)"""
+    user = await require_auth(request)
+    
+    db, client = await get_db()
+    try:
+        # Get all active registrations for the user
+        registrations = await db.event_registrations.find(
+            {"user_email": user["email"], "status": "registered"},
+            {"_id": 0, "event_id": 1, "id": 1}
+        ).to_list(100)
+        
+        # Return a dict mapping event_id to registration_id
+        status = {reg["event_id"]: reg["id"] for reg in registrations}
+        return status
+    finally:
+        client.close()
+
+
+@events_router.patch("/registrations/{registration_id}/modify")
+async def modify_registration(registration_id: str, request: Request):
+    """Modify an existing registration (add/remove registrants)"""
+    user = await require_auth(request)
+    
+    db, client = await get_db()
+    try:
+        # Get current registration
+        registration = await db.event_registrations.find_one({
+            "id": registration_id,
+            "user_email": user["email"],
+            "status": "registered"
+        })
+        
+        if not registration:
+            raise HTTPException(status_code=404, detail="Registration not found")
+        
+        # Get event details
+        event = await db.events.find_one({"id": registration["event_id"]}, {"_id": 0})
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        # Check if event is in the past
+        today = datetime.now().strftime('%Y-%m-%d')
+        if event["event_date"] < today:
+            raise HTTPException(status_code=400, detail="Cannot modify registrations for past events")
+        
+        # Parse request body
+        body = await request.json()
+        new_registrants = body.get("registrants", [])
+        payment_method = body.get("payment_method", "online")
+        
+        if len(new_registrants) == 0:
+            raise HTTPException(status_code=400, detail="At least one registrant is required")
+        
+        # Calculate new total and difference
+        old_count = len(registration.get("registrants", []))
+        new_count = len(new_registrants)
+        
+        if event["payment_type"] == "per_person":
+            new_total = event["amount"] * new_count
+            old_total = registration.get("total_amount", event["amount"] * old_count)
+            difference = new_total - old_total
+        else:  # per_villa - no additional payment needed
+            new_total = event["amount"]
+            difference = 0
+        
+        # If adding people (positive difference), handle payment
+        if difference > 0:
+            # Determine payment status for the modification
+            if payment_method == "offline":
+                modification_status = "pending_modification_approval"
+            else:
+                modification_status = "pending_modification_payment"
+            
+            # Store pending modification
+            await db.event_registrations.update_one(
+                {"id": registration_id},
+                {"$set": {
+                    "pending_registrants": new_registrants,
+                    "pending_total": new_total,
+                    "additional_amount": difference,
+                    "modification_payment_method": payment_method,
+                    "modification_status": modification_status,
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+            
+            return {
+                "message": "Modification pending payment",
+                "additional_amount": difference,
+                "payment_method": payment_method,
+                "registration_id": registration_id,
+                "requires_payment": True
+            }
+        else:
+            # Removing people or same count - update directly
+            await db.event_registrations.update_one(
+                {"id": registration_id},
+                {"$set": {
+                    "registrants": new_registrants,
+                    "total_amount": new_total,
+                    "updated_at": datetime.utcnow()
+                },
+                "$unset": {
+                    "pending_registrants": "",
+                    "pending_total": "",
+                    "additional_amount": "",
+                    "modification_payment_method": "",
+                    "modification_status": ""
+                }}
+            )
+            
+            return {
+                "message": "Registration updated successfully",
+                "requires_payment": False
+            }
+    finally:
+        client.close()
+
+
+@events_router.post("/registrations/{registration_id}/complete-modification-payment")
+async def complete_modification_payment(registration_id: str, payment_id: str, request: Request):
+    """Complete payment for registration modification (online Razorpay)"""
+    user = await require_auth(request)
+    
+    db, client = await get_db()
+    try:
+        registration = await db.event_registrations.find_one({
+            "id": registration_id,
+            "user_email": user["email"],
+            "modification_status": "pending_modification_payment"
+        })
+        
+        if not registration:
+            raise HTTPException(status_code=404, detail="No pending modification found")
+        
+        # Apply the pending modification
+        await db.event_registrations.update_one(
+            {"id": registration_id},
+            {"$set": {
+                "registrants": registration["pending_registrants"],
+                "total_amount": registration["pending_total"],
+                "modification_payment_id": payment_id,
+                "updated_at": datetime.utcnow()
+            },
+            "$unset": {
+                "pending_registrants": "",
+                "pending_total": "",
+                "additional_amount": "",
+                "modification_payment_method": "",
+                "modification_status": ""
+            }}
+        )
+        
+        return {"message": "Modification payment completed successfully"}
+    finally:
+        client.close()
+
+
+@events_router.post("/registrations/{registration_id}/create-modification-order")
+async def create_modification_payment_order(registration_id: str, request: Request):
+    """Create Razorpay order for registration modification"""
+    import razorpay
+    import uuid as uuid_lib
+    
+    user = await require_auth(request)
+    
+    RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID')
+    RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET')
+    
+    if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
+        raise HTTPException(status_code=500, detail="Payment gateway not configured")
+    
+    razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+    
+    db, client = await get_db()
+    try:
+        registration = await db.event_registrations.find_one({
+            "id": registration_id,
+            "user_email": user["email"],
+            "modification_status": "pending_modification_payment"
+        })
+        
+        if not registration:
+            raise HTTPException(status_code=404, detail="No pending modification found")
+        
+        amount_in_paise = int(registration["additional_amount"] * 100)
+        
+        order_data = {
+            'amount': amount_in_paise,
+            'currency': 'INR',
+            'receipt': f'mod_{uuid_lib.uuid4().hex[:10]}',
+            'notes': {
+                'registration_id': registration_id,
+                'type': 'modification',
+                'user_email': user["email"]
+            }
+        }
+        
+        order = razorpay_client.order.create(data=order_data)
+        
+        return {
+            'order_id': order['id'],
+            'amount': amount_in_paise,
+            'currency': 'INR',
+            'key_id': RAZORPAY_KEY_ID,
+            'registration_id': registration_id
+        }
+    finally:
+        client.close()
+
+
+@events_router.post("/registrations/{registration_id}/approve-modification")
+async def approve_modification(registration_id: str, request: Request):
+    """Approve offline payment for registration modification (admin/manager only)"""
+    admin = await require_manager_or_admin(request)
+    
+    db, client = await get_db()
+    try:
+        registration = await db.event_registrations.find_one({
+            "id": registration_id,
+            "modification_status": "pending_modification_approval"
+        })
+        
+        if not registration:
+            raise HTTPException(status_code=404, detail="No pending modification found")
+        
+        # Apply the pending modification
+        await db.event_registrations.update_one(
+            {"id": registration_id},
+            {"$set": {
+                "registrants": registration["pending_registrants"],
+                "total_amount": registration["pending_total"],
+                "approval_note": f"Modification approved by {admin['email']}",
+                "updated_at": datetime.utcnow()
+            },
+            "$unset": {
+                "pending_registrants": "",
+                "pending_total": "",
+                "additional_amount": "",
+                "modification_payment_method": "",
+                "modification_status": ""
+            }}
+        )
+        
+        logger.info(f"Modification approved: {registration_id} by {admin['email']}")
+        return {"message": "Modification approved successfully"}
+    finally:
+        client.close()
+
