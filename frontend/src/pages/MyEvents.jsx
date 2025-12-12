@@ -475,9 +475,17 @@ const MyEvents = () => {
                     </div>
 
                     {/* Approval Note */}
-                    {reg.approval_note && (
+                    {(reg.approved_by_name || reg.approval_note) && (
                       <div className="mt-4 bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
-                        <strong>Note:</strong> {reg.approval_note}
+                        {reg.approved_by_name && (
+                          <p className="font-medium text-green-700 mb-1">
+                            <CheckCircle className="w-4 h-4 inline mr-1" />
+                            Approved by: {reg.approved_by_name}
+                          </p>
+                        )}
+                        {reg.approval_note && !reg.approval_note.includes('Approved by') && (
+                          <p><strong>Note:</strong> {reg.approval_note}</p>
+                        )}
                       </div>
                     )}
                   </div>
