@@ -485,12 +485,21 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Events Feature - Backend CRUD API"
+    - "Events Feature - User Registration with Online/Offline Payment"
+    - "Events Feature - Admin Event Creation UI"
+    - "Events Feature - Event Registration UI"
+    - "Events Feature - My Events Page"
+    - "Events Feature - Admin Approval for Offline Payments"
+    - "Amenity Booking - Additional Guests (names instead of emails)"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
+    - agent: "main"
+      message: "Implemented comprehensive Events feature: 1) Backend - Complete CRUD for events in /app/backend/events.py with admin-only create/update/delete, user registration with online (Razorpay) or offline payment options, admin approval endpoints for offline payments. 2) Frontend - Events.jsx page with event grid, admin create/edit modal, user registration modal with payment method selection. MyEvents.jsx for viewing registrations with status badges. EventsManagement.jsx for admin portal with pending approvals view. 3) Updated models.py - EventRegistration now has payment_method (online/offline), admin_approved, approval_note fields. AmenityBooking model changed from additional_users to additional_guests. 4) Updated App.js with /events and /my-events routes. 5) Updated Navbar with Events link. Ready for testing."
     - agent: "testing"
       message: "Comprehensive backend API testing completed successfully. All 8 endpoints (4 GET, 4 POST) are working correctly. Created backend_test.py and backend_error_test.py for thorough testing. All APIs return proper responses, handle errors correctly (404 for invalid endpoints, 422 for validation errors), and maintain data integrity. Database contains proper seed data: 10 committee members, 7 amenities, 9 gallery images, and 1 membership application. Error handling and data validation working as expected."
     - agent: "testing"
