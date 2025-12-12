@@ -9,6 +9,17 @@ import { Toaster } from '../components/ui/toaster';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+// Helper function to get full image URL
+const getImageUrl = (imagePath) => {
+  if (!imagePath) return '';
+  // If already a full URL, return as-is
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+  // If relative path, prepend backend URL
+  return `${BACKEND_URL}${imagePath}`;
+};
+
 const Committee = () => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
