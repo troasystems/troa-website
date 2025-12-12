@@ -497,9 +497,9 @@ async def create_booking(booking: AmenityBookingCreate, request: Request):
         if booking.duration_minutes not in [30, 60]:
             raise HTTPException(status_code=400, detail="Duration must be 30 or 60 minutes")
         
-        # Validate additional users count
-        if len(booking.additional_users) > 3:
-            raise HTTPException(status_code=400, detail="Maximum 3 additional users allowed")
+        # Validate additional guests count
+        if len(booking.additional_guests) > 3:
+            raise HTTPException(status_code=400, detail="Maximum 3 additional guests allowed")
         
         # Calculate end time
         from datetime import datetime, timedelta
@@ -537,7 +537,7 @@ async def create_booking(booking: AmenityBookingCreate, request: Request):
             start_time=booking.start_time,
             end_time=end_time,
             duration_minutes=booking.duration_minutes,
-            additional_users=booking.additional_users or []
+            additional_guests=booking.additional_guests or []
         )
         
         await db.bookings.insert_one(booking_obj.dict())
