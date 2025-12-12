@@ -553,51 +553,72 @@ class TROAAPITester:
         """Test Payment Integration endpoints"""
         print("\n🧪 Testing Payment Integration API...")
         
-        if not self.created_event_id or not self.created_registration_id:
-            self.log_error("Payment Integration", "SETUP", "Missing event or registration for testing")
+        if not self.created_event_id:
+            self.log_error("Payment Integration", "SETUP", "Missing event for testing")
             return
 
-        # Test POST /api/events/{event_id}/create-payment-order
+        # Create a new registration with online payment for testing payment order
         try:
-            response = requests.post(f"{self.base_url}/events/{self.created_event_id}/create-payment-order?registration_id={self.created_registration_id}", 
+            online_registration_data = {
+                "event_id": self.created_event_id,
+                "registrants": [
+                    {"name": "Payment Test User", "preferences": {"Food Preference": "Vegetarian"}}
+                ],
+                "payment_method": "online"  # Online payment for testing payment order
+            }
+            
+            response = requests.post(f"{self.base_url}/events/{self.created_event_id}/register", 
+                                   json=online_registration_data, 
                                    headers=self.auth_headers,
                                    timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
-                if 'order_id' in data and 'amount' in data:
-                    self.test_results['payment_integration']['create_order'] = True
-                    self.log_success(f"/events/{self.created_event_id}/create-payment-order", "POST", f"- Created payment order: {data['order_id']}")
+                online_registration_id = data['id']
+                
+                # Test POST /api/events/{event_id}/create-payment-order
+                response = requests.post(f"{self.base_url}/events/{self.created_event_id}/create-payment-order?registration_id={online_registration_id}", 
+                                       headers=self.auth_headers,
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if 'order_id' in data and 'amount' in data:
+                        self.test_results['payment_integration']['create_order'] = True
+                        self.log_success(f"/events/{self.created_event_id}/create-payment-order", "POST", f"- Created payment order: {data['order_id']}")
+                    else:
+                        self.test_results['payment_integration']['create_order'] = False
+                        self.log_error(f"/events/{self.created_event_id}/create-payment-order", "POST", "Invalid response structure")
                 else:
                     self.test_results['payment_integration']['create_order'] = False
-                    self.log_error(f"/events/{self.created_event_id}/create-payment-order", "POST", "Invalid response structure")
-            else:
-                self.test_results['payment_integration']['create_order'] = False
-                self.log_error(f"/events/{self.created_event_id}/create-payment-order", "POST", f"Status code: {response.status_code}, Response: {response.text}")
-        except Exception as e:
-            self.test_results['payment_integration']['create_order'] = False
-            self.log_error(f"/events/{self.created_event_id}/create-payment-order", "POST", f"Exception: {str(e)}")
-
-        # Test POST /api/events/registrations/{id}/complete-payment
-        try:
-            response = requests.post(f"{self.base_url}/events/registrations/{self.created_registration_id}/complete-payment?payment_id=test_payment_123", 
-                                   headers=self.auth_headers,
-                                   timeout=10)
-            
-            if response.status_code == 200:
-                data = response.json()
-                if 'message' in data:
-                    self.test_results['payment_integration']['complete_payment'] = True
-                    self.log_success(f"/events/registrations/{self.created_registration_id}/complete-payment", "POST", "- Completed payment")
+                    self.log_error(f"/events/{self.created_event_id}/create-payment-order", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+                
+                # Test POST /api/events/registrations/{id}/complete-payment
+                response = requests.post(f"{self.base_url}/events/registrations/{online_registration_id}/complete-payment?payment_id=test_payment_456", 
+                                       headers=self.auth_headers,
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if 'message' in data:
+                        self.test_results['payment_integration']['complete_payment'] = True
+                        self.log_success(f"/events/registrations/{online_registration_id}/complete-payment", "POST", "- Completed payment")
+                    else:
+                        self.test_results['payment_integration']['complete_payment'] = False
+                        self.log_error(f"/events/registrations/{online_registration_id}/complete-payment", "POST", "Invalid response structure")
                 else:
                     self.test_results['payment_integration']['complete_payment'] = False
-                    self.log_error(f"/events/registrations/{self.created_registration_id}/complete-payment", "POST", "Invalid response structure")
+                    self.log_error(f"/events/registrations/{online_registration_id}/complete-payment", "POST", f"Status code: {response.status_code}")
+                    
             else:
+                self.test_results['payment_integration']['create_order'] = False
                 self.test_results['payment_integration']['complete_payment'] = False
-                self.log_error(f"/events/registrations/{self.created_registration_id}/complete-payment", "POST", f"Status code: {response.status_code}")
+                self.log_error("Payment Integration", "SETUP", f"Failed to create online registration: {response.status_code}")
+                
         except Exception as e:
+            self.test_results['payment_integration']['create_order'] = False
             self.test_results['payment_integration']['complete_payment'] = False
-            self.log_error(f"/events/registrations/{self.created_registration_id}/complete-payment", "POST", f"Exception: {str(e)}")
+            self.log_error("Payment Integration", "SETUP", f"Exception: {str(e)}")
 
     def test_amenity_booking_fix(self):
         """Test Amenity Booking with additional_guests (names instead of emails)"""
