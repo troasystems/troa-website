@@ -165,13 +165,21 @@ const Navbar = () => {
                 key={item.path}
                 to={item.path}
                 onClick={() => setIsOpen(false)}
-                className={`block px-4 py-3 rounded-lg font-medium transition-all duration-300 ${
+                className={`relative block px-4 py-3 rounded-lg font-medium transition-all duration-300 ${
                   isActive(item.path)
                     ? 'bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white'
                     : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-100 hover:to-pink-100'
                 }`}
               >
-                {item.name}
+                <span className="flex items-center justify-between">
+                  {item.name}
+                  {/* Book Now bubble for Amenities when logged in */}
+                  {item.name === 'Amenities' && isAuthenticated && (
+                    <span className="px-2 py-0.5 text-[10px] font-bold bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full shadow-lg">
+                      Book Now
+                    </span>
+                  )}
+                </span>
               </Link>
             ))}
             
