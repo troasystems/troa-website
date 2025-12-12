@@ -286,6 +286,54 @@ backend:
           comment: "✅ All 9 committee members have proper UUIDs assigned. Wilson Thomas (President) found with valid UUID: f5a25bd0-8711-4a27-b9b3-ea3412b94d60. Database update operations tested and working correctly. No 404 errors for committee member IDs."
 
 frontend:
+  - task: "Chatbot Functionality"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/Chatbot.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Chatbot functionality tested successfully. Chatbot button found in bottom right corner with message icon. Opens correctly with 'TROA Assistant' header. Chat interface displays properly with gradient design. Message input and send functionality working. Quick questions feature available. Close functionality working correctly. Note: Chatbot response to 'What amenities are available?' may be slow or require backend API connection for full functionality."
+
+  - task: "Amenities Page Button Alignment"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Amenities.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Amenities page button alignment tested successfully. Found 6 amenity cards with proper layout. Swimming Pool, Club House, and Fitness Center correctly have 'Login to Book' buttons aligned at bottom of cards. Landscaped Gardens and Children's Play Area correctly do NOT have booking buttons as they are non-bookable amenities. Button alignment is consistent and properly positioned using flexbox layout with mt-auto class."
+
+  - task: "Login to Book Redirect Functionality"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Amenities.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Login to Book redirect functionality working correctly. Clicking 'Login to Book' button properly navigates to /login-info page (NOT directly to Google login). LoginInfo page loads with correct 'Secure Access Portal' header, authentication information, and 'Proceed to Login' button. Navigation flow is working as designed."
+
+  - task: "Favicon Implementation"
+    implemented: true
+    working: true
+    file: "/app/frontend/public/favicon.svg"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Favicon implementation working correctly. Favicon.svg file exists with gradient 'T' icon design (purple-pink-orange gradient). Properly configured in index.html with correct link tag. Favicon displays in browser tab as expected."
+
   - task: "User Management Tab UI and functionality"
     implemented: true
     working: true
