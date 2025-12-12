@@ -53,6 +53,9 @@ const Events = () => {
   const [registrants, setRegistrants] = useState([{ name: '', preferences: {} }]);
   const [paymentMethod, setPaymentMethod] = useState('online');
   const [registering, setRegistering] = useState(false);
+  
+  // User's registration status per event
+  const [userRegistrations, setUserRegistrations] = useState({});
 
   const isAdmin = user?.role === 'admin';
   const isManager = user?.role === 'manager';
@@ -60,7 +63,10 @@ const Events = () => {
 
   useEffect(() => {
     fetchEvents();
-  }, []);
+    if (user) {
+      fetchUserRegistrationStatus();
+    }
+  }, [user]);
 
   const fetchEvents = async () => {
     try {
@@ -70,6 +76,20 @@ const Events = () => {
       console.error('Error fetching events:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUserRegistrationStatus = async () => {
+    const token = localStorage.getItem('session_token');
+    if (!token) return;
+    
+    try {
+      const response = await axios.get(`${API}/events/my/status`, {
+        headers: { 'X-Session-Token': `Bearer ${token}` }
+      });
+      setUserRegistrations(response.data);
+    } catch (error) {
+      console.error('Error fetching registration status:', error);
     }
   };
 
