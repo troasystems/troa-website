@@ -397,8 +397,6 @@ async def approve_offline_payment(registration_id: str, request: Request, approv
         return {"message": "Registration approved successfully"}
     finally:
         client.close()
-    finally:
-        client.close()
 
 
 @events_router.post("/registrations/{registration_id}/reject")
