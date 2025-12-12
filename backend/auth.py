@@ -336,7 +336,7 @@ async def google_callback(code: str, state: str, request: Request):
             logger.info(f"Existing user updated: {user_info['email']}")
         
         # Create session
-        session_token = create_session(user_data)
+        session_token = await create_session(user_data)
         logger.info(f"Session created for user: {user_info['email']}")
         
         # Redirect to frontend with session token in URL
