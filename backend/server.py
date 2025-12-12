@@ -46,6 +46,12 @@ async def health_check():
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# Health check endpoint at /api/health for Docker
+@api_router.get("/health")
+async def api_health_check():
+    """Health check endpoint for Docker - no authentication required"""
+    return {"status": "healthy", "service": "troa-backend"}
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
