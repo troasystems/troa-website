@@ -151,53 +151,65 @@ async def require_manager_or_admin(request: Request):
 @auth_router.get('/google/login')
 async def google_login(request: Request):
     """Initiate Google OAuth login"""
-    # Check for custom domain override in environment variable
-    # This is useful when the app is behind a CDN/proxy that doesn't forward original host
-    custom_domain = os.getenv('OAUTH_REDIRECT_DOMAIN')
+    # Detect the origin from headers - this is where the user came from
+    origin = None
+    scheme = request.headers.get('x-forwarded-proto', 'https')
     
-    if custom_domain:
-        # Use the configured custom domain
-        origin = custom_domain.rstrip('/')
-        logger.info(f"Using configured OAUTH_REDIRECT_DOMAIN: {origin}")
-    else:
-        # Try to detect from headers
-        origin = None
-        scheme = request.headers.get('x-forwarded-proto', 'https')
-        
-        # Log all relevant headers for debugging
-        logger.info(f"OAuth login - Headers: host={request.headers.get('host')}, "
-                    f"x-forwarded-host={request.headers.get('x-forwarded-host')}, "
-                    f"x-forwarded-proto={request.headers.get('x-forwarded-proto')}, "
-                    f"origin={request.headers.get('origin')}, "
-                    f"referer={request.headers.get('referer')}")
-        
-        # Try x-forwarded-host first
+    # Log all relevant headers for debugging
+    logger.info(f"OAuth login - Headers: host={request.headers.get('host')}, "
+                f"x-forwarded-host={request.headers.get('x-forwarded-host')}, "
+                f"x-forwarded-proto={request.headers.get('x-forwarded-proto')}, "
+                f"origin={request.headers.get('origin')}, "
+                f"referer={request.headers.get('referer')}")
+    
+    # Priority 1: Referer header (most reliable - contains the actual page URL)
+    referer = request.headers.get('referer')
+    if referer:
+        from urllib.parse import urlparse
+        parsed = urlparse(referer)
+        if parsed.scheme and parsed.netloc:
+            origin = f"{parsed.scheme}://{parsed.netloc}"
+            logger.info(f"Using referer for origin: {origin}")
+    
+    # Priority 2: x-forwarded-host header
+    if not origin:
         forwarded_host = request.headers.get('x-forwarded-host')
         if forwarded_host:
             forwarded_host = forwarded_host.split(',')[0].strip()
             origin = f"{scheme}://{forwarded_host}"
-        
-        # Try referer header
-        if not origin:
-            referer = request.headers.get('referer')
-            if referer:
-                from urllib.parse import urlparse
-                parsed = urlparse(referer)
-                if parsed.scheme and parsed.netloc:
-                    origin = f"{parsed.scheme}://{parsed.netloc}"
-        
-        # Try origin header
-        if not origin:
-            origin = request.headers.get('origin')
-        
-        # Fallback to host header
-        if not origin:
-            host = request.headers.get('host', '')
-            origin = f"{scheme}://{host}"
+            logger.info(f"Using x-forwarded-host for origin: {origin}")
     
+    # Priority 3: Origin header
+    if not origin:
+        origin = request.headers.get('origin')
+        if origin:
+            logger.info(f"Using origin header: {origin}")
+    
+    # Priority 4: Fallback to host header
+    if not origin:
+        host = request.headers.get('host', '')
+        origin = f"{scheme}://{host}"
+        logger.info(f"Using host header fallback: {origin}")
+    
+    # Store the origin in a cookie so we can retrieve it in the callback
+    # This is needed because Google's redirect won't preserve our headers
     redirect_uri = f"{origin}/api/auth/google/callback"
     logger.info(f"OAuth login initiated with redirect_uri: {redirect_uri}")
-    return await oauth.google.authorize_redirect(request, redirect_uri)
+    
+    # Create response that will redirect to Google
+    response = await oauth.google.authorize_redirect(request, redirect_uri)
+    
+    # Set cookie with the origin domain for the callback to use
+    response.set_cookie(
+        key='oauth_origin',
+        value=origin,
+        httponly=True,
+        max_age=600,  # 10 minutes
+        samesite='lax',
+        path='/'
+    )
+    
+    return response
 
 @auth_router.get('/google/callback')
 async def google_callback(code: str, state: str, request: Request):
