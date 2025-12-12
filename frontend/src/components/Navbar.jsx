@@ -3,9 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, User, LogOut, Shield, MessageSquare, Calendar, PartyPopper } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
-import { BACKEND_URL } from '../utils/api';
+import { getBackendUrl } from '../utils/api';
 
-const API = `${BACKEND_URL}/api`;
+const getAPI = () => `${getBackendUrl()}/api`;
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
