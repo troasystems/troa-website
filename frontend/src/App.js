@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import FeedbackBanner from './components/FeedbackBanner';
 import Footer from './components/Footer';
+import Chatbot from './components/Chatbot';
 import Home from './pages/Home';
 import About from './pages/About';
 import Committee from './pages/Committee';
@@ -42,6 +43,7 @@ function App() {
             </Routes>
           </div>
           <Footer />
+          <Chatbot />
         </AuthProvider>
       </BrowserRouter>
     </div>
