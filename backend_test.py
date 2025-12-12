@@ -317,6 +317,351 @@ class TROAAPITester:
         except Exception as e:
             self.log_error("/", "GET", f"Exception: {str(e)}")
             return False
+
+    def test_events_crud(self):
+        """Test Events CRUD API endpoints"""
+        print("\n🧪 Testing Events CRUD API...")
+        
+        # Test GET /api/events (public access)
+        try:
+            response = requests.get(f"{self.base_url}/events", timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list):
+                    self.test_results['events']['get'] = True
+                    self.log_success("/events", "GET", f"- Found {len(data)} upcoming events")
+                else:
+                    self.test_results['events']['get'] = False
+                    self.log_error("/events", "GET", "Response is not a list")
+            else:
+                self.test_results['events']['get'] = False
+                self.log_error("/events", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['events']['get'] = False
+            self.log_error("/events", "GET", f"Exception: {str(e)}")
+
+        # Test POST /api/events (admin only - should fail without auth)
+        try:
+            future_date = (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d')
+            test_event = {
+                "name": "Annual Community BBQ",
+                "description": "Join us for our annual community barbecue with food, games, and entertainment for the whole family.",
+                "image": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800",
+                "event_date": future_date,
+                "event_time": "18:00",
+                "amount": 25.0,
+                "payment_type": "per_person",
+                "preferences": [
+                    {"name": "Food Preference", "options": ["Vegetarian", "Non-Vegetarian"]},
+                    {"name": "Dietary Restrictions", "options": ["None", "Gluten-Free", "Vegan"]}
+                ],
+                "max_registrations": 100
+            }
+            
+            # First try without authentication (should fail)
+            response = requests.post(f"{self.base_url}/events", 
+                                   json=test_event, 
+                                   headers={'Content-Type': 'application/json'},
+                                   timeout=10)
+            
+            if response.status_code in [401, 403]:
+                self.log_success("/events", "POST", "- Correctly requires authentication")
+                
+                # Now try with authentication (should succeed)
+                response = requests.post(f"{self.base_url}/events", 
+                                       json=test_event, 
+                                       headers=self.auth_headers,
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if 'id' in data and data['name'] == test_event['name']:
+                        self.test_results['events']['post'] = True
+                        self.created_event_id = data['id']
+                        self.log_success("/events", "POST", f"- Created event with ID: {data['id']}")
+                    else:
+                        self.test_results['events']['post'] = False
+                        self.log_error("/events", "POST", "Invalid response structure")
+                else:
+                    self.test_results['events']['post'] = False
+                    self.log_error("/events", "POST", f"Status code with auth: {response.status_code}, Response: {response.text}")
+            else:
+                self.test_results['events']['post'] = False
+                self.log_error("/events", "POST", f"Should require authentication but got status: {response.status_code}")
+                
+        except Exception as e:
+            self.test_results['events']['post'] = False
+            self.log_error("/events", "POST", f"Exception: {str(e)}")
+
+        # Test GET /api/events/{event_id} (get single event)
+        if self.created_event_id:
+            try:
+                response = requests.get(f"{self.base_url}/events/{self.created_event_id}", timeout=10)
+                if response.status_code == 200:
+                    data = response.json()
+                    if 'id' in data and data['id'] == self.created_event_id:
+                        self.test_results['events']['get_single'] = True
+                        self.log_success(f"/events/{self.created_event_id}", "GET", "- Retrieved single event")
+                    else:
+                        self.test_results['events']['get_single'] = False
+                        self.log_error(f"/events/{self.created_event_id}", "GET", "Invalid response structure")
+                else:
+                    self.test_results['events']['get_single'] = False
+                    self.log_error(f"/events/{self.created_event_id}", "GET", f"Status code: {response.status_code}")
+            except Exception as e:
+                self.test_results['events']['get_single'] = False
+                self.log_error(f"/events/{self.created_event_id}", "GET", f"Exception: {str(e)}")
+
+        # Test PATCH /api/events/{event_id} (admin only)
+        if self.created_event_id:
+            try:
+                update_data = {"description": "Updated description for the community BBQ event"}
+                response = requests.patch(f"{self.base_url}/events/{self.created_event_id}", 
+                                        json=update_data, 
+                                        headers=self.auth_headers,
+                                        timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if data['description'] == update_data['description']:
+                        self.test_results['events']['patch'] = True
+                        self.log_success(f"/events/{self.created_event_id}", "PATCH", "- Updated event successfully")
+                    else:
+                        self.test_results['events']['patch'] = False
+                        self.log_error(f"/events/{self.created_event_id}", "PATCH", "Update not reflected in response")
+                else:
+                    self.test_results['events']['patch'] = False
+                    self.log_error(f"/events/{self.created_event_id}", "PATCH", f"Status code: {response.status_code}")
+            except Exception as e:
+                self.test_results['events']['patch'] = False
+                self.log_error(f"/events/{self.created_event_id}", "PATCH", f"Exception: {str(e)}")
+
+    def test_event_registration(self):
+        """Test Event Registration endpoints"""
+        print("\n🧪 Testing Event Registration API...")
+        
+        if not self.created_event_id:
+            self.log_error("Event Registration", "SETUP", "No event created for testing registration")
+            return
+
+        # Test POST /api/events/{event_id}/register
+        try:
+            registration_data = {
+                "event_id": self.created_event_id,
+                "registrants": [
+                    {"name": "John Smith", "preferences": {"Food Preference": "Vegetarian", "Dietary Restrictions": "None"}},
+                    {"name": "Jane Smith", "preferences": {"Food Preference": "Non-Vegetarian", "Dietary Restrictions": "Gluten-Free"}}
+                ],
+                "payment_method": "offline"
+            }
+            
+            response = requests.post(f"{self.base_url}/events/{self.created_event_id}/register", 
+                                   json=registration_data, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'id' in data and data['event_id'] == self.created_event_id:
+                    self.test_results['event_registration']['register'] = True
+                    self.created_registration_id = data['id']
+                    self.log_success(f"/events/{self.created_event_id}/register", "POST", f"- Created registration with ID: {data['id']}")
+                else:
+                    self.test_results['event_registration']['register'] = False
+                    self.log_error(f"/events/{self.created_event_id}/register", "POST", "Invalid response structure")
+            else:
+                self.test_results['event_registration']['register'] = False
+                self.log_error(f"/events/{self.created_event_id}/register", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['event_registration']['register'] = False
+            self.log_error(f"/events/{self.created_event_id}/register", "POST", f"Exception: {str(e)}")
+
+        # Test GET /api/events/my/registrations
+        try:
+            response = requests.get(f"{self.base_url}/events/my/registrations", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list):
+                    self.test_results['event_registration']['my_registrations'] = True
+                    self.log_success("/events/my/registrations", "GET", f"- Found {len(data)} user registrations")
+                else:
+                    self.test_results['event_registration']['my_registrations'] = False
+                    self.log_error("/events/my/registrations", "GET", "Response is not a list")
+            else:
+                self.test_results['event_registration']['my_registrations'] = False
+                self.log_error("/events/my/registrations", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['event_registration']['my_registrations'] = False
+            self.log_error("/events/my/registrations", "GET", f"Exception: {str(e)}")
+
+    def test_admin_approval(self):
+        """Test Admin Approval endpoints for offline payments"""
+        print("\n🧪 Testing Admin Approval API...")
+        
+        # Test GET /api/events/admin/pending-approvals
+        try:
+            response = requests.get(f"{self.base_url}/events/admin/pending-approvals", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list):
+                    self.test_results['admin_approval']['pending_approvals'] = True
+                    self.log_success("/events/admin/pending-approvals", "GET", f"- Found {len(data)} pending approvals")
+                else:
+                    self.test_results['admin_approval']['pending_approvals'] = False
+                    self.log_error("/events/admin/pending-approvals", "GET", "Response is not a list")
+            else:
+                self.test_results['admin_approval']['pending_approvals'] = False
+                self.log_error("/events/admin/pending-approvals", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['admin_approval']['pending_approvals'] = False
+            self.log_error("/events/admin/pending-approvals", "GET", f"Exception: {str(e)}")
+
+        # Test POST /api/events/registrations/{id}/approve
+        if self.created_registration_id:
+            try:
+                response = requests.post(f"{self.base_url}/events/registrations/{self.created_registration_id}/approve", 
+                                       headers=self.auth_headers,
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if 'message' in data:
+                        self.test_results['admin_approval']['approve'] = True
+                        self.log_success(f"/events/registrations/{self.created_registration_id}/approve", "POST", "- Approved offline payment")
+                    else:
+                        self.test_results['admin_approval']['approve'] = False
+                        self.log_error(f"/events/registrations/{self.created_registration_id}/approve", "POST", "Invalid response structure")
+                else:
+                    self.test_results['admin_approval']['approve'] = False
+                    self.log_error(f"/events/registrations/{self.created_registration_id}/approve", "POST", f"Status code: {response.status_code}")
+            except Exception as e:
+                self.test_results['admin_approval']['approve'] = False
+                self.log_error(f"/events/registrations/{self.created_registration_id}/approve", "POST", f"Exception: {str(e)}")
+
+    def test_payment_integration(self):
+        """Test Payment Integration endpoints"""
+        print("\n🧪 Testing Payment Integration API...")
+        
+        if not self.created_event_id or not self.created_registration_id:
+            self.log_error("Payment Integration", "SETUP", "Missing event or registration for testing")
+            return
+
+        # Test POST /api/events/{event_id}/create-payment-order
+        try:
+            response = requests.post(f"{self.base_url}/events/{self.created_event_id}/create-payment-order?registration_id={self.created_registration_id}", 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'order_id' in data and 'amount' in data:
+                    self.test_results['payment_integration']['create_order'] = True
+                    self.log_success(f"/events/{self.created_event_id}/create-payment-order", "POST", f"- Created payment order: {data['order_id']}")
+                else:
+                    self.test_results['payment_integration']['create_order'] = False
+                    self.log_error(f"/events/{self.created_event_id}/create-payment-order", "POST", "Invalid response structure")
+            else:
+                self.test_results['payment_integration']['create_order'] = False
+                self.log_error(f"/events/{self.created_event_id}/create-payment-order", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['payment_integration']['create_order'] = False
+            self.log_error(f"/events/{self.created_event_id}/create-payment-order", "POST", f"Exception: {str(e)}")
+
+        # Test POST /api/events/registrations/{id}/complete-payment
+        try:
+            response = requests.post(f"{self.base_url}/events/registrations/{self.created_registration_id}/complete-payment?payment_id=test_payment_123", 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'message' in data:
+                    self.test_results['payment_integration']['complete_payment'] = True
+                    self.log_success(f"/events/registrations/{self.created_registration_id}/complete-payment", "POST", "- Completed payment")
+                else:
+                    self.test_results['payment_integration']['complete_payment'] = False
+                    self.log_error(f"/events/registrations/{self.created_registration_id}/complete-payment", "POST", "Invalid response structure")
+            else:
+                self.test_results['payment_integration']['complete_payment'] = False
+                self.log_error(f"/events/registrations/{self.created_registration_id}/complete-payment", "POST", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['payment_integration']['complete_payment'] = False
+            self.log_error(f"/events/registrations/{self.created_registration_id}/complete-payment", "POST", f"Exception: {str(e)}")
+
+    def test_amenity_booking_fix(self):
+        """Test Amenity Booking with additional_guests (names instead of emails)"""
+        print("\n🧪 Testing Amenity Booking Fix (additional_guests)...")
+        
+        try:
+            future_date = (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d')
+            booking_data = {
+                "amenity_id": "test-amenity-123",
+                "amenity_name": "Swimming Pool",
+                "booking_date": future_date,
+                "start_time": "10:00",
+                "duration_minutes": 60,
+                "additional_guests": ["Alice Johnson", "Bob Wilson", "Carol Davis"]  # Names instead of emails
+            }
+            
+            response = requests.post(f"{self.base_url}/bookings", 
+                                   json=booking_data, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'id' in data and 'additional_guests' in data:
+                    # Verify additional_guests contains names, not emails
+                    guests = data['additional_guests']
+                    if isinstance(guests, list) and len(guests) == 3:
+                        self.test_results['amenity_booking']['create_booking'] = True
+                        self.log_success("/bookings", "POST", f"- Created booking with {len(guests)} additional guests (names)")
+                    else:
+                        self.test_results['amenity_booking']['create_booking'] = False
+                        self.log_error("/bookings", "POST", "Invalid additional_guests structure")
+                else:
+                    self.test_results['amenity_booking']['create_booking'] = False
+                    self.log_error("/bookings", "POST", "Invalid response structure")
+            else:
+                self.test_results['amenity_booking']['create_booking'] = False
+                self.log_error("/bookings", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['amenity_booking']['create_booking'] = False
+            self.log_error("/bookings", "POST", f"Exception: {str(e)}")
+
+    def test_event_withdrawal(self):
+        """Test Event Withdrawal endpoint"""
+        print("\n🧪 Testing Event Withdrawal...")
+        
+        if not self.created_registration_id:
+            self.log_error("Event Withdrawal", "SETUP", "No registration created for testing withdrawal")
+            return
+
+        try:
+            response = requests.post(f"{self.base_url}/events/registrations/{self.created_registration_id}/withdraw", 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'message' in data and 'refund_instructions' in data:
+                    self.test_results['event_registration']['withdraw'] = True
+                    self.log_success(f"/events/registrations/{self.created_registration_id}/withdraw", "POST", "- Withdrew from event successfully")
+                else:
+                    self.test_results['event_registration']['withdraw'] = False
+                    self.log_error(f"/events/registrations/{self.created_registration_id}/withdraw", "POST", "Invalid response structure")
+            else:
+                self.test_results['event_registration']['withdraw'] = False
+                self.log_error(f"/events/registrations/{self.created_registration_id}/withdraw", "POST", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['event_registration']['withdraw'] = False
+            self.log_error(f"/events/registrations/{self.created_registration_id}/withdraw", "POST", f"Exception: {str(e)}")
             
     def run_all_tests(self):
         """Run all API tests"""
