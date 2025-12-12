@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from '../hooks/use-toast';
 import { Toaster } from '../components/ui/toaster';
-import { Users, FileText, Shield, MessageSquare } from 'lucide-react';
+import { Users, FileText, Shield, MessageSquare, PartyPopper } from 'lucide-react';
 import MembershipManagement from '../components/MembershipManagement';
 import UserManagement from '../components/UserManagement';
 import FeedbackManagement from '../components/FeedbackManagement';
+import EventsManagement from '../components/EventsManagement';
 
 const AdminPortal = () => {
   const { isAdmin, isManager, role, loading: authLoading } = useAuth();
@@ -42,6 +43,13 @@ const AdminPortal = () => {
       name: 'Membership Applications',
       icon: FileText,
       component: MembershipManagement,
+      roles: ['admin', 'manager']
+    },
+    {
+      id: 'events',
+      name: 'Events Management',
+      icon: PartyPopper,
+      component: EventsManagement,
       roles: ['admin', 'manager']
     },
     {
