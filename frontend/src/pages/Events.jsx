@@ -508,20 +508,38 @@ const Events = () => {
                     </div>
 
                     {!isPastEvent(event.event_date) && (
-                      <button
-                        onClick={() => {
-                          if (!user) {
-                            navigate('/login-info');
-                            return;
-                          }
-                          setSelectedEvent(event);
-                          resetRegistrationForm();
-                          setShowRegisterModal(true);
-                        }}
-                        className="w-full py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all"
-                      >
-                        {user ? 'Register Now' : 'Login to Register'}
-                      </button>
+                      <>
+                        {user && userRegistrations[event.id] ? (
+                          // User is already registered
+                          <div className="text-center">
+                            <div className="flex items-center justify-center space-x-2 text-green-600 mb-2">
+                              <CheckCircle className="w-5 h-5" />
+                              <span className="font-semibold">You&apos;re already registered!</span>
+                            </div>
+                            <button
+                              onClick={() => navigate('/my-events')}
+                              className="w-full py-3 border-2 border-purple-600 text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-all"
+                            >
+                              Add/Remove Members →
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              if (!user) {
+                                navigate('/login-info');
+                                return;
+                              }
+                              setSelectedEvent(event);
+                              resetRegistrationForm();
+                              setShowRegisterModal(true);
+                            }}
+                            className="w-full py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all"
+                          >
+                            {user ? 'Register Now' : 'Login to Register'}
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
