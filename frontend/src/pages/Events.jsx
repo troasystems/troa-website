@@ -430,7 +430,7 @@ const Events = () => {
               {events.map((event) => (
                 <div
                   key={event.id}
-                  className={`group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden ${
+                  className={`group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col ${
                     isPastEvent(event.event_date) ? 'opacity-60' : ''
                   }`}
                 >
