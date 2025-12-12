@@ -589,17 +589,34 @@ async def modify_registration(registration_id: str, request: Request):
             else:
                 modification_status = "pending_modification_payment"
             
-            # Store pending modification
+            # Store pending modification with audit log entry
+            audit_entry = {
+                "action": "modification_requested",
+                "timestamp": datetime.utcnow().isoformat(),
+                "by_name": user.get('name', user['email']),
+                "by_email": user['email'],
+                "details": f"Requested to add {new_count - old_count} person(s). Additional amount: ₹{difference}",
+                "old_count": old_count,
+                "new_count": new_count,
+                "additional_amount": difference,
+                "payment_method": payment_method
+            }
+            
             await db.event_registrations.update_one(
                 {"id": registration_id},
-                {"$set": {
-                    "pending_registrants": new_registrants,
-                    "pending_total": new_total,
-                    "additional_amount": difference,
-                    "modification_payment_method": payment_method,
-                    "modification_status": modification_status,
-                    "updated_at": datetime.utcnow()
-                }}
+                {
+                    "$set": {
+                        "pending_registrants": new_registrants,
+                        "pending_total": new_total,
+                        "additional_amount": difference,
+                        "modification_payment_method": payment_method,
+                        "modification_status": modification_status,
+                        "updated_at": datetime.utcnow()
+                    },
+                    "$push": {
+                        "audit_log": audit_entry
+                    }
+                }
             )
             
             return {
@@ -610,21 +627,37 @@ async def modify_registration(registration_id: str, request: Request):
                 "requires_payment": True
             }
         else:
-            # Removing people or same count - update directly
+            # Removing people or same count - update directly with audit log
+            audit_entry = {
+                "action": "modification_completed",
+                "timestamp": datetime.utcnow().isoformat(),
+                "by_name": user.get('name', user['email']),
+                "by_email": user['email'],
+                "details": f"Reduced registrants from {old_count} to {new_count}. Refund amount: ₹{abs(difference)}" if difference < 0 else f"Updated registrant details (no count change)",
+                "old_count": old_count,
+                "new_count": new_count,
+                "refund_amount": abs(difference) if difference < 0 else 0
+            }
+            
             await db.event_registrations.update_one(
                 {"id": registration_id},
-                {"$set": {
-                    "registrants": new_registrants,
-                    "total_amount": new_total,
-                    "updated_at": datetime.utcnow()
-                },
-                "$unset": {
-                    "pending_registrants": "",
-                    "pending_total": "",
-                    "additional_amount": "",
-                    "modification_payment_method": "",
-                    "modification_status": ""
-                }}
+                {
+                    "$set": {
+                        "registrants": new_registrants,
+                        "total_amount": new_total,
+                        "updated_at": datetime.utcnow()
+                    },
+                    "$unset": {
+                        "pending_registrants": "",
+                        "pending_total": "",
+                        "additional_amount": "",
+                        "modification_payment_method": "",
+                        "modification_status": ""
+                    },
+                    "$push": {
+                        "audit_log": audit_entry
+                    }
+                }
             )
             
             return {
