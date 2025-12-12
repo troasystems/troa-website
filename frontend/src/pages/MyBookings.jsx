@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 // Basic auth removed
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Calendar, Clock, Users, Trash2, MapPin } from 'lucide-react';
+import { Calendar, Clock, Users, Trash2, MapPin, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from '../hooks/use-toast';
 import { Toaster } from '../components/ui/toaster';
