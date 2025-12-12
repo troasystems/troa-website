@@ -607,13 +607,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Events Feature - Backend CRUD API"
-    - "Events Feature - User Registration with Online/Offline Payment"
-    - "Events Feature - Admin Event Creation UI"
-    - "Events Feature - Event Registration UI"
-    - "Events Feature - My Events Page"
-    - "Events Feature - Admin Approval for Offline Payments"
-    - "Amenity Booking - Additional Guests (names instead of emails)"
+    - "Events Feature - Frontend Events Page UI"
+    - "Events Feature - Frontend My Events Page UI"
+    - "Events Feature - Frontend Navigation Integration"
+    - "Events Feature - Frontend Mobile Responsiveness"
+    - "Events Feature - Frontend Admin Portal Integration"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
