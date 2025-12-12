@@ -672,11 +672,21 @@ class TROAAPITester:
         # Test root endpoint first
         self.test_root_endpoint()
         
-        # Test all endpoints
+        # Test existing endpoints
         self.test_committee_members()
         self.test_amenities()
         self.test_gallery()
         self.test_membership()
+        
+        # Test new Events feature
+        self.test_events_crud()
+        self.test_event_registration()
+        self.test_admin_approval()
+        self.test_payment_integration()
+        self.test_event_withdrawal()
+        
+        # Test Amenity Booking fix
+        self.test_amenity_booking_fix()
         
         # Print summary
         self.print_summary()
