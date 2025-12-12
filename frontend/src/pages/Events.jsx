@@ -71,7 +71,7 @@ const Events = () => {
 
   const fetchEvents = async () => {
     try {
-      const response = await axios.get(`${API}/events?include_past=${canManageEvents}`);
+      const response = await axios.get(`${getAPI()}/events?include_past=${canManageEvents}`);
       setEvents(response.data);
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -85,7 +85,7 @@ const Events = () => {
     if (!token) return;
     
     try {
-      const response = await axios.get(`${API}/events/my/status`, {
+      const response = await axios.get(`${getAPI()}/events/my/status`, {
         headers: { 'X-Session-Token': `Bearer ${token}` }
       });
       setUserRegistrations(response.data);
@@ -100,7 +100,7 @@ const Events = () => {
 
     try {
       const token = localStorage.getItem('session_token');
-      const response = await axios.post(`${API}/upload/image`, formData, {
+      const response = await axios.post(`${getAPI()}/upload/image`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
