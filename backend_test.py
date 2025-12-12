@@ -700,15 +700,46 @@ class TROAAPITester:
         total_tests = 0
         passed_tests = 0
         
-        for endpoint, methods in self.test_results.items():
-            for method, result in methods.items():
-                total_tests += 1
-                if result:
-                    passed_tests += 1
-                    status = "✅ PASS"
-                else:
-                    status = "❌ FAIL"
-                print(f"{status} - {method.upper()} /api/{endpoint}")
+        # Group results by category
+        categories = {
+            'Basic APIs': ['committee', 'amenities', 'gallery', 'membership'],
+            'Events CRUD': ['events'],
+            'Event Registration': ['event_registration'],
+            'Admin Approval': ['admin_approval'],
+            'Payment Integration': ['payment_integration'],
+            'Amenity Booking': ['amenity_booking']
+        }
+        
+        for category, endpoints in categories.items():
+            print(f"\n{category}:")
+            for endpoint in endpoints:
+                if endpoint in self.test_results:
+                    methods = self.test_results[endpoint]
+                    for method, result in methods.items():
+                        total_tests += 1
+                        if result:
+                            passed_tests += 1
+                            status = "✅ PASS"
+                        elif result is False:
+                            status = "❌ FAIL"
+                        else:
+                            status = "⏸️ SKIP"
+                            total_tests -= 1  # Don't count skipped tests
+                            continue
+                        
+                        # Format endpoint name for display
+                        if endpoint == 'event_registration':
+                            display_endpoint = f"events/{method}"
+                        elif endpoint == 'admin_approval':
+                            display_endpoint = f"events/admin/{method}"
+                        elif endpoint == 'payment_integration':
+                            display_endpoint = f"events/payment/{method}"
+                        elif endpoint == 'amenity_booking':
+                            display_endpoint = f"bookings/{method}"
+                        else:
+                            display_endpoint = f"{endpoint}/{method}"
+                            
+                        print(f"  {status} - {display_endpoint}")
         
         print(f"\n📈 Overall: {passed_tests}/{total_tests} tests passed")
         
