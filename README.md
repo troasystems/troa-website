@@ -92,7 +92,13 @@ docker-compose ps
 
 ### Configuration
 
-Before starting, edit `backend/.env.docker` with your credentials:
+Before starting, ensure `backend/.env` exists with your credentials. If it doesn't exist, create it from the example:
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Then edit `backend/.env` with your credentials:
 
 ```env
 # Google OAuth (Required)
