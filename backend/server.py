@@ -22,6 +22,7 @@ from basic_auth import basic_auth_middleware
 from instagram import instagram_router
 from upload import upload_router
 from payment import payment_router
+from chatbot import chatbot_router
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
