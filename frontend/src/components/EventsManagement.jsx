@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useToast } from '../hooks/use-toast';
-import { BACKEND_URL, getImageUrl } from '../utils/api';
+import { getBackendUrl, getImageUrl } from '../utils/api';
 import {
   Calendar,
   CheckCircle,
@@ -18,7 +18,7 @@ import {
   X
 } from 'lucide-react';
 
-const API = `${BACKEND_URL}/api`;
+const getAPI = () => `${getBackendUrl()}/api`;
 
 const EventsManagement = () => {
   const { toast } = useToast();
