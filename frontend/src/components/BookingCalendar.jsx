@@ -276,16 +276,16 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
           <div>
             <label className="flex items-center space-x-2 text-lg font-semibold text-gray-900 mb-3">
               <Users className="w-5 h-5 text-purple-600" />
-              <span>Additional Users (Optional - Max 3)</span>
+              <span>Additional Guests (Optional - Max 3)</span>
             </label>
             <div className="space-y-2">
               {additionalUsers.map((user, index) => (
                 <div key={index} className="flex space-x-2">
                   <input
-                    type="email"
+                    type="text"
                     value={user}
                     onChange={(e) => handleUserChange(index, e.target.value)}
-                    placeholder={`Email address ${index + 1}`}
+                    placeholder={`Guest name ${index + 1}`}
                     className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                   <button
