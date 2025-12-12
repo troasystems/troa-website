@@ -2,6 +2,7 @@ import React from 'react';
 import './App.css';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import ScrollToTop from './components/ScrollToTop';
 import Navbar from './components/Navbar';
 import FeedbackBanner from './components/FeedbackBanner';
 import Footer from './components/Footer';
@@ -24,6 +25,7 @@ function App() {
     <div className="App">
       <BrowserRouter>
         <AuthProvider>
+          <ScrollToTop />
           <Navbar />
           <FeedbackBanner />
           <div className="pt-12">
