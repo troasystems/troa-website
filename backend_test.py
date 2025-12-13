@@ -845,8 +845,8 @@ class TROAAPITester:
                         data = response.json()
                         if ('payment_id' in data and 
                             'amount' in data and 
-                            data['amount'] == payment_data['expected_amount'] and
-                            'status' in data.get('message', '').lower() and
+                            float(data['amount']) == float(payment_data['expected_amount']) and
+                            'success' in data and data['success'] and
                             'pending_approval' in data.get('message', '').lower()):
                             
                             self.created_payment_ids.append(data['payment_id'])
