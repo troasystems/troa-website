@@ -383,7 +383,13 @@ const EventsManagement = () => {
                           {formatDate(event.event_date)} at {event.event_time}
                         </p>
                         <p className="text-sm text-purple-600 font-medium">
-                          ₹{event.amount} {event.payment_type === 'per_person' ? 'per person' : 'per villa'}
+                          {event.payment_type === 'per_villa' ? (
+                            `🏠 ₹${event.amount} per villa`
+                          ) : event.per_person_type === 'adult_child' ? (
+                            `👨‍👩‍👧 ₹${event.adult_price || 0} adult / ₹${event.child_price || 0} child`
+                          ) : (
+                            `👤 ₹${event.amount} per person`
+                          )}
                         </p>
                       </div>
                     </div>
