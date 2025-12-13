@@ -90,11 +90,11 @@ async def create_event(event_data: EventCreate, request: Request):
             child_price=event_data.child_price,
             preferences=event_data.preferences or [],
             max_registrations=event_data.max_registrations,
-            created_by=admin['email']
+            created_by=user['email']
         )
         
         await db.events.insert_one(event.dict())
-        logger.info(f"Event created: {event.name} by {admin['email']}")
+        logger.info(f"Event created: {event.name} by {user['email']}")
         return event.dict()
     finally:
         client.close()
