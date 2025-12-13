@@ -1392,6 +1392,7 @@ class TROAAPITester:
             'Admin Approval': ['admin_approval'],
             'Payment Integration': ['payment_integration'],
             'Unified Payment System': ['unified_payment'],
+            'Event Pricing Options': ['event_pricing'],
             'Amenity Booking': ['amenity_booking']
         }
         
