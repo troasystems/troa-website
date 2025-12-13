@@ -431,10 +431,29 @@ const MyEvents = () => {
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {reg.registrants?.map((person, index) => (
-                          <div key={index} className="bg-purple-50 px-3 py-1 rounded-full">
-                            <span className="text-sm text-purple-700">{person.name}</span>
+                          <div key={index} className={`px-3 py-1 rounded-full ${
+                            reg.event?.per_person_type === 'adult_child'
+                              ? person.registrant_type === 'child'
+                                ? 'bg-pink-50 border border-pink-200'
+                                : 'bg-blue-50 border border-blue-200'
+                              : 'bg-purple-50'
+                          }`}>
+                            <span className={`text-sm ${
+                              reg.event?.per_person_type === 'adult_child'
+                                ? person.registrant_type === 'child'
+                                  ? 'text-pink-700'
+                                  : 'text-blue-700'
+                                : 'text-purple-700'
+                            }`}>
+                              {person.name}
+                              {reg.event?.per_person_type === 'adult_child' && (
+                                <span className="ml-1 font-medium">
+                                  ({person.registrant_type === 'child' ? '👧 Child' : '👤 Adult'})
+                                </span>
+                              )}
+                            </span>
                             {Object.keys(person.preferences || {}).length > 0 && (
-                              <span className="text-xs text-purple-500 ml-1">
+                              <span className="text-xs text-gray-500 ml-1">
                                 ({Object.values(person.preferences).join(', ')})
                               </span>
                             )}
