@@ -93,13 +93,18 @@ const MyEvents = () => {
 
   const openModifyModal = (reg) => {
     setSelectedRegistration(reg);
-    setModifyRegistrants(reg.registrants?.map(r => ({ ...r })) || [{ name: '', preferences: {} }]);
+    // Copy registrants with all fields including registrant_type
+    setModifyRegistrants(reg.registrants?.map(r => ({ 
+      name: r.name || '',
+      registrant_type: r.registrant_type || 'adult',
+      preferences: r.preferences || {}
+    })) || [{ name: '', registrant_type: 'adult', preferences: {} }]);
     setModifyPaymentMethod('online');
     setShowModifyModal(true);
   };
 
   const addRegistrant = () => {
-    setModifyRegistrants([...modifyRegistrants, { name: '', preferences: {} }]);
+    setModifyRegistrants([...modifyRegistrants, { name: '', registrant_type: 'adult', preferences: {} }]);
   };
 
   const removeRegistrant = (index) => {
