@@ -478,6 +478,9 @@ const Events = () => {
                               event_time: event.event_time,
                               amount: event.amount.toString(),
                               payment_type: event.payment_type,
+                              per_person_type: event.per_person_type || 'uniform',
+                              adult_price: event.adult_price?.toString() || '',
+                              child_price: event.child_price?.toString() || '',
                               preferences: event.preferences || [],
                               max_registrations: event.max_registrations?.toString() || ''
                             });
