@@ -199,12 +199,19 @@ const MyEvents = () => {
             description: `Additional payment for ${selectedRegistration.event_name}`,
             order_id: order.order_id,
             handler: async function (razorpayResponse) {
+              // Get fresh token inside handler
+              const freshToken = localStorage.getItem('session_token');
               try {
-                await axios.post(
+                console.log('Completing modification payment for registration:', selectedRegistration.id);
+                console.log('Payment ID:', razorpayResponse.razorpay_payment_id);
+                
+                const completeResponse = await axios.post(
                   `${getAPI()}/events/registrations/${selectedRegistration.id}/complete-modification-payment?payment_id=${razorpayResponse.razorpay_payment_id}`,
                   {},
-                  { headers: { 'X-Session-Token': `Bearer ${token}` } }
+                  { headers: { 'X-Session-Token': `Bearer ${freshToken}` } }
                 );
+
+                console.log('Modification payment completion response:', completeResponse.data);
 
                 toast({
                   title: 'Payment Successful!',
@@ -214,9 +221,22 @@ const MyEvents = () => {
                 setSelectedRegistration(null);
                 fetchRegistrations();
               } catch (err) {
+                console.error('Modification payment completion error:', err);
+                console.error('Error response:', err.response?.data);
+                
                 toast({
                   title: 'Payment Verification Failed',
-                  description: 'Please contact support.',
+                  description: err.response?.data?.detail || 'Please contact support. Your payment was received but verification failed.',
+                  variant: 'destructive'
+                });
+              }
+            },
+            modal: {
+              ondismiss: function() {
+                console.log('Razorpay modal dismissed');
+                toast({
+                  title: 'Payment Cancelled',
+                  description: 'You cancelled the payment.',
                   variant: 'destructive'
                 });
               }
