@@ -204,11 +204,29 @@ const EventsManagement = () => {
                   >
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
                           <span className={`px-2 py-1 text-xs font-medium rounded ${
                             isMod ? 'bg-orange-100 text-orange-700' : 'bg-amber-100 text-amber-700'
                           }`}>
                             {isMod ? 'Modification Request' : 'New Registration'}
+                          </span>
+                          {/* Payment Method Badge */}
+                          <span className={`px-2 py-1 text-xs font-medium rounded flex items-center gap-1 ${
+                            reg.payment_method === 'online' 
+                              ? 'bg-blue-100 text-blue-700' 
+                              : 'bg-purple-100 text-purple-700'
+                          }`}>
+                            {reg.payment_method === 'online' ? (
+                              <>
+                                <CreditCard className="w-3 h-3" />
+                                Online Payment
+                              </>
+                            ) : (
+                              <>
+                                <Banknote className="w-3 h-3" />
+                                Offline Payment
+                              </>
+                            )}
                           </span>
                           <span className="text-sm text-gray-500">
                             {formatDate(reg.created_at)}
