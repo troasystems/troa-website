@@ -57,26 +57,47 @@ const Home = () => {
       >
         <div className="absolute inset-0 bg-gradient-to-r from-purple-900/80 via-pink-900/70 to-orange-900/80"></div>
         <div className="relative z-10 text-center text-white px-4 max-w-5xl mx-auto">
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 animate-fade-in">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-4 md:mb-6 animate-fade-in">
             Empowering Community Living
           </h1>
-          <p className="text-xl md:text-2xl mb-8 text-gray-200">
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 md:mb-8 text-gray-200">
             Welcome to The Retreat Owners Association
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/contact"
-              className="px-8 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 rounded-full font-semibold text-lg hover:scale-105 transform transition-all duration-300 shadow-2xl hover:shadow-purple-500/50 flex items-center justify-center space-x-2"
-            >
-              <span>New Resident? Apply Here</span>
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <Link
-              to="/login-info"
-              className="px-8 py-4 bg-white/20 backdrop-blur-sm rounded-full font-semibold text-lg hover:bg-white/30 transform transition-all duration-300 border-2 border-white/50 flex items-center justify-center space-x-2"
-            >
-              <span>Already a Resident? Login</span>
-            </Link>
+          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
+            {isAuthenticated ? (
+              <>
+                <Link
+                  to="/amenities"
+                  className="px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 rounded-full font-semibold text-sm md:text-lg hover:scale-105 transform transition-all duration-300 shadow-2xl hover:shadow-purple-500/50 flex items-center justify-center space-x-2"
+                >
+                  <span>Book Amenities</span>
+                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
+                </Link>
+                <Link
+                  to="/events"
+                  className="px-6 md:px-8 py-3 md:py-4 bg-white/20 backdrop-blur-sm rounded-full font-semibold text-sm md:text-lg hover:bg-white/30 transform transition-all duration-300 border-2 border-white/50 flex items-center justify-center space-x-2"
+                >
+                  <span>View Events</span>
+                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/contact"
+                  className="px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 rounded-full font-semibold text-sm md:text-lg hover:scale-105 transform transition-all duration-300 shadow-2xl hover:shadow-purple-500/50 flex items-center justify-center space-x-2"
+                >
+                  <span>New Resident? Apply Here</span>
+                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
+                </Link>
+                <Link
+                  to="/login-info"
+                  className="px-6 md:px-8 py-3 md:py-4 bg-white/20 backdrop-blur-sm rounded-full font-semibold text-sm md:text-lg hover:bg-white/30 transform transition-all duration-300 border-2 border-white/50 flex items-center justify-center space-x-2"
+                >
+                  <span>Already a Resident? Login</span>
+                </Link>
+              </>
+            )}
           </div>
         </div>
         
