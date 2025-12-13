@@ -147,8 +147,11 @@ class Event(BaseModel):
     image: str
     event_date: str  # YYYY-MM-DD format
     event_time: str  # HH:MM format
-    amount: float
-    payment_type: str  # "per_person" or "per_villa"
+    amount: float  # Used for per_villa or per_person (uniform) pricing
+    payment_type: str  # "per_villa" or "per_person"
+    per_person_type: str = "uniform"  # "uniform" (single price) or "adult_child" (separate prices)
+    adult_price: Optional[float] = None  # Price per adult when per_person_type is "adult_child"
+    child_price: Optional[float] = None  # Price per child when per_person_type is "adult_child"
     preferences: list = []  # List of EventPreference dicts
     max_registrations: Optional[int] = None  # Optional limit
     is_active: bool = True
@@ -162,8 +165,11 @@ class EventCreate(BaseModel):
     image: str
     event_date: str  # YYYY-MM-DD
     event_time: str  # HH:MM
-    amount: float
-    payment_type: str  # "per_person" or "per_villa"
+    amount: float  # Used for per_villa or per_person (uniform) pricing
+    payment_type: str  # "per_villa" or "per_person"
+    per_person_type: str = "uniform"  # "uniform" or "adult_child"
+    adult_price: Optional[float] = None  # For adult_child pricing
+    child_price: Optional[float] = None  # For adult_child pricing
     preferences: Optional[list] = []  # List of preference objects
     max_registrations: Optional[int] = None
 
