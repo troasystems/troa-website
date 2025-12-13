@@ -425,9 +425,9 @@ async def submit_feedback(feedback: FeedbackCreate, request: Request):
 
 @api_router.get("/feedback", response_model=List[Feedback])
 async def get_all_feedback(request: Request):
-    """Get all feedback - manager and admin only"""
+    """Get all feedback - admin only"""
     try:
-        await require_manager_or_admin(request)
+        await require_admin(request)
         
         feedback_list = await db.feedback.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
         return [Feedback(**fb) for fb in feedback_list]
@@ -439,9 +439,9 @@ async def get_all_feedback(request: Request):
 
 @api_router.post("/feedback/{feedback_id}/vote")
 async def vote_feedback(feedback_id: str, request: Request):
-    """Vote/upvote feedback - manager and admin only"""
+    """Vote/upvote feedback - admin only"""
     try:
-        user = await require_manager_or_admin(request)
+        user = await require_admin(request)
         user_email = user['email']
         
         # Get feedback
