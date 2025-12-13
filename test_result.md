@@ -730,7 +730,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Database-Driven Role Management System"
+    - "Image Upload 403 Fix Verification"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
