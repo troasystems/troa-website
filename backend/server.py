@@ -351,6 +351,12 @@ async def update_user_role(user_id: str, update: UserUpdate, request: Request):
         if update.role not in ['admin', 'manager', 'user']:
             raise HTTPException(status_code=400, detail="Invalid role. Must be: admin, manager, or user")
         
+        # Check if trying to modify super admin
+        from auth import SUPER_ADMIN_EMAIL
+        user_to_update = await db.users.find_one({"id": user_id}, {"_id": 0})
+        if user_to_update and user_to_update.get('email') == SUPER_ADMIN_EMAIL:
+            raise HTTPException(status_code=400, detail="Cannot modify the super admin's role")
+        
         from datetime import datetime
         result = await db.users.find_one_and_update(
             {"id": user_id},
