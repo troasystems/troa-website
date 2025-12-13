@@ -195,10 +195,10 @@ async def create_offline_payment(payment_request: OfflinePaymentRequest):
 
 @payment_router.get("/offline-payments")
 async def get_offline_payments(request: Request):
-    """Get all offline payment requests - admin only"""
+    """Get all offline payment requests - manager and admin access"""
     try:
-        from auth import require_admin
-        await require_admin(request)
+        from auth import require_manager_or_admin
+        await require_manager_or_admin(request)
         
         payments = await db.offline_payments.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
         return payments
