@@ -875,7 +875,13 @@ const Events = () => {
                     <h3 className="font-bold text-gray-900">{selectedEvent.name}</h3>
                     <p className="text-sm text-gray-600">{formatDate(selectedEvent.event_date)} at {selectedEvent.event_time}</p>
                     <p className="text-sm font-semibold text-purple-600">
-                      ₹{selectedEvent.amount} {selectedEvent.payment_type === 'per_person' ? 'per person' : 'per villa'}
+                      {selectedEvent.payment_type === 'per_villa' ? (
+                        `₹${selectedEvent.amount} per villa`
+                      ) : selectedEvent.per_person_type === 'adult_child' ? (
+                        `₹${selectedEvent.adult_price || 0} adult / ₹${selectedEvent.child_price || 0} child`
+                      ) : (
+                        `₹${selectedEvent.amount} per person`
+                      )}
                     </p>
                   </div>
                 </div>
