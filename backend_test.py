@@ -1109,6 +1109,9 @@ class TROAAPITester:
         # Test Amenity Booking fix
         self.test_amenity_booking_fix()
         
+        # Test Unified Payment System
+        self.test_unified_payment_system()
+        
         # Test edge cases
         self.test_edge_cases()
         
