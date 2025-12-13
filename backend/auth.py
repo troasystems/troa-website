@@ -312,8 +312,15 @@ async def google_callback(code: str, state: str, request: Request):
         # Check if user exists
         existing_user = await db.users.find_one({'email': user_info['email']}, {'_id': 0})
         
-        # Determine user role
-        user_role = get_user_role(user_info['email'])
+        # Determine user role - super admin always gets admin, others check database
+        if user_info['email'] == SUPER_ADMIN_EMAIL:
+            user_role = 'admin'
+        elif existing_user and 'role' in existing_user:
+            # Use existing role from database (set by admin via User Management)
+            user_role = existing_user['role']
+        else:
+            # Default role for new users
+            user_role = 'user'
         
         user_data = {
             'email': user_info['email'],
@@ -324,7 +331,7 @@ async def google_callback(code: str, state: str, request: Request):
         }
         
         if not existing_user:
-            # Create new user
+            # Create new user with default 'user' role (admin can promote later)
             user_obj = User(
                 email=user_info['email'],
                 name=user_info.get('name', ''),
@@ -336,28 +343,23 @@ async def google_callback(code: str, state: str, request: Request):
             await db.users.insert_one(user_obj.dict())
             logger.info(f"New user created: {user_info['email']} with role: {user_role}")
         else:
-            # Update existing user - preserve custom role if admin changed it
+            # Update existing user - preserve role from database
             update_data = {
                 'name': user_info.get('name', ''),
                 'picture': user_info.get('picture', ''),
                 'last_login': datetime.utcnow()
             }
             
-            # Only update role if user doesn't have a role yet or if it's their first login with new system
-            if 'role' not in existing_user:
-                update_data['role'] = user_role
-                update_data['is_admin'] = user_role == 'admin'
-                user_data['role'] = user_role
-            else:
-                # Use existing role from database
-                user_data['role'] = existing_user.get('role', user_role)
-                user_data['is_admin'] = user_data['role'] == 'admin'
+            # Only update role for super admin to ensure they always have admin access
+            if user_info['email'] == SUPER_ADMIN_EMAIL and existing_user.get('role') != 'admin':
+                update_data['role'] = 'admin'
+                update_data['is_admin'] = True
             
             await db.users.update_one(
                 {'email': user_info['email']},
                 {'$set': update_data}
             )
-            logger.info(f"Existing user updated: {user_info['email']}")
+            logger.info(f"Existing user updated: {user_info['email']} with role: {user_role}")
         
         # Create session
         session_token = await create_session(user_data)
