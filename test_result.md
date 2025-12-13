@@ -687,10 +687,7 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Unified Payment System - Offline Payment API"
-    - "Unified Payment System - Admin Offline Payments Management"
-    - "Unified Payment System - Payment Amount Verification"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
