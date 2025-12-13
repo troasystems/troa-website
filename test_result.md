@@ -742,7 +742,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Image Upload 403 Fix Verification"
+    - "Event Pricing Options Feature"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
