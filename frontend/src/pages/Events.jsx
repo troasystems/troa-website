@@ -54,7 +54,7 @@ const Events = () => {
   });
   
   // Registration form state
-  const [registrants, setRegistrants] = useState([{ name: '', preferences: {} }]);
+  const [registrants, setRegistrants] = useState([{ name: '', registrant_type: 'adult', preferences: {} }]);
   const [paymentMethod, setPaymentMethod] = useState('online');
   const [registering, setRegistering] = useState(false);
   
