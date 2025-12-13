@@ -132,7 +132,9 @@ const Events = () => {
     try {
       const payload = {
         ...eventForm,
-        amount: parseFloat(eventForm.amount),
+        amount: parseFloat(eventForm.amount) || 0,
+        adult_price: eventForm.per_person_type === 'adult_child' ? parseFloat(eventForm.adult_price) || 0 : null,
+        child_price: eventForm.per_person_type === 'adult_child' ? parseFloat(eventForm.child_price) || 0 : null,
         max_registrations: eventForm.max_registrations ? parseInt(eventForm.max_registrations) : null
       };
       
