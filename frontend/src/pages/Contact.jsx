@@ -471,7 +471,7 @@ const Contact = () => {
                           <p className="font-semibold text-purple-800 mb-3 text-center">Scan QR Code to Pay</p>
                           <div className="flex justify-center mb-3">
                             <img 
-                              src="https://customer-assets.emergentagent.com/job_troaresidents/artifacts/4hvho9rv_WhatsApp%20Image%202025-12-13%20at%2011.32.42.jpeg" 
+                              src="https://customer-assets.emergentagent.com/job_troaresidents/artifacts/3fccs09u_Screenshot%202025-12-13%20at%201.06.58%E2%80%AFPM.png" 
                               alt="Payment QR Code" 
                               className="w-56 h-56 object-contain border-2 border-gray-200 rounded-lg shadow-md"
                             />
