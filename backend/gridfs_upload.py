@@ -228,12 +228,11 @@ async def get_storage_stats(request: Request):
         
         bucket, client, db = await get_gridfs_bucket()
         
-        # Count files and total size
-        cursor = bucket.find({})
-        files = await cursor.to_list(length=1000)
+        # Count files and total size using collection
+        files = await db["images.files"].find({}).to_list(length=1000)
         
         total_files = len(files)
-        total_size = sum(f.length for f in files)
+        total_size = sum(f.get("length", 0) for f in files)
         
         client.close()
         
