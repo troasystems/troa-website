@@ -161,7 +161,7 @@ const Contact = () => {
                   <div>
                     <h3 className="font-semibold text-blue-900 mb-1">Already living in The Retreat?</h3>
                     <p className="text-sm text-blue-800 mb-3">
-                      If you are already a resident of The Retreat community, you don't need to apply for membership. Simply login with your registered email to access all features.
+                      If you are already a resident of The Retreat community, you don&apos;t need to apply for membership. Simply login with your registered email to access all features.
                     </p>
                     <Link
                       to="/login-info"
