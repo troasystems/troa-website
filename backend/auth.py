@@ -24,25 +24,46 @@ logger = logging.getLogger(__name__)
 oauth = OAuth()
 
 # Role-based email lists
-ADMIN_EMAIL = 'troa.systems@gmail.com'
-MANAGER_EMAILS = [
-    'troa.mgr@gmail.com',
-    'troa.secretary@gmail.com',
-    'troa.treasurer@gmail.com',
-    'president.troa@gmail.com'
-]
+# ADMIN_EMAIL is the "super admin" that can never lose admin access
+# This is a safety measure to ensure there's always at least one admin
+SUPER_ADMIN_EMAIL = 'troa.systems@gmail.com'
 
-# Legacy support
+# Legacy support - kept for backward compatibility
+ADMIN_EMAIL = SUPER_ADMIN_EMAIL
 ADMIN_EMAILS = [ADMIN_EMAIL]
 
-def get_user_role(email: str) -> str:
-    """Determine user role based on email"""
-    if email == ADMIN_EMAIL:
+# Note: Manager roles are now stored in the database and managed via User Management
+# The hardcoded MANAGER_EMAILS list has been removed - use the database instead
+
+async def get_user_role_from_db(email: str) -> str:
+    """Get user role from database, with super admin override"""
+    # Super admin always gets admin role
+    if email == SUPER_ADMIN_EMAIL:
         return 'admin'
-    elif email in MANAGER_EMAILS:
-        return 'manager'
-    else:
-        return 'user'
+    
+    # Check database for existing user role
+    from motor.motor_asyncio import AsyncIOMotorClient
+    mongo_url = os.getenv('MONGO_URL', 'mongodb://localhost:27017')
+    db_name = os.getenv('DB_NAME', 'test_database')
+    client = AsyncIOMotorClient(mongo_url)
+    db = client[db_name]
+    
+    try:
+        user = await db.users.find_one({'email': email}, {'_id': 0, 'role': 1})
+        if user and 'role' in user:
+            return user['role']
+    finally:
+        client.close()
+    
+    # Default role for new users
+    return 'user'
+
+def get_user_role(email: str) -> str:
+    """Synchronous version - only checks super admin, returns 'user' for others
+    For full role check, use get_user_role_from_db() async function"""
+    if email == SUPER_ADMIN_EMAIL:
+        return 'admin'
+    return 'user'
 
 # Get OAuth credentials
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
