@@ -206,13 +206,13 @@ const Navbar = () => {
 
         {/* Mobile Menu */}
         {isOpen && (
-          <div className="md:hidden pb-4 space-y-2">
+          <div className="md:hidden pb-3 space-y-1">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 onClick={() => setIsOpen(false)}
-                className={`relative block px-4 py-3 rounded-lg font-medium transition-all duration-300 ${
+                className={`relative block px-3 py-2 rounded-lg font-medium text-sm transition-all duration-300 ${
                   isActive(item.path)
                     ? 'bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white'
                     : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-100 hover:to-pink-100'
@@ -222,14 +222,14 @@ const Navbar = () => {
                   {item.name}
                   {/* Book Now bubble for Amenities when logged in */}
                   {item.name === 'Amenities' && isAuthenticated && (
-                    <span className="px-2 py-0.5 text-[10px] font-bold bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full shadow-lg">
-                      Book Now
+                    <span className="px-1.5 py-0.5 text-[9px] font-bold bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full shadow-lg">
+                      Book
                     </span>
                   )}
                   {/* Upcoming bubble for Events when there's an event in next 30 days */}
                   {item.name === 'Events' && hasUpcomingEvent && (
-                    <span className="px-2 py-0.5 text-[10px] font-bold bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full shadow-lg">
-                      Upcoming
+                    <span className="px-1.5 py-0.5 text-[9px] font-bold bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full shadow-lg animate-pulse">
+                      New
                     </span>
                   )}
                 </span>
@@ -241,7 +241,7 @@ const Navbar = () => {
               <Link
                 to="/feedback"
                 onClick={() => setIsOpen(false)}
-                className={`block px-4 py-3 rounded-lg font-medium transition-all duration-300 ${
+                className={`block px-3 py-2 rounded-lg font-medium text-sm transition-all duration-300 ${
                   isActive('/feedback')
                     ? 'bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white'
                     : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-100 hover:to-pink-100'
@@ -253,16 +253,30 @@ const Navbar = () => {
             
             {/* Mobile Auth */}
             {isAuthenticated ? (
-              <>
-                <div className="px-4 py-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm font-semibold text-gray-900">{user?.name}</p>
-                  <p className="text-xs text-gray-600">{user?.email}</p>
+              <div className="pt-2 border-t border-gray-200 mt-2 space-y-1">
+                <div className="px-3 py-2 bg-gray-50 rounded-lg">
+                  <p className="text-xs font-semibold text-gray-900">{user?.name}</p>
+                  <p className="text-[10px] text-gray-600">{user?.email}</p>
                 </div>
+                <Link
+                  to="/my-bookings"
+                  onClick={() => setIsOpen(false)}
+                  className="block px-3 py-2 rounded-lg font-medium text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  My Bookings
+                </Link>
+                <Link
+                  to="/my-events"
+                  onClick={() => setIsOpen(false)}
+                  className="block px-3 py-2 rounded-lg font-medium text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  My Events
+                </Link>
                 {isAdmin && (
                   <Link
                     to="/admin"
                     onClick={() => setIsOpen(false)}
-                    className="block px-4 py-3 rounded-lg font-medium text-purple-600 hover:bg-purple-50"
+                    className="block px-3 py-2 rounded-lg font-medium text-sm text-purple-600 hover:bg-purple-50"
                   >
                     Admin Portal
                   </Link>
@@ -272,16 +286,16 @@ const Navbar = () => {
                     setIsOpen(false);
                     logout();
                   }}
-                  className="block w-full text-left px-4 py-3 rounded-lg font-medium text-red-600 hover:bg-red-50"
+                  className="block w-full text-left px-3 py-2 rounded-lg font-medium text-sm text-red-600 hover:bg-red-50"
                 >
                   Logout
                 </button>
-              </>
+              </div>
             ) : (
               <Link
                 to="/login-info"
                 onClick={() => setIsOpen(false)}
-                className="block w-full px-4 py-3 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white rounded-lg font-medium text-center"
+                className="block w-full px-3 py-2 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white rounded-lg font-medium text-sm text-center mt-2"
               >
                 Login
               </Link>
