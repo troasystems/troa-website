@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from '../hooks/use-toast';
-import { Mail, Phone, MapPin, Send, CreditCard } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, CreditCard, LogIn, Info } from 'lucide-react';
 import { Toaster } from '../components/ui/toaster';
 
 import { getBackendUrl } from '../utils/api';
