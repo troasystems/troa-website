@@ -212,11 +212,11 @@ const EventsManagement = () => {
                           </span>
                           {/* Payment Method Badge */}
                           <span className={`px-2 py-1 text-xs font-medium rounded flex items-center gap-1 ${
-                            reg.payment_method === 'online' 
+                            (isMod ? reg.modification_payment_method : reg.payment_method) === 'online' 
                               ? 'bg-blue-100 text-blue-700' 
                               : 'bg-purple-100 text-purple-700'
                           }`}>
-                            {reg.payment_method === 'online' ? (
+                            {(isMod ? reg.modification_payment_method : reg.payment_method) === 'online' ? (
                               <>
                                 <CreditCard className="w-3 h-3" />
                                 Online Payment
