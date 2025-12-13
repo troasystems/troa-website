@@ -54,6 +54,47 @@ const Contact = () => {
   };
 
   const handlePayMembership = async () => {
+    if (paymentMethod === 'offline') {
+      // Handle offline payment
+      setSubmittingOffline(true);
+      try {
+        await axios.post(`${getAPI()}/payment/offline-payment`, {
+          payment_type: 'membership',
+          payment_method: 'qr_code',
+          name: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          phone: formData.phone,
+          villa_no: formData.villaNo,
+          notes: 'Membership application - offline payment'
+        });
+
+        toast({
+          title: 'Payment Request Submitted!',
+          description: 'Your offline payment request has been submitted. Admin will verify and approve it shortly.'
+        });
+
+        setShowPaymentOption(false);
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          villaNo: '',
+          message: ''
+        });
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to submit offline payment request',
+          variant: 'destructive'
+        });
+      } finally {
+        setSubmittingOffline(false);
+      }
+      return;
+    }
+
+    // Online payment via Razorpay
     try {
       // Create order
       const orderResponse = await axios.post(`${getAPI()}/payment/create-order`, {
@@ -91,7 +132,7 @@ const Contact = () => {
 
             toast({
               title: 'Payment Successful!',
-              description: '₹11,800 membership fee paid successfully'
+              description: 'Membership fee (₹10,000 + 18% GST) paid successfully'
             });
 
             setShowPaymentOption(false);
