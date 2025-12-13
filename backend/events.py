@@ -69,6 +69,12 @@ async def create_event(event_data: EventCreate, request: Request):
     if event_data.payment_type not in ["per_person", "per_villa"]:
         raise HTTPException(status_code=400, detail="Payment type must be 'per_person' or 'per_villa'")
     
+    # Validate per_person_type and prices
+    per_person_type = event_data.per_person_type or "uniform"
+    if event_data.payment_type == "per_person" and per_person_type == "adult_child":
+        if event_data.adult_price is None or event_data.child_price is None:
+            raise HTTPException(status_code=400, detail="Adult and child prices are required for adult/child pricing")
+    
     db, client = await get_db()
     try:
         event = Event(
@@ -79,6 +85,9 @@ async def create_event(event_data: EventCreate, request: Request):
             event_time=event_data.event_time,
             amount=event_data.amount,
             payment_type=event_data.payment_type,
+            per_person_type=per_person_type,
+            adult_price=event_data.adult_price,
+            child_price=event_data.child_price,
             preferences=event_data.preferences or [],
             max_registrations=event_data.max_registrations,
             created_by=admin['email']
