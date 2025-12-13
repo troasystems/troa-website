@@ -226,9 +226,12 @@ const Contact = () => {
 
             {/* Membership Form */}
             <div className="bg-white rounded-2xl shadow-2xl p-8">
-              <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
-                Membership Form
+              <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+                New Member Application
               </h2>
+              <p className="text-sm text-gray-600 mb-6">
+                For new property owners or tenants only. Existing residents should login instead.
+              </p>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
