@@ -722,6 +722,18 @@ frontend:
           agent: "testing"
           comment: "✅ Performance and error handling excellent. No console errors found during testing. Images load properly across all pages. API connections working correctly - all backend integrations functional. Page load times are acceptable. No JavaScript errors or broken functionality detected."
 
+  - task: "Event Pricing Options Feature"
+    implemented: true
+    working: true
+    file: "/app/backend/events.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Event Pricing Options Feature testing completed successfully. All 6 test scenarios passed with comprehensive validation: ✅ Per Villa Pricing: Successfully created events with flat rate pricing (₹1000 for entire villa regardless of attendee count). Registration correctly charges ₹1000 for 4 people. ✅ Uniform Per Person Pricing: Successfully created events with single per-person rate (₹500 per person). ✅ Adult/Child Pricing: Successfully created events with separate adult (₹500) and child (₹250) pricing. Registration correctly calculated ₹1250 total for 2 adults + 1 child. ✅ Validation Testing: Correctly rejected adult_child events missing adult_price or child_price with 400 error. ✅ Payment Type Support: All three pricing models (per_villa, per_person uniform, per_person adult_child) working with both online and offline payment methods. ✅ Database Integration: New fields (per_person_type, adult_price, child_price, registrant_type) properly stored and retrieved. ✅ API Endpoints: POST /api/events validates pricing configuration, POST /api/events/{id}/register calculates totals correctly based on pricing type. Feature is production-ready and meets all requirements from the review request."
+
 metadata:
   created_by: "testing_agent"
   version: "1.0"
