@@ -1277,6 +1277,415 @@ class TROAAPITester:
                 self.test_results['event_pricing']['per_villa_registration'] = False
                 self.log_error(f"/events/{self.per_villa_event_id}/register", "POST", f"Exception: {str(e)}")
 
+    def test_event_registration_modification(self):
+        """Test Event Registration Modification Flow"""
+        print("\n🧪 Testing Event Registration Modification Flow...")
+        
+        # Test 1: Uniform Per Person Pricing Modification
+        print("\n📋 Test 1: Uniform Per Person Pricing Modification")
+        try:
+            # Create event with uniform per person pricing
+            future_date = (datetime.now() + timedelta(days=10)).strftime('%Y-%m-%d')
+            uniform_event = {
+                "name": "Uniform Pricing Test Event",
+                "description": "Test event for uniform per person pricing modification",
+                "image": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800",
+                "event_date": future_date,
+                "event_time": "18:00",
+                "amount": 100.0,
+                "payment_type": "per_person",
+                "per_person_type": "uniform",
+                "preferences": [{"name": "Food Preference", "options": ["Veg", "Non-Veg"]}],
+                "max_registrations": 50
+            }
+            
+            response = requests.post(f"{self.base_url}/events", 
+                                   json=uniform_event, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                uniform_event_id = response.json()['id']
+                
+                # Register with 2 people (total: 200)
+                registration_data = {
+                    "event_id": uniform_event_id,
+                    "registrants": [
+                        {"name": "Alice Smith", "preferences": {"Food Preference": "Veg"}},
+                        {"name": "Bob Smith", "preferences": {"Food Preference": "Non-Veg"}}
+                    ],
+                    "payment_method": "offline"
+                }
+                
+                response = requests.post(f"{self.base_url}/events/{uniform_event_id}/register", 
+                                       json=registration_data, 
+                                       headers=self.auth_headers,
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    registration_id = response.json()['id']
+                    
+                    # Modify to add 1 more person (new total: 300)
+                    modification_data = {
+                        "registrants": [
+                            {"name": "Alice Smith", "preferences": {"Food Preference": "Veg"}},
+                            {"name": "Bob Smith", "preferences": {"Food Preference": "Non-Veg"}},
+                            {"name": "Charlie Smith", "preferences": {"Food Preference": "Veg"}}
+                        ],
+                        "payment_method": "online"
+                    }
+                    
+                    response = requests.patch(f"{self.base_url}/events/registrations/{registration_id}/modify", 
+                                            json=modification_data, 
+                                            headers=self.auth_headers,
+                                            timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        if (data.get('requires_payment') == True and 
+                            data.get('additional_amount') == 100):
+                            self.test_results['event_modification']['uniform_per_person_mod'] = True
+                            self.log_success("Uniform Per Person Modification", "PATCH", f"- Requires payment: {data['requires_payment']}, Additional amount: ₹{data['additional_amount']}")
+                        else:
+                            self.test_results['event_modification']['uniform_per_person_mod'] = False
+                            self.log_error("Uniform Per Person Modification", "PATCH", f"Expected requires_payment=True, additional_amount=100, got: {data}")
+                    else:
+                        self.test_results['event_modification']['uniform_per_person_mod'] = False
+                        self.log_error("Uniform Per Person Modification", "PATCH", f"Status code: {response.status_code}")
+                else:
+                    self.test_results['event_modification']['uniform_per_person_mod'] = False
+                    self.log_error("Uniform Per Person Registration", "POST", f"Status code: {response.status_code}")
+            else:
+                self.test_results['event_modification']['uniform_per_person_mod'] = False
+                self.log_error("Uniform Per Person Event Creation", "POST", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['event_modification']['uniform_per_person_mod'] = False
+            self.log_error("Uniform Per Person Modification", "TEST", f"Exception: {str(e)}")
+
+        # Test 2: Adult/Child Pricing Modification
+        print("\n📋 Test 2: Adult/Child Pricing Modification")
+        try:
+            # Create event with adult/child pricing
+            future_date = (datetime.now() + timedelta(days=12)).strftime('%Y-%m-%d')
+            adult_child_event = {
+                "name": "Adult Child Pricing Test Event",
+                "description": "Test event for adult/child pricing modification",
+                "image": "https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=800",
+                "event_date": future_date,
+                "event_time": "10:00",
+                "amount": 0,
+                "payment_type": "per_person",
+                "per_person_type": "adult_child",
+                "adult_price": 500.0,
+                "child_price": 250.0,
+                "preferences": [{"name": "Activity", "options": ["Games", "Sports"]}],
+                "max_registrations": 50
+            }
+            
+            response = requests.post(f"{self.base_url}/events", 
+                                   json=adult_child_event, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                adult_child_event_id = response.json()['id']
+                
+                # Register with 1 adult (total: 500)
+                registration_data = {
+                    "event_id": adult_child_event_id,
+                    "registrants": [
+                        {"name": "John Doe", "registrant_type": "adult", "preferences": {"Activity": "Games"}}
+                    ],
+                    "payment_method": "offline"
+                }
+                
+                response = requests.post(f"{self.base_url}/events/{adult_child_event_id}/register", 
+                                       json=registration_data, 
+                                       headers=self.auth_headers,
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    registration_id = response.json()['id']
+                    
+                    # Modify to add 1 adult and 1 child (new total: 500 + 500 + 250 = 1250)
+                    modification_data = {
+                        "registrants": [
+                            {"name": "John Doe", "registrant_type": "adult", "preferences": {"Activity": "Games"}},
+                            {"name": "Jane Doe", "registrant_type": "adult", "preferences": {"Activity": "Sports"}},
+                            {"name": "Little Doe", "registrant_type": "child", "preferences": {"Activity": "Games"}}
+                        ],
+                        "payment_method": "offline"
+                    }
+                    
+                    response = requests.patch(f"{self.base_url}/events/registrations/{registration_id}/modify", 
+                                            json=modification_data, 
+                                            headers=self.auth_headers,
+                                            timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        if (data.get('requires_payment') == True and 
+                            data.get('additional_amount') == 750):
+                            self.test_results['event_modification']['adult_child_mod'] = True
+                            self.log_success("Adult/Child Modification", "PATCH", f"- Requires payment: {data['requires_payment']}, Additional amount: ₹{data['additional_amount']}")
+                        else:
+                            self.test_results['event_modification']['adult_child_mod'] = False
+                            self.log_error("Adult/Child Modification", "PATCH", f"Expected requires_payment=True, additional_amount=750, got: {data}")
+                    else:
+                        self.test_results['event_modification']['adult_child_mod'] = False
+                        self.log_error("Adult/Child Modification", "PATCH", f"Status code: {response.status_code}")
+                else:
+                    self.test_results['event_modification']['adult_child_mod'] = False
+                    self.log_error("Adult/Child Registration", "POST", f"Status code: {response.status_code}")
+            else:
+                self.test_results['event_modification']['adult_child_mod'] = False
+                self.log_error("Adult/Child Event Creation", "POST", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['event_modification']['adult_child_mod'] = False
+            self.log_error("Adult/Child Modification", "TEST", f"Exception: {str(e)}")
+
+        # Test 3: Per Villa Pricing Modification
+        print("\n📋 Test 3: Per Villa Pricing Modification")
+        try:
+            # Create event with per villa pricing
+            future_date = (datetime.now() + timedelta(days=14)).strftime('%Y-%m-%d')
+            per_villa_event = {
+                "name": "Per Villa Pricing Test Event",
+                "description": "Test event for per villa pricing modification",
+                "image": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800",
+                "event_date": future_date,
+                "event_time": "16:00",
+                "amount": 1000.0,
+                "payment_type": "per_villa",
+                "preferences": [{"name": "Music", "options": ["DJ", "Live Band"]}],
+                "max_registrations": 20
+            }
+            
+            response = requests.post(f"{self.base_url}/events", 
+                                   json=per_villa_event, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                per_villa_event_id = response.json()['id']
+                
+                # Register with 2 people (total: 1000)
+                registration_data = {
+                    "event_id": per_villa_event_id,
+                    "registrants": [
+                        {"name": "Villa Owner", "preferences": {"Music": "DJ"}},
+                        {"name": "Villa Guest", "preferences": {"Music": "Live Band"}}
+                    ],
+                    "payment_method": "offline"
+                }
+                
+                response = requests.post(f"{self.base_url}/events/{per_villa_event_id}/register", 
+                                       json=registration_data, 
+                                       headers=self.auth_headers,
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    registration_id = response.json()['id']
+                    
+                    # Modify to add 2 more people (should be free as per villa)
+                    modification_data = {
+                        "registrants": [
+                            {"name": "Villa Owner", "preferences": {"Music": "DJ"}},
+                            {"name": "Villa Guest", "preferences": {"Music": "Live Band"}},
+                            {"name": "Villa Friend 1", "preferences": {"Music": "DJ"}},
+                            {"name": "Villa Friend 2", "preferences": {"Music": "Live Band"}}
+                        ],
+                        "payment_method": "offline"
+                    }
+                    
+                    response = requests.patch(f"{self.base_url}/events/registrations/{registration_id}/modify", 
+                                            json=modification_data, 
+                                            headers=self.auth_headers,
+                                            timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get('requires_payment') == False:
+                            self.test_results['event_modification']['per_villa_mod'] = True
+                            self.log_success("Per Villa Modification", "PATCH", f"- Requires payment: {data['requires_payment']} (correct for per villa)")
+                        else:
+                            self.test_results['event_modification']['per_villa_mod'] = False
+                            self.log_error("Per Villa Modification", "PATCH", f"Expected requires_payment=False, got: {data}")
+                    else:
+                        self.test_results['event_modification']['per_villa_mod'] = False
+                        self.log_error("Per Villa Modification", "PATCH", f"Status code: {response.status_code}")
+                else:
+                    self.test_results['event_modification']['per_villa_mod'] = False
+                    self.log_error("Per Villa Registration", "POST", f"Status code: {response.status_code}")
+            else:
+                self.test_results['event_modification']['per_villa_mod'] = False
+                self.log_error("Per Villa Event Creation", "POST", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['event_modification']['per_villa_mod'] = False
+            self.log_error("Per Villa Modification", "TEST", f"Exception: {str(e)}")
+
+        # Test 4: Offline Payment Modification Status
+        print("\n📋 Test 4: Offline Payment Modification Status")
+        try:
+            if self.uniform_event_id:  # Use existing uniform event
+                # Create a new registration for offline modification test
+                registration_data = {
+                    "event_id": self.uniform_event_id,
+                    "registrants": [
+                        {"name": "Offline Test User", "preferences": {"Experience Level": "Beginner"}}
+                    ],
+                    "payment_method": "offline"
+                }
+                
+                response = requests.post(f"{self.base_url}/events/{self.uniform_event_id}/register", 
+                                       json=registration_data, 
+                                       headers=self.auth_headers,
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    registration_id = response.json()['id']
+                    
+                    # Modify with offline payment method
+                    modification_data = {
+                        "registrants": [
+                            {"name": "Offline Test User", "preferences": {"Experience Level": "Beginner"}},
+                            {"name": "Offline Test User 2", "preferences": {"Experience Level": "Intermediate"}}
+                        ],
+                        "payment_method": "offline"
+                    }
+                    
+                    response = requests.patch(f"{self.base_url}/events/registrations/{registration_id}/modify", 
+                                            json=modification_data, 
+                                            headers=self.auth_headers,
+                                            timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        if (data.get('requires_payment') == True and 
+                            data.get('payment_method') == 'offline'):
+                            self.test_results['event_modification']['offline_payment_mod'] = True
+                            self.log_success("Offline Payment Modification", "PATCH", f"- Payment method: {data['payment_method']}, Status should be pending_modification_approval")
+                        else:
+                            self.test_results['event_modification']['offline_payment_mod'] = False
+                            self.log_error("Offline Payment Modification", "PATCH", f"Expected offline payment method, got: {data}")
+                    else:
+                        self.test_results['event_modification']['offline_payment_mod'] = False
+                        self.log_error("Offline Payment Modification", "PATCH", f"Status code: {response.status_code}")
+                else:
+                    self.test_results['event_modification']['offline_payment_mod'] = False
+                    self.log_error("Offline Payment Registration", "POST", f"Status code: {response.status_code}")
+            else:
+                self.test_results['event_modification']['offline_payment_mod'] = False
+                self.log_error("Offline Payment Modification", "SETUP", "No uniform event available for testing")
+        except Exception as e:
+            self.test_results['event_modification']['offline_payment_mod'] = False
+            self.log_error("Offline Payment Modification", "TEST", f"Exception: {str(e)}")
+
+        # Test 5: Online Payment Modification Order Creation
+        print("\n📋 Test 5: Online Payment Modification Order Creation")
+        try:
+            if self.uniform_event_id:  # Use existing uniform event
+                # Create a new registration for online modification test
+                registration_data = {
+                    "event_id": self.uniform_event_id,
+                    "registrants": [
+                        {"name": "Online Test User", "preferences": {"Experience Level": "Advanced"}}
+                    ],
+                    "payment_method": "offline"  # Initial registration offline
+                }
+                
+                response = requests.post(f"{self.base_url}/events/{self.uniform_event_id}/register", 
+                                       json=registration_data, 
+                                       headers=self.auth_headers,
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    registration_id = response.json()['id']
+                    
+                    # Modify with online payment method
+                    modification_data = {
+                        "registrants": [
+                            {"name": "Online Test User", "preferences": {"Experience Level": "Advanced"}},
+                            {"name": "Online Test User 2", "preferences": {"Experience Level": "Beginner"}}
+                        ],
+                        "payment_method": "online"
+                    }
+                    
+                    response = requests.patch(f"{self.base_url}/events/registrations/{registration_id}/modify", 
+                                            json=modification_data, 
+                                            headers=self.auth_headers,
+                                            timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        if (data.get('requires_payment') == True and 
+                            data.get('payment_method') == 'online'):
+                            
+                            # Test create modification order endpoint
+                            response = requests.post(f"{self.base_url}/events/registrations/{registration_id}/create-modification-order", 
+                                                   headers=self.auth_headers,
+                                                   timeout=10)
+                            
+                            if response.status_code == 200:
+                                order_data = response.json()
+                                if ('order_id' in order_data and 
+                                    'amount' in order_data and 
+                                    'key_id' in order_data):
+                                    self.test_results['event_modification']['online_payment_mod'] = True
+                                    self.test_results['event_modification']['create_modification_order'] = True
+                                    self.log_success("Online Payment Modification", "PATCH", f"- Payment method: {data['payment_method']}")
+                                    self.log_success("Create Modification Order", "POST", f"- Order ID: {order_data['order_id']}, Amount: ₹{order_data['amount']/100}")
+                                else:
+                                    self.test_results['event_modification']['online_payment_mod'] = True
+                                    self.test_results['event_modification']['create_modification_order'] = False
+                                    self.log_error("Create Modification Order", "POST", f"Invalid response structure: {order_data}")
+                            else:
+                                self.test_results['event_modification']['online_payment_mod'] = True
+                                self.test_results['event_modification']['create_modification_order'] = False
+                                self.log_error("Create Modification Order", "POST", f"Status code: {response.status_code}")
+                        else:
+                            self.test_results['event_modification']['online_payment_mod'] = False
+                            self.test_results['event_modification']['create_modification_order'] = False
+                            self.log_error("Online Payment Modification", "PATCH", f"Expected online payment method, got: {data}")
+                    else:
+                        self.test_results['event_modification']['online_payment_mod'] = False
+                        self.test_results['event_modification']['create_modification_order'] = False
+                        self.log_error("Online Payment Modification", "PATCH", f"Status code: {response.status_code}")
+                else:
+                    self.test_results['event_modification']['online_payment_mod'] = False
+                    self.test_results['event_modification']['create_modification_order'] = False
+                    self.log_error("Online Payment Registration", "POST", f"Status code: {response.status_code}")
+            else:
+                self.test_results['event_modification']['online_payment_mod'] = False
+                self.test_results['event_modification']['create_modification_order'] = False
+                self.log_error("Online Payment Modification", "SETUP", "No uniform event available for testing")
+        except Exception as e:
+            self.test_results['event_modification']['online_payment_mod'] = False
+            self.test_results['event_modification']['create_modification_order'] = False
+            self.log_error("Online Payment Modification", "TEST", f"Exception: {str(e)}")
+
+        # Test 6: My Status Endpoint
+        print("\n📋 Test 6: My Status Endpoint")
+        try:
+            response = requests.get(f"{self.base_url}/events/my/status", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, dict):
+                    self.test_results['event_modification']['my_status'] = True
+                    self.log_success("/events/my/status", "GET", f"- Found {len(data)} user registrations mapping")
+                else:
+                    self.test_results['event_modification']['my_status'] = False
+                    self.log_error("/events/my/status", "GET", "Response is not a dict")
+            else:
+                self.test_results['event_modification']['my_status'] = False
+                self.log_error("/events/my/status", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['event_modification']['my_status'] = False
+            self.log_error("/events/my/status", "GET", f"Exception: {str(e)}")
+
     def test_edge_cases(self):
         """Test edge cases and error scenarios"""
         print("\n🧪 Testing Edge Cases and Error Scenarios...")
