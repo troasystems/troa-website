@@ -1844,6 +1844,8 @@ class TROAAPITester:
                             display_endpoint = f"upload/image/{method}"
                         elif endpoint == 'unified_payment':
                             display_endpoint = f"payment/{method}"
+                        elif endpoint == 'event_modification':
+                            display_endpoint = f"events/modification/{method}"
                         else:
                             display_endpoint = f"{endpoint}/{method}"
                             
