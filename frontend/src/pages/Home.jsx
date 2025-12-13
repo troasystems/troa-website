@@ -205,33 +205,66 @@ const Home = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+      <section className="py-12 md:py-20 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
-            Join Our Community
-          </h2>
-          <p className="text-xl text-gray-700 mb-4">
-            <strong>New to The Retreat?</strong> If you have recently purchased a property or rented a villa, complete the membership form to get started.
-          </p>
-          <p className="text-lg text-gray-600 mb-8">
-            <strong>Already a resident?</strong> You can directly login to access amenity bookings, events, and more.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/contact"
-              className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-full font-semibold text-lg hover:scale-105 transform transition-all duration-300 shadow-2xl hover:shadow-purple-500/50"
-            >
-              <span>Apply for Membership</span>
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <Link
-              to="/login-info"
-              className="inline-flex items-center space-x-2 px-8 py-4 bg-white border-2 border-purple-600 text-purple-600 rounded-full font-semibold text-lg hover:bg-purple-50 transform transition-all duration-300"
-            >
-              <span>Login as Resident</span>
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-          </div>
+          {isAuthenticated ? (
+            <>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+                Welcome Back!
+              </h2>
+              <div className="flex items-center justify-center space-x-2 text-green-600 mb-4">
+                <CheckCircle className="w-5 h-5 md:w-6 md:h-6" />
+                <span className="text-base md:text-lg font-medium">You are logged in as a member</span>
+              </div>
+              <p className="text-sm md:text-base lg:text-lg text-gray-600 mb-6 md:mb-8">
+                Explore community amenities, register for events, and stay connected with The Retreat.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
+                <Link
+                  to="/amenities"
+                  className="inline-flex items-center justify-center space-x-2 px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-full font-semibold text-sm md:text-lg hover:scale-105 transform transition-all duration-300 shadow-2xl hover:shadow-purple-500/50"
+                >
+                  <span>Book Amenities</span>
+                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
+                </Link>
+                <Link
+                  to="/events"
+                  className="inline-flex items-center justify-center space-x-2 px-6 md:px-8 py-3 md:py-4 bg-white border-2 border-purple-600 text-purple-600 rounded-full font-semibold text-sm md:text-lg hover:bg-purple-50 transform transition-all duration-300"
+                >
+                  <span>View Events</span>
+                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+                Join Our Community
+              </h2>
+              <p className="text-sm md:text-base lg:text-xl text-gray-700 mb-3 md:mb-4">
+                <strong>New to The Retreat?</strong> If you have recently purchased a property or rented a villa, complete the membership form to get started.
+              </p>
+              <p className="text-sm md:text-base lg:text-lg text-gray-600 mb-6 md:mb-8">
+                <strong>Already a resident?</strong> You can directly login to access amenity bookings, events, and more.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
+                <Link
+                  to="/contact"
+                  className="inline-flex items-center justify-center space-x-2 px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-full font-semibold text-sm md:text-lg hover:scale-105 transform transition-all duration-300 shadow-2xl hover:shadow-purple-500/50"
+                >
+                  <span>Apply for Membership</span>
+                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
+                </Link>
+                <Link
+                  to="/login-info"
+                  className="inline-flex items-center justify-center space-x-2 px-6 md:px-8 py-3 md:py-4 bg-white border-2 border-purple-600 text-purple-600 rounded-full font-semibold text-sm md:text-lg hover:bg-purple-50 transform transition-all duration-300"
+                >
+                  <span>Login as Resident</span>
+                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
+                </Link>
+              </div>
+            </>
+          )}
         </div>
       </section>
     </div>
