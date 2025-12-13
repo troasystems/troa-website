@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from '../hooks/use-toast';
-import { Mail, Phone, MapPin, Send, CreditCard, LogIn, Info } from 'lucide-react';
+import { MapPin, Send, CreditCard, LogIn, Info, CheckCircle } from 'lucide-react';
 import { Toaster } from '../components/ui/toaster';
+import { useAuth } from '../context/AuthContext';
 
 import { getBackendUrl } from '../utils/api';
 const getAPI = () => `${getBackendUrl()}/api`;
 
 const Contact = () => {
+  const { isAuthenticated, user } = useAuth();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
