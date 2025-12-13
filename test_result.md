@@ -357,6 +357,18 @@ backend:
           agent: "testing"
           comment: "✅ Events Registration Modification Feature testing completed successfully. All 5 new endpoints working perfectly: 1) GET /api/events/my/status - Returns user's registration status mapping event_id to registration_id 2) PATCH /api/events/registrations/{id}/modify - Correctly handles adding people (requires payment for per_person events), removing people (updates directly), supports both online and offline payment methods 3) POST /api/events/registrations/{id}/create-modification-order - Creates Razorpay payment orders for additional payments 4) POST /api/events/registrations/{id}/complete-modification-payment - Completes online modification payments 5) POST /api/events/registrations/{id}/approve-modification - Admin approval for offline modification payments. All endpoints require proper authentication, handle edge cases correctly, and maintain data integrity. Payment calculations accurate (₹50 per additional person for per_person events). Feature is production-ready."
 
+  - task: "GridFS Image Storage System"
+    implemented: true
+    working: true
+    file: "/app/backend/gridfs_upload.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ GridFS Image Storage system testing completed successfully. GET /api/upload/image/{filename} endpoint working perfectly for all tested images: 87b85abf-1066-4288-8af4-0ad4075cedcd.webp, 4f5739a8-23c8-40ff-be81-a9f496a75e31.png, and 0deb1f66-a518-4ee2-b8d6-953328859b0f.jpeg. All images served with correct Content-Type headers (image/webp, image/png, image/jpeg). Browser caching implemented correctly with Cache-Control: public, max-age=2592000 (30 days). ETag support working - all images return proper ETag headers with MD5 hash. 304 Not Modified responses working correctly when client sends If-None-Match header with matching ETag. 404 responses correctly returned for non-existent images. GridFS integration with MongoDB working perfectly - 21 images stored and accessible. Production-ready image serving system with proper caching and performance optimization."
+
 frontend:
   - task: "Events Feature - Frontend Events Page UI"
     implemented: true
