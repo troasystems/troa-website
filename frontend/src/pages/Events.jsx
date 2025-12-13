@@ -900,7 +900,7 @@ const Events = () => {
                         <img 
                           src="https://customer-assets.emergentagent.com/job_troaresidents/artifacts/4hvho9rv_WhatsApp%20Image%202025-12-13%20at%2011.32.42.jpeg" 
                           alt="Payment QR Code" 
-                          className="w-40 h-40 object-contain border rounded-lg"
+                          className="w-56 h-56 object-contain border-2 border-gray-200 rounded-lg shadow-md"
                         />
                       </div>
                       <p className="text-xs text-gray-600 text-center">Or pay via Cash / Bank Transfer</p>
