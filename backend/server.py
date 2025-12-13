@@ -642,7 +642,7 @@ app.add_middleware(
 CORS_ORIGINS = [
     "https://troa.in",
     "http://troa.in",
-    "https://troaresidents.preview.emergentagent.com",
+    "https://troa-residence.preview.emergentagent.com",
     "https://tenant-assist-6.emergent.host",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
