@@ -163,7 +163,7 @@ const Home = () => {
                   {React.cloneElement(feature.icon, { className: "w-6 h-6 md:w-8 md:h-8" })}
                 </div>
                 <h3 className="text-lg md:text-xl lg:text-2xl font-bold mb-2 md:mb-4 text-gray-900">{feature.title}</h3>
-                <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+                <p className="text-sm md:text-base text-gray-600 leading-relaxed">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -171,23 +171,23 @@ const Home = () => {
       </section>
 
       {/* Quick Amenities Preview */}
-      <section className="py-20 bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-white">
+      <section className="py-12 md:py-20 bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">Our Amenities</h2>
-            <p className="text-xl text-gray-300">World-class facilities for our community</p>
+          <div className="text-center mb-8 md:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4">Our Amenities</h2>
+            <p className="text-sm md:text-base lg:text-xl text-gray-300">World-class facilities for our community</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6 mb-8 md:mb-12">
             {amenities.map((amenity, index) => (
               <div
                 key={index}
-                className="p-6 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 hover:bg-white/20 transition-all duration-300 flex items-center space-x-4 group hover:scale-105 transform"
+                className="p-4 md:p-6 bg-white/10 backdrop-blur-sm rounded-lg md:rounded-xl border border-white/20 hover:bg-white/20 transition-all duration-300 flex items-center space-x-3 md:space-x-4 group hover:scale-105 transform"
               >
-                <div className={`w-12 h-12 bg-gradient-to-r ${amenity.gradient} rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
-                  {amenity.icon}
+                <div className={`w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r ${amenity.gradient} rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                  {React.cloneElement(amenity.icon, { className: "w-5 h-5 md:w-6 md:h-6" })}
                 </div>
-                <span className="text-lg font-semibold">{amenity.name}</span>
+                <span className="text-sm md:text-base lg:text-lg font-semibold">{amenity.name}</span>
               </div>
             ))}
           </div>
@@ -195,10 +195,10 @@ const Home = () => {
           <div className="text-center">
             <Link
               to="/amenities"
-              className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-full font-semibold hover:scale-105 transform transition-all duration-300 shadow-2xl"
+              className="inline-flex items-center space-x-2 px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-full font-semibold text-sm md:text-base hover:scale-105 transform transition-all duration-300 shadow-2xl"
             >
               <span>View All Amenities</span>
-              <ArrowRight className="w-5 h-5" />
+              <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
             </Link>
           </div>
         </div>
