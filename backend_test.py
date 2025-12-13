@@ -921,6 +921,8 @@ class TROAAPITester:
                             display_endpoint = f"events/payment/{method}"
                         elif endpoint == 'amenity_booking':
                             display_endpoint = f"bookings/{method}"
+                        elif endpoint == 'gridfs_storage':
+                            display_endpoint = f"upload/image/{method}"
                         else:
                             display_endpoint = f"{endpoint}/{method}"
                             
