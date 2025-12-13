@@ -192,54 +192,88 @@ class MarkAsPaidTester:
         # Test 3: Create a withdrawn registration and test marking it as paid (should return 400)
         print("\n📋 Test 3: Attempt to mark withdrawn registration as paid")
         try:
-            # Create another registration for withdrawal test
-            registration_data = {
-                "event_id": test_event_id,
-                "registrants": [
-                    {"name": "Test User for Withdrawal", "preferences": {"Test Preference": "Option2"}}
-                ],
-                "payment_method": "offline"
+            # Create a separate event for withdrawal test to avoid duplicate registration issues
+            future_date = (datetime.now() + timedelta(days=12)).strftime('%Y-%m-%d')
+            withdrawal_test_event = {
+                "name": "Withdrawal Test Event",
+                "description": "Test event for withdrawal functionality",
+                "image": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800",
+                "event_date": future_date,
+                "event_time": "16:00",
+                "amount": 50.0,
+                "payment_type": "per_person",
+                "preferences": [{"name": "Test Preference", "options": ["Option1", "Option2"]}],
+                "max_registrations": 50
             }
             
-            response = requests.post(f"{self.base_url}/events/{test_event_id}/register", 
-                                   json=registration_data, 
+            response = requests.post(f"{self.base_url}/events", 
+                                   json=withdrawal_test_event, 
                                    headers=self.auth_headers,
                                    timeout=10)
             
             if response.status_code == 200:
-                withdrawn_registration_id = response.json()['id']
-                self.log_success("Withdrawn Test Setup", f"Created registration for withdrawal test: {withdrawn_registration_id}")
+                withdrawal_event_id = response.json()['id']
+                self.log_success("Withdrawn Test Setup", f"Created separate event for withdrawal test: {withdrawal_event_id}")
                 
-                # Withdraw the registration
-                response = requests.post(f"{self.base_url}/events/registrations/{withdrawn_registration_id}/withdraw", 
+                # Create registration for withdrawal test
+                registration_data = {
+                    "event_id": withdrawal_event_id,
+                    "registrants": [
+                        {"name": "Test User for Withdrawal", "preferences": {"Test Preference": "Option2"}}
+                    ],
+                    "payment_method": "offline"
+                }
+                
+                response = requests.post(f"{self.base_url}/events/{withdrawal_event_id}/register", 
+                                       json=registration_data, 
                                        headers=self.auth_headers,
                                        timeout=10)
                 
                 if response.status_code == 200:
-                    self.log_success("Withdrawn Test Setup", "Successfully withdrew registration")
+                    withdrawn_registration_id = response.json()['id']
+                    self.log_success("Withdrawn Test Setup", f"Created registration for withdrawal test: {withdrawn_registration_id}")
                     
-                    # Now try to mark the withdrawn registration as paid
-                    response = requests.post(f"{self.base_url}/events/registrations/{withdrawn_registration_id}/mark-paid", 
+                    # Withdraw the registration
+                    response = requests.post(f"{self.base_url}/events/registrations/{withdrawn_registration_id}/withdraw", 
                                            headers=self.auth_headers,
                                            timeout=10)
                     
-                    if response.status_code == 400:
-                        data = response.json()
-                        if 'withdrawn' in data.get('detail', '').lower():
-                            self.test_results['withdrawn_error'] = True
-                            self.log_success("Withdrawn Registration Error Test", f"Correctly returns 400 for withdrawn registration: {data.get('detail')}")
+                    if response.status_code == 200:
+                        self.log_success("Withdrawn Test Setup", "Successfully withdrew registration")
+                        
+                        # Now try to mark the withdrawn registration as paid
+                        response = requests.post(f"{self.base_url}/events/registrations/{withdrawn_registration_id}/mark-paid", 
+                                               headers=self.auth_headers,
+                                               timeout=10)
+                        
+                        if response.status_code == 400:
+                            data = response.json()
+                            if 'withdrawn' in data.get('detail', '').lower():
+                                self.test_results['withdrawn_error'] = True
+                                self.log_success("Withdrawn Registration Error Test", f"Correctly returns 400 for withdrawn registration: {data.get('detail')}")
+                            else:
+                                self.test_results['withdrawn_error'] = False
+                                self.log_error("Withdrawn Registration Error Test", f"Wrong error message: {data.get('detail')}")
                         else:
                             self.test_results['withdrawn_error'] = False
-                            self.log_error("Withdrawn Registration Error Test", f"Wrong error message: {data.get('detail')}")
+                            self.log_error("Withdrawn Registration Error Test", f"Expected 400 but got {response.status_code}, Response: {response.text}")
                     else:
                         self.test_results['withdrawn_error'] = False
-                        self.log_error("Withdrawn Registration Error Test", f"Expected 400 but got {response.status_code}, Response: {response.text}")
+                        self.log_error("Withdrawn Test Setup", f"Failed to withdraw registration: {response.status_code}")
+                        
+                    # Clean up withdrawal test event
+                    try:
+                        requests.delete(f"{self.base_url}/events/{withdrawal_event_id}", 
+                                      headers=self.auth_headers, timeout=10)
+                        self.log_success("Withdrawn Test Cleanup", f"Cleaned up withdrawal test event: {withdrawal_event_id}")
+                    except:
+                        pass
                 else:
                     self.test_results['withdrawn_error'] = False
-                    self.log_error("Withdrawn Test Setup", f"Failed to withdraw registration: {response.status_code}")
+                    self.log_error("Withdrawn Test Setup", f"Failed to create registration: {response.status_code}, Response: {response.text}")
             else:
                 self.test_results['withdrawn_error'] = False
-                self.log_error("Withdrawn Test Setup", f"Failed to create registration: {response.status_code}")
+                self.log_error("Withdrawn Test Setup", f"Failed to create withdrawal test event: {response.status_code}")
         except Exception as e:
             self.test_results['withdrawn_error'] = False
             self.log_error("Withdrawn Registration Error Test", f"Exception: {str(e)}")
