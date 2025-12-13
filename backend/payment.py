@@ -132,6 +132,135 @@ async def verify_payment(verification: PaymentVerification):
         logger.error(f"Error verifying payment: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to verify payment")
 
+
+class OfflinePaymentRequest(BaseModel):
+    payment_type: str  # move_in, move_out, membership
+    payment_method: str  # qr_code, cash_transfer
+    name: str
+    email: str
+    phone: str
+    villa_no: str = None
+    notes: str = None
+
+
+@payment_router.post("/offline-payment")
+async def create_offline_payment(payment_request: OfflinePaymentRequest):
+    """Create an offline payment request that requires admin approval"""
+    try:
+        from datetime import timezone
+        
+        if payment_request.payment_type not in PAYMENT_AMOUNTS:
+            raise HTTPException(status_code=400, detail="Invalid payment type")
+        
+        amount = PAYMENT_AMOUNTS[payment_request.payment_type] / 100  # Convert paise to rupees
+        
+        # Create offline payment record
+        payment_record = {
+            'id': str(uuid.uuid4()),
+            'payment_type': payment_request.payment_type,
+            'payment_method': payment_request.payment_method,
+            'amount': amount,
+            'currency': 'INR',
+            'status': 'pending_approval',
+            'user_details': {
+                'name': payment_request.name,
+                'email': payment_request.email,
+                'phone': payment_request.phone,
+                'villa_no': payment_request.villa_no
+            },
+            'notes': payment_request.notes,
+            'admin_approved': False,
+            'approved_by': None,
+            'approved_at': None,
+            'created_at': datetime.now(timezone.utc)
+        }
+        
+        await db.offline_payments.insert_one(payment_record)
+        
+        logger.info(f"Offline payment request created: {payment_record['id']}")
+        
+        return {
+            'success': True,
+            'message': 'Offline payment request submitted. Awaiting admin approval.',
+            'payment_id': payment_record['id'],
+            'amount': amount
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating offline payment: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to create offline payment request")
+
+
+@payment_router.get("/offline-payments")
+async def get_offline_payments(request: Request):
+    """Get all offline payment requests - admin only"""
+    try:
+        from auth import require_admin
+        await require_admin(request)
+        
+        payments = await db.offline_payments.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+        return payments
+    except Exception as e:
+        logger.error(f"Error fetching offline payments: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to fetch offline payments")
+
+
+class ApproveOfflinePayment(BaseModel):
+    payment_id: str
+    action: str  # approve, reject
+
+
+@payment_router.post("/offline-payments/approve")
+async def approve_offline_payment(request: Request, approval: ApproveOfflinePayment):
+    """Approve or reject an offline payment - admin only"""
+    try:
+        from auth import require_admin
+        from datetime import timezone
+        
+        admin = await require_admin(request)
+        
+        payment = await db.offline_payments.find_one({"id": approval.payment_id})
+        if not payment:
+            raise HTTPException(status_code=404, detail="Payment not found")
+        
+        if approval.action == 'approve':
+            update = {
+                'status': 'completed',
+                'admin_approved': True,
+                'approved_by': admin.get('name', admin.get('email')),
+                'approved_at': datetime.now(timezone.utc)
+            }
+        elif approval.action == 'reject':
+            update = {
+                'status': 'rejected',
+                'admin_approved': False,
+                'approved_by': admin.get('name', admin.get('email')),
+                'approved_at': datetime.now(timezone.utc)
+            }
+        else:
+            raise HTTPException(status_code=400, detail="Invalid action")
+        
+        await db.offline_payments.update_one(
+            {"id": approval.payment_id},
+            {"$set": update}
+        )
+        
+        logger.info(f"Offline payment {approval.action}d: {approval.payment_id}")
+        
+        return {
+            'success': True,
+            'message': f'Payment {approval.action}d successfully'
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error approving offline payment: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to process payment approval")
+
+
 @payment_router.get("/transactions")
 async def get_transactions(request: Request):
     """Get all payment transactions - admin only"""
@@ -139,7 +268,7 @@ async def get_transactions(request: Request):
         from auth import require_admin
         admin = await require_admin(request)
         
-        transactions = await db.payment_transactions.find().sort("created_at", -1).to_list(1000)
+        transactions = await db.payment_transactions.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
         return transactions
     except Exception as e:
         logger.error(f"Error fetching transactions: {str(e)}")
