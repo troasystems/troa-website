@@ -174,15 +174,24 @@ async def register_for_event(event_id: str, registration_data: EventRegistration
         if existing:
             raise HTTPException(status_code=400, detail="You are already registered for this event")
         
-        # Calculate total amount
-        num_registrants = len(registration_data.registrants)
+        # Calculate total amount based on payment type and per_person_type
+        registrants = registration_data.registrants
+        num_registrants = len(registrants)
         if num_registrants == 0:
             raise HTTPException(status_code=400, detail="At least one registrant is required")
         
-        if event["payment_type"] == "per_person":
-            total_amount = event["amount"] * num_registrants
-        else:  # per_villa
+        if event["payment_type"] == "per_villa":
             total_amount = event["amount"]
+        elif event.get("per_person_type") == "adult_child":
+            # Calculate based on adult/child counts
+            adult_count = sum(1 for r in registrants if r.get("registrant_type", "adult") == "adult")
+            child_count = sum(1 for r in registrants if r.get("registrant_type") == "child")
+            adult_price = event.get("adult_price", 0) or 0
+            child_price = event.get("child_price", 0) or 0
+            total_amount = (adult_count * adult_price) + (child_count * child_price)
+        else:
+            # Uniform per_person pricing
+            total_amount = event["amount"] * num_registrants
         
         # Validate payment method
         payment_method = registration_data.payment_method
@@ -201,7 +210,7 @@ async def register_for_event(event_id: str, registration_data: EventRegistration
             event_name=event["name"],
             user_email=user["email"],
             user_name=user["name"],
-            registrants=registration_data.registrants,
+            registrants=registrants,
             total_amount=total_amount,
             payment_method=payment_method,
             payment_status=payment_status,
