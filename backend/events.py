@@ -267,6 +267,76 @@ async def complete_registration_payment(registration_id: str, payment_id: str, r
         client.close()
 
 
+
+@events_router.post("/registrations/{registration_id}/mark-paid")
+async def mark_registration_as_paid(registration_id: str, request: Request):
+    """Mark a registration payment as completed (admin/manager only)
+    
+    This allows admins to manually mark a payment as successful when:
+    - Online payment succeeded but verification failed
+    - Payment was confirmed via alternative means
+    - User paid offline but wasn't marked as pending_approval
+    """
+    admin = await require_manager_or_admin(request)
+    
+    logger.info(f"Mark as paid request - Registration: {registration_id} by {admin['email']}")
+    
+    db, client = await get_db()
+    try:
+        registration = await db.event_registrations.find_one(
+            {"id": registration_id},
+            {"_id": 0}
+        )
+        
+        if not registration:
+            raise HTTPException(status_code=404, detail="Registration not found")
+        
+        if registration.get("payment_status") == "completed":
+            raise HTTPException(status_code=400, detail="Registration is already marked as paid")
+        
+        if registration.get("status") == "withdrawn":
+            raise HTTPException(status_code=400, detail="Cannot mark withdrawn registration as paid")
+        
+        # Create audit log entry
+        audit_entry = {
+            "action": "payment_marked_completed",
+            "timestamp": datetime.utcnow().isoformat(),
+            "by_name": admin.get('name', admin['email']),
+            "by_email": admin['email'],
+            "details": f"Payment manually marked as completed by admin/manager. Previous status: {registration.get('payment_status', 'unknown')}"
+        }
+        
+        result = await db.event_registrations.update_one(
+            {"id": registration_id},
+            {
+                "$set": {
+                    "payment_status": "completed",
+                    "admin_approved": True,
+                    "approved_by_email": admin['email'],
+                    "approved_by_name": admin.get('name', admin['email']),
+                    "updated_at": datetime.utcnow()
+                },
+                "$push": {
+                    "audit_log": audit_entry
+                }
+            }
+        )
+        
+        logger.info(f"Registration marked as paid - {registration_id} by {admin['email']}, Modified: {result.modified_count}")
+        
+        return {
+            "message": "Registration marked as paid successfully",
+            "registration_id": registration_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error marking registration as paid: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        client.close()
+
+
 @events_router.get("/my/registrations")
 async def get_my_registrations(request: Request):
     """Get all event registrations for the current user"""
