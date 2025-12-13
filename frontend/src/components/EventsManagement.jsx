@@ -210,6 +210,20 @@ const EventsManagement = () => {
                           }`}>
                             {isMod ? 'Modification Request' : 'New Registration'}
                           </span>
+                          {/* Pricing Type Badge */}
+                          <span className={`px-2 py-1 text-xs font-medium rounded ${
+                            reg.event?.payment_type === 'per_villa' 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-indigo-100 text-indigo-700'
+                          }`}>
+                            {reg.event?.payment_type === 'per_villa' ? (
+                              '🏠 Per Villa'
+                            ) : reg.event?.per_person_type === 'adult_child' ? (
+                              '👨‍👩‍👧 Adult/Child Pricing'
+                            ) : (
+                              '👤 Per Person'
+                            )}
+                          </span>
                           {/* Payment Method Badge */}
                           <span className={`px-2 py-1 text-xs font-medium rounded flex items-center gap-1 ${
                             (isMod ? reg.modification_payment_method : reg.payment_method) === 'online' 
@@ -239,6 +253,20 @@ const EventsManagement = () => {
                           {reg.user_name} ({reg.user_email})
                         </p>
                         
+                        {/* Event Pricing Info */}
+                        {reg.event && (
+                          <p className="text-sm text-gray-500 mt-1">
+                            <IndianRupee className="w-3 h-3 inline" />
+                            {reg.event.payment_type === 'per_villa' ? (
+                              `₹${reg.event.amount} per villa`
+                            ) : reg.event.per_person_type === 'adult_child' ? (
+                              `₹${reg.event.adult_price || 0} adult / ₹${reg.event.child_price || 0} child`
+                            ) : (
+                              `₹${reg.event.amount} per person`
+                            )}
+                          </p>
+                        )}
+                        
                         {isMod ? (
                           <>
                             <div className="mt-2 p-2 bg-orange-50 rounded-lg">
@@ -253,8 +281,19 @@ const EventsManagement = () => {
                             <div className="mt-2 flex flex-wrap gap-2">
                               <span className="text-xs text-gray-500">New registrants:</span>
                               {reg.pending_registrants?.map((person, idx) => (
-                                <span key={idx} className="px-2 py-1 bg-orange-50 text-orange-700 text-xs rounded">
+                                <span key={idx} className={`px-2 py-1 text-xs rounded ${
+                                  reg.event?.per_person_type === 'adult_child'
+                                    ? person.registrant_type === 'child'
+                                      ? 'bg-pink-50 text-pink-700 border border-pink-200'
+                                      : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                    : 'bg-orange-50 text-orange-700'
+                                }`}>
                                   {person.name}
+                                  {reg.event?.per_person_type === 'adult_child' && (
+                                    <span className="ml-1 font-medium">
+                                      ({person.registrant_type === 'child' ? '👧 Child' : '👤 Adult'})
+                                    </span>
+                                  )}
                                 </span>
                               ))}
                             </div>
@@ -262,8 +301,19 @@ const EventsManagement = () => {
                         ) : (
                           <div className="mt-2 flex flex-wrap gap-2">
                             {reg.registrants?.map((person, idx) => (
-                              <span key={idx} className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded">
+                              <span key={idx} className={`px-2 py-1 text-xs rounded ${
+                                reg.event?.per_person_type === 'adult_child'
+                                  ? person.registrant_type === 'child'
+                                    ? 'bg-pink-50 text-pink-700 border border-pink-200'
+                                    : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                  : 'bg-purple-50 text-purple-700'
+                              }`}>
                                 {person.name}
+                                {reg.event?.per_person_type === 'adult_child' && (
+                                  <span className="ml-1 font-medium">
+                                    ({person.registrant_type === 'child' ? '👧 Child' : '👤 Adult'})
+                                  </span>
+                                )}
                               </span>
                             ))}
                           </div>
