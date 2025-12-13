@@ -57,8 +57,8 @@ async def get_event(event_id: str):
 
 @events_router.post("")
 async def create_event(event_data: EventCreate, request: Request):
-    """Create a new event (admin only)"""
-    admin = await require_admin(request)
+    """Create a new event (admin or manager)"""
+    user = await require_manager_or_admin(request)
     
     # Validate event date is not in the past
     today = datetime.now().strftime('%Y-%m-%d')
@@ -68,6 +68,12 @@ async def create_event(event_data: EventCreate, request: Request):
     # Validate payment type
     if event_data.payment_type not in ["per_person", "per_villa"]:
         raise HTTPException(status_code=400, detail="Payment type must be 'per_person' or 'per_villa'")
+    
+    # Validate per_person_type and prices
+    per_person_type = event_data.per_person_type or "uniform"
+    if event_data.payment_type == "per_person" and per_person_type == "adult_child":
+        if event_data.adult_price is None or event_data.child_price is None:
+            raise HTTPException(status_code=400, detail="Adult and child prices are required for adult/child pricing")
     
     db, client = await get_db()
     try:
@@ -79,13 +85,16 @@ async def create_event(event_data: EventCreate, request: Request):
             event_time=event_data.event_time,
             amount=event_data.amount,
             payment_type=event_data.payment_type,
+            per_person_type=per_person_type,
+            adult_price=event_data.adult_price,
+            child_price=event_data.child_price,
             preferences=event_data.preferences or [],
             max_registrations=event_data.max_registrations,
-            created_by=admin['email']
+            created_by=user['email']
         )
         
         await db.events.insert_one(event.dict())
-        logger.info(f"Event created: {event.name} by {admin['email']}")
+        logger.info(f"Event created: {event.name} by {user['email']}")
         return event.dict()
     finally:
         client.close()
@@ -93,8 +102,8 @@ async def create_event(event_data: EventCreate, request: Request):
 
 @events_router.patch("/{event_id}")
 async def update_event(event_id: str, event_data: dict, request: Request):
-    """Update an event (admin only)"""
-    await require_admin(request)
+    """Update an event (admin or manager)"""
+    await require_manager_or_admin(request)
     
     db, client = await get_db()
     try:
@@ -120,8 +129,8 @@ async def update_event(event_id: str, event_data: dict, request: Request):
 
 @events_router.delete("/{event_id}")
 async def delete_event(event_id: str, request: Request):
-    """Delete an event (admin only)"""
-    await require_admin(request)
+    """Delete an event (admin or manager)"""
+    await require_manager_or_admin(request)
     
     db, client = await get_db()
     try:
@@ -165,15 +174,24 @@ async def register_for_event(event_id: str, registration_data: EventRegistration
         if existing:
             raise HTTPException(status_code=400, detail="You are already registered for this event")
         
-        # Calculate total amount
-        num_registrants = len(registration_data.registrants)
+        # Calculate total amount based on payment type and per_person_type
+        registrants = registration_data.registrants
+        num_registrants = len(registrants)
         if num_registrants == 0:
             raise HTTPException(status_code=400, detail="At least one registrant is required")
         
-        if event["payment_type"] == "per_person":
-            total_amount = event["amount"] * num_registrants
-        else:  # per_villa
+        if event["payment_type"] == "per_villa":
             total_amount = event["amount"]
+        elif event.get("per_person_type") == "adult_child":
+            # Calculate based on adult/child counts
+            adult_count = sum(1 for r in registrants if r.get("registrant_type", "adult") == "adult")
+            child_count = sum(1 for r in registrants if r.get("registrant_type") == "child")
+            adult_price = event.get("adult_price", 0) or 0
+            child_price = event.get("child_price", 0) or 0
+            total_amount = (adult_count * adult_price) + (child_count * child_price)
+        else:
+            # Uniform per_person pricing
+            total_amount = event["amount"] * num_registrants
         
         # Validate payment method
         payment_method = registration_data.payment_method
@@ -192,7 +210,7 @@ async def register_for_event(event_id: str, registration_data: EventRegistration
             event_name=event["name"],
             user_email=user["email"],
             user_name=user["name"],
-            registrants=registration_data.registrants,
+            registrants=registrants,
             total_amount=total_amount,
             payment_method=payment_method,
             payment_status=payment_status,
@@ -210,7 +228,10 @@ async def register_for_event(event_id: str, registration_data: EventRegistration
 @events_router.post("/registrations/{registration_id}/complete-payment")
 async def complete_registration_payment(registration_id: str, payment_id: str, request: Request):
     """Mark registration payment as completed (for online Razorpay payments)"""
+    logger.info(f"Complete payment request - Registration: {registration_id}, Payment ID: {payment_id}")
+    
     user = await require_auth(request)
+    logger.info(f"User authenticated: {user['email']}")
     
     db, client = await get_db()
     try:
@@ -220,9 +241,12 @@ async def complete_registration_payment(registration_id: str, payment_id: str, r
         })
         
         if not registration:
+            logger.error(f"Registration not found: {registration_id} for user {user['email']}")
             raise HTTPException(status_code=404, detail="Registration not found")
         
-        await db.event_registrations.update_one(
+        logger.info(f"Found registration, current status: {registration.get('payment_status')}")
+        
+        result = await db.event_registrations.update_one(
             {"id": registration_id},
             {"$set": {
                 "payment_status": "completed",
@@ -232,7 +256,83 @@ async def complete_registration_payment(registration_id: str, payment_id: str, r
             }}
         )
         
-        return {"message": "Payment completed successfully"}
+        logger.info(f"Payment completed - Registration: {registration_id}, Modified count: {result.modified_count}")
+        return {"message": "Payment completed successfully", "registration_id": registration_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error completing payment: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        client.close()
+
+
+
+@events_router.post("/registrations/{registration_id}/mark-paid")
+async def mark_registration_as_paid(registration_id: str, request: Request):
+    """Mark a registration payment as completed (admin/manager only)
+    
+    This allows admins to manually mark a payment as successful when:
+    - Online payment succeeded but verification failed
+    - Payment was confirmed via alternative means
+    - User paid offline but wasn't marked as pending_approval
+    """
+    admin = await require_manager_or_admin(request)
+    
+    logger.info(f"Mark as paid request - Registration: {registration_id} by {admin['email']}")
+    
+    db, client = await get_db()
+    try:
+        registration = await db.event_registrations.find_one(
+            {"id": registration_id},
+            {"_id": 0}
+        )
+        
+        if not registration:
+            raise HTTPException(status_code=404, detail="Registration not found")
+        
+        if registration.get("payment_status") == "completed":
+            raise HTTPException(status_code=400, detail="Registration is already marked as paid")
+        
+        if registration.get("status") == "withdrawn":
+            raise HTTPException(status_code=400, detail="Cannot mark withdrawn registration as paid")
+        
+        # Create audit log entry
+        audit_entry = {
+            "action": "payment_marked_completed",
+            "timestamp": datetime.utcnow().isoformat(),
+            "by_name": admin.get('name', admin['email']),
+            "by_email": admin['email'],
+            "details": f"Payment manually marked as completed by admin/manager. Previous status: {registration.get('payment_status', 'unknown')}"
+        }
+        
+        result = await db.event_registrations.update_one(
+            {"id": registration_id},
+            {
+                "$set": {
+                    "payment_status": "completed",
+                    "admin_approved": True,
+                    "approved_by_email": admin['email'],
+                    "approved_by_name": admin.get('name', admin['email']),
+                    "updated_at": datetime.utcnow()
+                },
+                "$push": {
+                    "audit_log": audit_entry
+                }
+            }
+        )
+        
+        logger.info(f"Registration marked as paid - {registration_id} by {admin['email']}, Modified: {result.modified_count}")
+        
+        return {
+            "message": "Registration marked as paid successfully",
+            "registration_id": registration_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error marking registration as paid: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         client.close()
 
@@ -567,17 +667,29 @@ async def modify_registration(registration_id: str, request: Request):
         if len(new_registrants) == 0:
             raise HTTPException(status_code=400, detail="At least one registrant is required")
         
-        # Calculate new total and difference
-        old_count = len(registration.get("registrants", []))
+        # Calculate new total and difference based on pricing type
+        old_registrants = registration.get("registrants", [])
+        old_total = registration.get("total_amount", 0)
+        old_count = len(old_registrants)
         new_count = len(new_registrants)
         
-        if event["payment_type"] == "per_person":
-            new_total = event["amount"] * new_count
-            old_total = registration.get("total_amount", event["amount"] * old_count)
-            difference = new_total - old_total
-        else:  # per_villa - no additional payment needed
+        if event["payment_type"] == "per_villa":
+            # Per villa - no additional payment needed
             new_total = event["amount"]
             difference = 0
+        elif event.get("per_person_type") == "adult_child":
+            # Adult/child pricing
+            adult_price = event.get("adult_price", 0) or 0
+            child_price = event.get("child_price", 0) or 0
+            
+            new_adult_count = sum(1 for r in new_registrants if r.get("registrant_type", "adult") == "adult")
+            new_child_count = sum(1 for r in new_registrants if r.get("registrant_type") == "child")
+            new_total = (new_adult_count * adult_price) + (new_child_count * child_price)
+            difference = new_total - old_total
+        else:
+            # Uniform per_person pricing
+            new_total = event["amount"] * new_count
+            difference = new_total - old_total
         
         # If adding people (positive difference), handle payment
         if difference > 0:
@@ -593,7 +705,7 @@ async def modify_registration(registration_id: str, request: Request):
                 "timestamp": datetime.utcnow().isoformat(),
                 "by_name": user.get('name', user['email']),
                 "by_email": user['email'],
-                "details": f"Requested to add {new_count - old_count} person(s). Additional amount: ₹{difference}",
+                "details": f"Requested modification. Old: {old_count}, New: {new_count}. Additional amount: ₹{difference}",
                 "old_count": old_count,
                 "new_count": new_count,
                 "additional_amount": difference,
@@ -631,7 +743,7 @@ async def modify_registration(registration_id: str, request: Request):
                 "timestamp": datetime.utcnow().isoformat(),
                 "by_name": user.get('name', user['email']),
                 "by_email": user['email'],
-                "details": f"Reduced registrants from {old_count} to {new_count}. Refund amount: ₹{abs(difference)}" if difference < 0 else f"Updated registrant details (no count change)",
+                "details": f"Reduced registrants from {old_count} to {new_count}. Refund amount: Rs{abs(difference)}" if difference < 0 else "Updated registrant details (no count change)",
                 "old_count": old_count,
                 "new_count": new_count,
                 "refund_amount": abs(difference) if difference < 0 else 0
