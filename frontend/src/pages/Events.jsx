@@ -868,7 +868,7 @@ const Events = () => {
                       <div>
                         <p className="font-semibold text-gray-900">Online Payment</p>
                         <p className="text-xs text-gray-500">Pay via Razorpay (Cards, UPI, etc.)</p>
-                        <p className="text-xs text-orange-600 mt-1">2% surcharge for online payments</p>
+                        <p className="text-xs text-orange-600 mt-1 font-medium">⚠️ 2% surcharge applies</p>
                       </div>
                     </div>
                   </button>
@@ -885,19 +885,35 @@ const Events = () => {
                       <Banknote className={`w-6 h-6 ${paymentMethod === 'offline' ? 'text-purple-600' : 'text-gray-400'}`} />
                       <div>
                         <p className="font-semibold text-gray-900">Offline Payment</p>
-                        <p className="text-xs text-gray-500">Cash or Bank Transfer</p>
+                        <p className="text-xs text-gray-500">QR Code / Cash / Bank Transfer</p>
                       </div>
                     </div>
                   </button>
                 </div>
                 
                 {paymentMethod === 'offline' && (
-                  <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
-                    <div className="flex items-start space-x-2">
-                      <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-sm text-amber-800">
-                        Offline payments require admin approval. Your registration will be pending until the admin confirms receipt of payment.
-                      </p>
+                  <div className="mt-3 space-y-3">
+                    {/* QR Code Option */}
+                    <div className="bg-white border-2 border-purple-200 rounded-lg p-4">
+                      <p className="font-semibold text-purple-800 mb-3 text-center">Scan QR Code to Pay</p>
+                      <div className="flex justify-center mb-3">
+                        <img 
+                          src="https://customer-assets.emergentagent.com/job_troaresidents/artifacts/4hvho9rv_WhatsApp%20Image%202025-12-13%20at%2011.32.42.jpeg" 
+                          alt="Payment QR Code" 
+                          className="w-40 h-40 object-contain border rounded-lg"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-600 text-center">Or pay via Cash / Bank Transfer</p>
+                    </div>
+                    
+                    {/* Admin Approval Notice */}
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                      <div className="flex items-start space-x-2">
+                        <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-amber-800">
+                          Offline payments require admin approval. Your registration will be pending until the admin confirms receipt of payment.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}
