@@ -187,16 +187,28 @@ const Home = () => {
           <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
             Join Our Community
           </h2>
-          <p className="text-xl text-gray-700 mb-8">
-            If you have recently purchased a property or rented a villa in The Retreat, complete the membership form to get started.
+          <p className="text-xl text-gray-700 mb-4">
+            <strong>New to The Retreat?</strong> If you have recently purchased a property or rented a villa, complete the membership form to get started.
           </p>
-          <Link
-            to="/contact"
-            className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-full font-semibold text-lg hover:scale-105 transform transition-all duration-300 shadow-2xl hover:shadow-purple-500/50"
-          >
-            <span>Get Membership</span>
-            <ArrowRight className="w-5 h-5" />
-          </Link>
+          <p className="text-lg text-gray-600 mb-8">
+            <strong>Already a resident?</strong> You can directly login to access amenity bookings, events, and more.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              to="/contact"
+              className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-full font-semibold text-lg hover:scale-105 transform transition-all duration-300 shadow-2xl hover:shadow-purple-500/50"
+            >
+              <span>Apply for Membership</span>
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+            <Link
+              to="/login-info"
+              className="inline-flex items-center space-x-2 px-8 py-4 bg-white border-2 border-purple-600 text-purple-600 rounded-full font-semibold text-lg hover:bg-purple-50 transform transition-all duration-300"
+            >
+              <span>Login as Resident</span>
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
         </div>
       </section>
     </div>
