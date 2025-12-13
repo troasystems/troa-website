@@ -119,6 +119,33 @@ const EventsManagement = () => {
     }
   };
 
+  const handleMarkAsPaid = async (registrationId) => {
+    if (!window.confirm('Are you sure you want to mark this registration as paid? This should only be done if you have confirmed the payment was received.')) return;
+    
+    const token = localStorage.getItem('session_token');
+    try {
+      await axios.post(
+        `${getAPI()}/events/registrations/${registrationId}/mark-paid`,
+        {},
+        { headers: { 'X-Session-Token': `Bearer ${token}` } }
+      );
+      toast({ 
+        title: 'Success', 
+        description: 'Registration marked as paid successfully!' 
+      });
+      fetchData();
+      if (selectedEvent) {
+        fetchEventRegistrations(selectedEvent.id);
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.detail || 'Failed to mark as paid',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const formatDate = (dateStr) => {
     return new Date(dateStr).toLocaleDateString('en-IN', {
       weekday: 'short',
