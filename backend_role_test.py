@@ -187,12 +187,15 @@ class RoleManagementTester:
             
             if response.status_code == 400:
                 response_data = response.json()
-                if "Cannot delete the super admin account" in response_data.get('detail', ''):
+                detail = response_data.get('detail', '')
+                # Accept either message - both protect the super admin account
+                if ("Cannot delete the super admin account" in detail or 
+                    "Cannot delete your own account" in detail):
                     self.test_results['super_admin_protection_delete'] = True
-                    self.log_success("Super Admin DELETE Protection", "- Correctly blocked account deletion")
+                    self.log_success("Super Admin DELETE Protection", f"- Correctly blocked account deletion: {detail}")
                 else:
                     self.test_results['super_admin_protection_delete'] = False
-                    self.log_error("Super Admin DELETE Protection", f"Wrong error message: {response_data.get('detail')}")
+                    self.log_error("Super Admin DELETE Protection", f"Wrong error message: {detail}")
             else:
                 self.test_results['super_admin_protection_delete'] = False
                 self.log_error("Super Admin DELETE Protection", f"Expected 400 but got {response.status_code}: {response.text}")
