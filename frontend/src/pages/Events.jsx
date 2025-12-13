@@ -365,10 +365,19 @@ const Events = () => {
   const calculateTotal = () => {
     if (!selectedEvent) return 0;
     const validRegistrants = registrants.filter(r => r.name.trim());
-    if (selectedEvent.payment_type === 'per_person') {
-      return selectedEvent.amount * validRegistrants.length;
+    
+    if (selectedEvent.payment_type === 'per_villa') {
+      return selectedEvent.amount;
     }
-    return selectedEvent.amount;
+    
+    if (selectedEvent.per_person_type === 'adult_child') {
+      const adultCount = validRegistrants.filter(r => r.registrant_type === 'adult').length;
+      const childCount = validRegistrants.filter(r => r.registrant_type === 'child').length;
+      return (adultCount * (selectedEvent.adult_price || 0)) + (childCount * (selectedEvent.child_price || 0));
+    }
+    
+    // Uniform per_person pricing
+    return selectedEvent.amount * validRegistrants.length;
   };
 
   const formatDate = (dateStr) => {
