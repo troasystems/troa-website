@@ -175,6 +175,7 @@ class EventCreate(BaseModel):
 
 class EventRegistrant(BaseModel):
     name: str
+    registrant_type: str = "adult"  # "adult" or "child"
     preferences: dict = {}  # e.g., {"Food Preference": "Vegetarian"}
 
 class EventRegistration(BaseModel):
