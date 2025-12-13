@@ -147,40 +147,71 @@ const Contact = () => {
       </section>
 
       {/* Contact Section */}
-      <section className="py-20 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+      <section className="py-12 md:py-20 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div className={`grid grid-cols-1 ${isAuthenticated ? '' : 'lg:grid-cols-2'} gap-8 md:gap-12`}>
             {/* Contact Info */}
-            <div>
-              <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+            <div className={isAuthenticated ? 'max-w-2xl mx-auto' : ''}>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
                 Get in Touch
               </h2>
               
-              {/* Important Notice for Existing Residents */}
-              <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
-                <div className="flex items-start space-x-3">
-                  <Info className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="font-semibold text-blue-900 mb-1">Already living in The Retreat?</h3>
-                    <p className="text-sm text-blue-800 mb-3">
-                      If you are already a resident of The Retreat community, you don&apos;t need to apply for membership. Simply login with your registered email to access all features.
-                    </p>
-                    <Link
-                      to="/login-info"
-                      className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
-                    >
-                      <LogIn className="w-4 h-4" />
-                      <span>Login to Your Account</span>
-                    </Link>
+              {/* Show different content based on auth status */}
+              {isAuthenticated ? (
+                <div className="mb-6 p-4 md:p-6 bg-green-50 border-2 border-green-200 rounded-xl">
+                  <div className="flex items-start space-x-3">
+                    <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="font-semibold text-green-900 mb-1 text-sm md:text-base">Welcome, {user?.name?.split(' ')[0]}!</h3>
+                      <p className="text-xs md:text-sm text-green-800 mb-3">
+                        You are logged in as a member. You can book amenities, register for events, and access all community features.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          to="/amenities"
+                          className="inline-flex items-center space-x-1 px-3 py-1.5 md:px-4 md:py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors text-xs md:text-sm"
+                        >
+                          <span>Book Amenities</span>
+                        </Link>
+                        <Link
+                          to="/events"
+                          className="inline-flex items-center space-x-1 px-3 py-1.5 md:px-4 md:py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors text-xs md:text-sm"
+                        >
+                          <span>View Events</span>
+                        </Link>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <>
+                  {/* Important Notice for Existing Residents */}
+                  <div className="mb-4 md:mb-6 p-3 md:p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+                    <div className="flex items-start space-x-2 md:space-x-3">
+                      <Info className="w-5 h-5 md:w-6 md:h-6 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h3 className="font-semibold text-blue-900 mb-1 text-sm md:text-base">Already living in The Retreat?</h3>
+                        <p className="text-xs md:text-sm text-blue-800 mb-2 md:mb-3">
+                          If you are already a resident, you don&apos;t need to apply for membership. Simply login with your registered email.
+                        </p>
+                        <Link
+                          to="/login-info"
+                          className="inline-flex items-center space-x-1 md:space-x-2 px-3 py-1.5 md:px-4 md:py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-xs md:text-sm"
+                        >
+                          <LogIn className="w-3 h-3 md:w-4 md:h-4" />
+                          <span>Login to Your Account</span>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
 
-              <p className="text-lg text-gray-700 mb-8">
-                <strong>New to The Retreat?</strong> If you have recently purchased a property or rented a villa, please complete the membership form to register as a new member.
-              </p>
+                  <p className="text-sm md:text-base lg:text-lg text-gray-700 mb-6 md:mb-8">
+                    <strong>New to The Retreat?</strong> If you have recently purchased a property or rented a villa, please complete the membership form to register as a new member.
+                  </p>
+                </>
+              )}
 
-              <div className="space-y-6">
+              <div className="space-y-4 md:space-y-6">
                 <a
                   href="https://www.google.com/maps/place/The+Retreat+Blvd,+Tharabanahalli,+Karnataka+562157/@13.1937241,77.6229915,17z/data=!3m1!4b1!4m6!3m5!1s0x3bae1ef5e6fc7771:0xad750ac6cda3a9fa!8m2!3d13.1937189!4d77.6255664!16s%2Fg%2F11g639rxfw!5m1!1e2"
                   target="_blank"
