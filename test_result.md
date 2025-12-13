@@ -369,6 +369,18 @@ backend:
           agent: "testing"
           comment: "✅ GridFS Image Storage system testing completed successfully. GET /api/upload/image/{filename} endpoint working perfectly for all tested images: 87b85abf-1066-4288-8af4-0ad4075cedcd.webp, 4f5739a8-23c8-40ff-be81-a9f496a75e31.png, and 0deb1f66-a518-4ee2-b8d6-953328859b0f.jpeg. All images served with correct Content-Type headers (image/webp, image/png, image/jpeg). Browser caching implemented correctly with Cache-Control: public, max-age=2592000 (30 days). ETag support working - all images return proper ETag headers with MD5 hash. 304 Not Modified responses working correctly when client sends If-None-Match header with matching ETag. 404 responses correctly returned for non-existent images. GridFS integration with MongoDB working perfectly - 21 images stored and accessible. Production-ready image serving system with proper caching and performance optimization."
 
+  - task: "Homepage and Contact Page UI Updates"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Home.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ TROA Website UI Updates testing completed successfully. Homepage Updates: New logo displays correctly in navbar and footer, TROA text has gradient styling, hero section has both 'New Resident? Apply Here' and 'Already a Resident? Login' buttons linking correctly to /contact and /login-info respectively, bottom CTA section contains proper messaging for new vs existing residents with correct button links. Contact Page Updates: Blue info box displays with 'Already living in The Retreat?' text and 'Login to Your Account' button linking to /login-info, form section titled 'New Member Application' with correct subtitle. Navigation Testing: All button links work correctly. Logo Verification: Logo is an image file (not stylized green text as expected), TROA text has gradient styling. Note: Logo appears to be an image rather than the expected 'stylized green text logo' - may need review with main agent."
+
 frontend:
   - task: "Events Feature - Frontend Events Page UI"
     implemented: true
