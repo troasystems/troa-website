@@ -766,11 +766,11 @@ frontend:
 
   - task: "Mark as Paid Endpoint for Event Registrations"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/events.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
