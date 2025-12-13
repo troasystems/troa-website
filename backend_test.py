@@ -33,7 +33,8 @@ class TROAAPITester:
             'admin_approval': {'pending_approvals': None, 'approve': None, 'reject': None},
             'payment_integration': {'create_order': None, 'complete_payment': None},
             'amenity_booking': {'create_booking': None},
-            'gridfs_storage': {'get_image': None, 'cache_headers': None, 'etag_support': None, 'not_modified': None}
+            'gridfs_storage': {'get_image': None, 'cache_headers': None, 'etag_support': None, 'not_modified': None},
+            'unified_payment': {'offline_payment': None, 'get_offline_payments': None, 'approve_payment': None, 'reject_payment': None, 'amount_verification': None}
         }
         self.errors = []
         self.created_event_id = None
