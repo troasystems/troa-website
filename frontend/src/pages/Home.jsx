@@ -66,14 +66,14 @@ const Home = () => {
               to="/contact"
               className="px-8 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 rounded-full font-semibold text-lg hover:scale-105 transform transition-all duration-300 shadow-2xl hover:shadow-purple-500/50 flex items-center justify-center space-x-2"
             >
-              <span>Become a Member</span>
+              <span>New Resident? Apply Here</span>
               <ArrowRight className="w-5 h-5" />
             </Link>
             <Link
-              to="/about"
-              className="px-8 py-4 bg-white/20 backdrop-blur-sm rounded-full font-semibold text-lg hover:bg-white/30 transform transition-all duration-300 border-2 border-white/50"
+              to="/login-info"
+              className="px-8 py-4 bg-white/20 backdrop-blur-sm rounded-full font-semibold text-lg hover:bg-white/30 transform transition-all duration-300 border-2 border-white/50 flex items-center justify-center space-x-2"
             >
-              Learn More
+              <span>Already a Resident? Login</span>
             </Link>
           </div>
         </div>
