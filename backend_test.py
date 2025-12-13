@@ -1135,6 +1135,7 @@ class TROAAPITester:
             'Event Registration': ['event_registration'],
             'Admin Approval': ['admin_approval'],
             'Payment Integration': ['payment_integration'],
+            'Unified Payment System': ['unified_payment'],
             'Amenity Booking': ['amenity_booking']
         }
         
