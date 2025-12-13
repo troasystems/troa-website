@@ -249,13 +249,19 @@ const Events = () => {
           description: `Registration for ${selectedEvent.name}`,
           order_id: order.order_id,
           handler: async function (response) {
-            // Verify payment
+            // Verify payment - get fresh token inside handler
+            const freshToken = localStorage.getItem('session_token');
             try {
-              await axios.post(
+              console.log('Completing payment for registration:', registration.id);
+              console.log('Payment ID:', response.razorpay_payment_id);
+              
+              const completeResponse = await axios.post(
                 `${getAPI()}/events/registrations/${registration.id}/complete-payment?payment_id=${response.razorpay_payment_id}`,
                 {},
-                { headers: { 'X-Session-Token': `Bearer ${token}` } }
+                { headers: { 'X-Session-Token': `Bearer ${freshToken}` } }
               );
+              
+              console.log('Payment completion response:', completeResponse.data);
               
               toast({
                 title: 'Payment Successful!',
@@ -266,9 +272,23 @@ const Events = () => {
               resetRegistrationForm();
               navigate('/my-events');
             } catch (err) {
+              console.error('Payment completion error:', err);
+              console.error('Error response:', err.response?.data);
+              console.error('Error status:', err.response?.status);
+              
               toast({
                 title: 'Payment Verification Failed',
-                description: 'Please contact support.',
+                description: err.response?.data?.detail || 'Please contact support. Your payment was received but verification failed.',
+                variant: 'destructive'
+              });
+            }
+          },
+          modal: {
+            ondismiss: function() {
+              console.log('Razorpay modal dismissed');
+              toast({
+                title: 'Payment Cancelled',
+                description: 'You cancelled the payment. Your registration is pending payment.',
                 variant: 'destructive'
               });
             }
