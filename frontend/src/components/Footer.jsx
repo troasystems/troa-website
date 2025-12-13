@@ -11,7 +11,7 @@ const Footer = () => {
           <div className="col-span-1">
             <div className="flex items-center space-x-3 mb-4">
               <img 
-                src="https://customer-assets.emergentagent.com/job_tron-inspired/artifacts/s7kqkc41_Gemini_Generated_Image_b3s3itb3s3itb3s3.png" 
+                src="https://customer-assets.emergentagent.com/job_troaresidents/artifacts/ig305kse_821366b6-decf-46dc-8c80-2dade0f65395.jpeg" 
                 alt="The Retreat Logo" 
                 className="h-14 w-auto"
               />
