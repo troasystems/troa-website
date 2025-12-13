@@ -59,10 +59,10 @@ def get_file_extension(filename: str) -> str:
 
 @gridfs_router.post("/image")
 async def upload_image(request: Request, file: UploadFile = File(...)):
-    """Upload an image file to GridFS - admin only"""
+    """Upload an image file to GridFS - managers and admins"""
     try:
-        # Require admin authentication
-        await require_admin(request)
+        # Require manager or admin authentication
+        await require_manager_or_admin(request)
         
         # Get backend URL from environment
         backend_url = os.getenv('REACT_APP_BACKEND_URL', 'http://localhost:8001')
