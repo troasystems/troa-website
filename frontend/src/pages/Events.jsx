@@ -1046,7 +1046,18 @@ const Events = () => {
                   <span className="text-lg font-semibold text-gray-700">Total Amount</span>
                   <span className="text-2xl font-bold text-purple-600">₹{calculateTotal()}</span>
                 </div>
-                {selectedEvent.payment_type === 'per_person' && (
+                {selectedEvent.payment_type === 'per_villa' && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Fixed price per villa
+                  </p>
+                )}
+                {selectedEvent.payment_type === 'per_person' && selectedEvent.per_person_type === 'adult_child' && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    {registrants.filter(r => r.name.trim() && r.registrant_type === 'adult').length} adult(s) × ₹{selectedEvent.adult_price || 0} + {' '}
+                    {registrants.filter(r => r.name.trim() && r.registrant_type === 'child').length} child(ren) × ₹{selectedEvent.child_price || 0}
+                  </p>
+                )}
+                {selectedEvent.payment_type === 'per_person' && selectedEvent.per_person_type !== 'adult_child' && (
                   <p className="text-sm text-gray-500 mt-1">
                     ₹{selectedEvent.amount} × {registrants.filter(r => r.name.trim()).length} person(s)
                   </p>
