@@ -415,15 +415,20 @@ const HelpDesk = () => {
                       )}
 
                       {service.payments && (
-                        <div className="flex flex-wrap gap-4 mt-4">
+                        <div className="flex flex-wrap gap-3 md:gap-4 mt-4">
                           {service.payments.map((payment, i) => (
-                            <div key={i} className="flex-1 min-w-[200px]">
+                            <div key={i} className="flex-1 min-w-[180px]">
                               <button
-                                onClick={() => setPaymentModal({ type: payment.type, amount: payment.amount })}
-                                className={`inline-flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold hover:scale-105 transform transition-all duration-300 shadow-lg w-full`}
+                                onClick={() => setPaymentModal({ 
+                                  type: payment.type, 
+                                  amount: payment.amount,
+                                  label: payment.label,
+                                  displayAmount: payment.displayAmount
+                                })}
+                                className={`inline-flex items-center justify-center space-x-2 px-4 md:px-6 py-2.5 md:py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold text-sm md:text-base hover:scale-105 transform transition-all duration-300 shadow-lg w-full`}
                               >
                                 <CreditCard className="w-4 h-4" />
-                                <span>{payment.label}</span>
+                                <span>{payment.label} ({payment.displayAmount})</span>
                               </button>
                             </div>
                           ))}
@@ -439,14 +444,14 @@ const HelpDesk = () => {
       </section>
 
       {/* Emergency Contacts Section */}
-      <section className="py-20 bg-gradient-to-br from-gray-900 via-red-900 to-gray-900 text-white">
+      <section className="py-12 md:py-20 bg-gradient-to-br from-gray-900 via-red-900 to-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">Emergency Contacts</h2>
-            <p className="text-xl text-gray-300">Keep these numbers handy for emergencies</p>
+          <div className="text-center mb-8 md:mb-12">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">Emergency Contacts</h2>
+            <p className="text-base md:text-xl text-gray-300">Keep these numbers handy for emergencies</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {emergencyContacts.map((contact, index) => (
               <div
                 key={index}
