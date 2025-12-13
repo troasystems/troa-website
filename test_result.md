@@ -757,7 +757,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Event Pricing Options Feature"
+    - "Manager Events Permission Fix"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
