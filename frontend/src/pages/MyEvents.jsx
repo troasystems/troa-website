@@ -115,8 +115,8 @@ const MyEvents = () => {
 
   const updateRegistrant = (index, field, value) => {
     const updated = [...modifyRegistrants];
-    if (field === 'name') {
-      updated[index].name = value;
+    if (field === 'name' || field === 'registrant_type') {
+      updated[index][field] = value;
     } else {
       updated[index].preferences = { ...updated[index].preferences, [field]: value };
     }
@@ -127,15 +127,25 @@ const MyEvents = () => {
     if (!selectedRegistration || !selectedRegistration.event) return { newTotal: 0, difference: 0 };
     
     const event = selectedRegistration.event;
-    const oldCount = selectedRegistration.registrants?.length || 0;
-    const newCount = modifyRegistrants.filter(r => r.name.trim()).length;
+    const validRegistrants = modifyRegistrants.filter(r => r.name.trim());
+    const oldTotal = selectedRegistration.total_amount || 0;
     
-    if (event.payment_type === 'per_person') {
-      const newTotal = event.amount * newCount;
-      const oldTotal = selectedRegistration.total_amount || (event.amount * oldCount);
-      return { newTotal, difference: newTotal - oldTotal };
+    let newTotal = 0;
+    
+    if (event.payment_type === 'per_villa') {
+      // Per villa - fixed price
+      newTotal = event.amount;
+    } else if (event.per_person_type === 'adult_child') {
+      // Adult/child pricing
+      const adultCount = validRegistrants.filter(r => r.registrant_type === 'adult').length;
+      const childCount = validRegistrants.filter(r => r.registrant_type === 'child').length;
+      newTotal = (adultCount * (event.adult_price || 0)) + (childCount * (event.child_price || 0));
+    } else {
+      // Uniform per_person pricing
+      newTotal = event.amount * validRegistrants.length;
     }
-    return { newTotal: event.amount, difference: 0 };
+    
+    return { newTotal, difference: newTotal - oldTotal };
   };
 
   const handleModifySubmit = async () => {
