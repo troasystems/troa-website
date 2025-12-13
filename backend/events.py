@@ -585,17 +585,28 @@ async def modify_registration(registration_id: str, request: Request):
         if len(new_registrants) == 0:
             raise HTTPException(status_code=400, detail="At least one registrant is required")
         
-        # Calculate new total and difference
-        old_count = len(registration.get("registrants", []))
-        new_count = len(new_registrants)
+        # Calculate new total and difference based on pricing type
+        old_registrants = registration.get("registrants", [])
+        old_total = registration.get("total_amount", 0)
         
-        if event["payment_type"] == "per_person":
-            new_total = event["amount"] * new_count
-            old_total = registration.get("total_amount", event["amount"] * old_count)
-            difference = new_total - old_total
-        else:  # per_villa - no additional payment needed
+        if event["payment_type"] == "per_villa":
+            # Per villa - no additional payment needed
             new_total = event["amount"]
             difference = 0
+        elif event.get("per_person_type") == "adult_child":
+            # Adult/child pricing
+            adult_price = event.get("adult_price", 0) or 0
+            child_price = event.get("child_price", 0) or 0
+            
+            new_adult_count = sum(1 for r in new_registrants if r.get("registrant_type", "adult") == "adult")
+            new_child_count = sum(1 for r in new_registrants if r.get("registrant_type") == "child")
+            new_total = (new_adult_count * adult_price) + (new_child_count * child_price)
+            difference = new_total - old_total
+        else:
+            # Uniform per_person pricing
+            new_count = len(new_registrants)
+            new_total = event["amount"] * new_count
+            difference = new_total - old_total
         
         # If adding people (positive difference), handle payment
         if difference > 0:
