@@ -714,7 +714,8 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Role-Based Access Control Testing"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
