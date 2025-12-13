@@ -41,7 +41,7 @@ class EventModificationPaymentTester:
         
         # Setup authentication headers
         self.basic_auth = base64.b64encode(f"{BASIC_AUTH_USERNAME}:{BASIC_AUTH_PASSWORD}".encode()).decode()
-        self.session_token = "Pb9guhRQHpv1_efx7KeN8Ej8Ej8Ej8Ej8Ej8Ej8Ej8"  # Valid admin session token
+        self.session_token = "Pb9guhRQHpv1_efx7KeNLcDqxEZiUssG8ODNENQI_jY"  # Valid admin session token
         self.auth_headers = {
             'Authorization': f'Basic {self.basic_auth}',
             'X-Session-Token': f'Bearer {self.session_token}',
