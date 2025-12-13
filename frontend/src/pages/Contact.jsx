@@ -313,7 +313,7 @@ const Contact = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1 md:mb-2">
                     Phone *
                   </label>
                   <input
@@ -322,13 +322,13 @@ const Contact = () => {
                     value={formData.phone}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-300 outline-none"
+                    className="w-full px-3 md:px-4 py-2 md:py-3 text-sm md:text-base border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-300 outline-none"
                     placeholder="+91 1234567890"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1 md:mb-2">
                     Villa No. *
                   </label>
                   <input
@@ -337,21 +337,21 @@ const Contact = () => {
                     value={formData.villaNo}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-300 outline-none"
+                    className="w-full px-3 md:px-4 py-2 md:py-3 text-sm md:text-base border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-300 outline-none"
                     placeholder="A-101"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1 md:mb-2">
                     Message
                   </label>
                   <textarea
                     name="message"
                     value={formData.message}
                     onChange={handleChange}
-                    rows="4"
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-300 outline-none resize-none"
+                    rows="3"
+                    className="w-full px-3 md:px-4 py-2 md:py-3 text-sm md:text-base border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-300 outline-none resize-none"
                     placeholder="Write your message here..."
                   ></textarea>
                 </div>
@@ -359,28 +359,28 @@ const Contact = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold text-lg hover:scale-105 transform transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  className="w-full px-4 md:px-6 py-3 md:py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold text-sm md:text-lg hover:scale-105 transform transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                 >
                   {loading ? (
-                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white"></div>
+                    <div className="animate-spin rounded-full h-5 w-5 md:h-6 md:w-6 border-t-2 border-b-2 border-white"></div>
                   ) : (
                     <>
                       <span>Submit Application</span>
-                      <Send size={20} />
+                      <Send className="w-4 h-4 md:w-5 md:h-5" />
                     </>
                   )}
                 </button>
 
                 {showPaymentOption && (
-                  <div className="mt-4 p-4 bg-green-50 border-2 border-green-200 rounded-lg">
-                    <p className="text-green-800 font-semibold mb-3">
+                  <div className="mt-3 md:mt-4 p-3 md:p-4 bg-green-50 border-2 border-green-200 rounded-lg">
+                    <p className="text-green-800 font-semibold mb-2 md:mb-3 text-sm md:text-base">
                       Application submitted! Complete your membership by paying ₹11,800
                     </p>
                     <button
                       onClick={handlePayMembership}
-                      className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold hover:scale-105 transform transition-all duration-300 shadow-lg flex items-center justify-center space-x-2"
+                      className="w-full px-4 md:px-6 py-2.5 md:py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold text-sm md:text-base hover:scale-105 transform transition-all duration-300 shadow-lg flex items-center justify-center space-x-2"
                     >
-                      <CreditCard size={20} />
+                      <CreditCard className="w-4 h-4 md:w-5 md:h-5" />
                       <span>Pay Membership Fee (₹11,800)</span>
                     </button>
                   </div>
