@@ -685,6 +685,8 @@ const MyEvents = () => {
               {(() => {
                 const { newTotal, difference } = calculateModificationCost();
                 const hasAdditionalCost = difference > 0;
+                const validRegistrants = modifyRegistrants.filter(r => r.name.trim());
+                const event = selectedRegistration.event;
                 
                 return (
                   <>
@@ -693,6 +695,15 @@ const MyEvents = () => {
                         <span className="text-gray-600">New Total</span>
                         <span className="text-xl font-bold text-purple-600">₹{newTotal}</span>
                       </div>
+                      
+                      {/* Show breakdown for adult/child pricing */}
+                      {event?.per_person_type === 'adult_child' && (
+                        <div className="text-sm text-gray-500 mb-2">
+                          {validRegistrants.filter(r => r.registrant_type === 'adult').length} adult(s) × ₹{event?.adult_price || 0} + {' '}
+                          {validRegistrants.filter(r => r.registrant_type === 'child').length} child(ren) × ₹{event?.child_price || 0}
+                        </div>
+                      )}
+                      
                       {difference !== 0 && (
                         <div className={`flex justify-between items-center ${difference > 0 ? 'text-orange-600' : 'text-green-600'}`}>
                           <span>{difference > 0 ? 'Additional Payment' : 'Refund Amount'}</span>
