@@ -266,7 +266,7 @@ async def get_transactions(request: Request):
     """Get all payment transactions - admin only"""
     try:
         from auth import require_admin
-        admin = await require_admin(request)
+        await require_admin(request)
         
         transactions = await db.payment_transactions.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
         return transactions
