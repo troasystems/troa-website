@@ -775,6 +775,9 @@ frontend:
         - working: "NA"
           agent: "main"
           comment: "New 'Mark as Paid' endpoint implemented at POST /api/events/registrations/{registration_id}/mark-paid. Requires admin or manager authentication. Allows manually marking registration payment as completed. Includes validation for already paid and withdrawn registrations. Creates audit log entries for tracking. Needs comprehensive testing for all scenarios."
+        - working: true
+          agent: "testing"
+          comment: "✅ Mark as Paid Endpoint testing completed successfully. All 5 test scenarios from review request verified: ✅ Mark Registration as Paid (Admin/Manager): Successfully marked pending registration as paid, payment_status updated to 'completed', admin_approved set to true, audit log entry created with timestamp and admin details. ✅ Already Paid Registration Error: Correctly returns 400 error with message 'Registration is already marked as paid' when attempting to mark already completed registration. ✅ Withdrawn Registration Error: Correctly returns 400 error with message 'Cannot mark withdrawn registration as paid' when attempting to mark withdrawn registration. ✅ Unauthorized Access: Correctly returns 401 Unauthorized for requests without proper admin/manager authentication. ✅ Audit Log Creation: Verified audit log entries are properly created with action 'payment_marked_completed', timestamp, admin email, and detailed description. ✅ Additional Tests: Non-existent registration ID correctly returns 404 Not Found. All authentication requirements working correctly - endpoint requires admin or manager privileges. Feature is production-ready and meets all requirements from the review request."
 
 metadata:
   created_by: "testing_agent"
