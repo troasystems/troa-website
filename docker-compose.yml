@@ -55,7 +55,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - REACT_APP_BACKEND_URL=http://localhost:8001
+        # Use empty string to make API calls relative (through nginx proxy)
+        - REACT_APP_BACKEND_URL=
     container_name: troa-frontend
     restart: unless-stopped
     ports:
