@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ExternalLink, FileText, CreditCard, Users, AlertTriangle, Phone } from 'lucide-react';
+import { ExternalLink, FileText, CreditCard, Users, AlertTriangle, Phone, Banknote, X } from 'lucide-react';
 import axios from 'axios';
 import { toast } from '../hooks/use-toast';
 import { Toaster } from '../components/ui/toaster';
@@ -9,7 +9,9 @@ const getAPI = () => `${getBackendUrl()}/api`;
 
 const HelpDesk = () => {
   const [paymentModal, setPaymentModal] = useState(null);
-  const [paymentForm, setPaymentForm] = useState({ name: '', email: '', phone: '' });
+  const [paymentForm, setPaymentForm] = useState({ name: '', email: '', phone: '', villaNo: '' });
+  const [paymentMethod, setPaymentMethod] = useState('online');
+  const [submitting, setSubmitting] = useState(false);
 
   const handlePayNow = async (paymentType, amount) => {
     if (!paymentForm.name || !paymentForm.email || !paymentForm.phone) {
@@ -21,6 +23,42 @@ const HelpDesk = () => {
       return;
     }
 
+    setSubmitting(true);
+
+    // Handle offline payment
+    if (paymentMethod === 'offline') {
+      try {
+        await axios.post(`${getAPI()}/payment/offline-payment`, {
+          payment_type: paymentType,
+          payment_method: 'qr_code',
+          name: paymentForm.name,
+          email: paymentForm.email,
+          phone: paymentForm.phone,
+          villa_no: paymentForm.villaNo,
+          notes: `${paymentType.replace('_', ' ')} - offline payment`
+        });
+
+        toast({
+          title: 'Payment Request Submitted!',
+          description: 'Your offline payment request has been submitted. Admin will verify and approve it shortly.'
+        });
+
+        setPaymentModal(null);
+        setPaymentForm({ name: '', email: '', phone: '', villaNo: '' });
+        setPaymentMethod('online');
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to submit offline payment request',
+          variant: 'destructive'
+        });
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    // Online payment via Razorpay
     try {
       // Create order
       const orderResponse = await axios.post(`${getAPI()}/payment/create-order`, {
@@ -38,7 +76,7 @@ const HelpDesk = () => {
         amount: orderAmount,
         currency: 'INR',
         name: 'TROA - The Retreat',
-        description: `Payment for ${paymentType.replace('_', ' ')} form`,
+        description: `Payment for ${paymentType.replace('_', ' ')}`,
         order_id: order_id,
         handler: async function (response) {
           try {
@@ -53,11 +91,12 @@ const HelpDesk = () => {
 
             toast({
               title: 'Payment Successful!',
-              description: `₹${amount} paid successfully`
+              description: `Payment completed successfully`
             });
 
             setPaymentModal(null);
-            setPaymentForm({ name: '', email: '', phone: '' });
+            setPaymentForm({ name: '', email: '', phone: '', villaNo: '' });
+            setPaymentMethod('online');
           } catch (error) {
             toast({
               title: 'Payment Verification Failed',
@@ -84,6 +123,8 @@ const HelpDesk = () => {
         description: 'Failed to initiate payment',
         variant: 'destructive'
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -104,8 +145,8 @@ const HelpDesk = () => {
         { label: 'Move Out Form', link: 'https://docs.google.com/forms/d/e/1FAIpQLScV2zbpjwbLxs4nU85oGJWr7ddNvTLw64-qviELYhdeLEgaVQ/viewform?usp=dialog' }
       ],
       payments: [
-        { label: 'Pay for Move-In (₹2,380)', type: 'move_in', amount: 2380 },
-        { label: 'Pay for Move-Out (₹2,380)', type: 'move_out', amount: 2380 }
+        { label: 'Pay for Move-In', displayAmount: '₹2,000 + 18% GST', type: 'move_in', amount: 2360 },
+        { label: 'Pay for Move-Out', displayAmount: '₹2,000 + 18% GST', type: 'move_out', amount: 2360 }
       ],
       gradient: 'from-purple-500 to-indigo-500'
     },
@@ -122,7 +163,7 @@ const HelpDesk = () => {
         { label: 'Membership Form', link: 'https://docs.google.com/forms/d/e/1FAIpQLSdTiNpjTIHyZWdd77n5cbfaoX5mkZ-7CWTqDwfEr96RDFUlZw/viewform' }
       ],
       payments: [
-        { label: 'Pay Membership Fee (₹11,800)', type: 'membership', amount: 11800 }
+        { label: 'Pay Membership Fee', displayAmount: '₹10,000 + 18% GST', type: 'membership', amount: 11800 }
       ],
       gradient: 'from-pink-500 to-rose-500'
     },
@@ -163,64 +204,160 @@ const HelpDesk = () => {
   ];
 
   return (
-    <div className="min-h-screen pt-20">
+    <div className="min-h-screen pt-16 md:pt-20">
       <Toaster />
 
       {/* Payment Modal */}
       {paymentModal && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full">
-            <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
-              Payment Details
-            </h3>
-            <p className="text-gray-600 mb-6">Amount: ₹{paymentModal.amount}</p>
-            <div className="space-y-4">
+          <div className="bg-white rounded-2xl p-6 md:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+                Payment Details
+              </h3>
+              <button onClick={() => { setPaymentModal(null); setPaymentMethod('online'); }} className="p-1 hover:bg-gray-100 rounded">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-4">
+              <p className="text-purple-800 font-semibold text-center">
+                {paymentModal.label}: {paymentModal.displayAmount}
+              </p>
+            </div>
+            
+            <div className="space-y-3 mb-4">
               <input
                 type="text"
-                placeholder="Full Name"
+                placeholder="Full Name *"
                 value={paymentForm.name}
                 onChange={(e) => setPaymentForm({ ...paymentForm, name: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
+                className="w-full px-4 py-2.5 text-sm border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
               />
               <input
                 type="email"
-                placeholder="Email"
+                placeholder="Email *"
                 value={paymentForm.email}
                 onChange={(e) => setPaymentForm({ ...paymentForm, email: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
+                className="w-full px-4 py-2.5 text-sm border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
               />
               <input
                 type="tel"
-                placeholder="Phone"
+                placeholder="Phone *"
                 value={paymentForm.phone}
                 onChange={(e) => setPaymentForm({ ...paymentForm, phone: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
+                className="w-full px-4 py-2.5 text-sm border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
               />
-              <div className="flex space-x-2">
+              <input
+                type="text"
+                placeholder="Villa No."
+                value={paymentForm.villaNo}
+                onChange={(e) => setPaymentForm({ ...paymentForm, villaNo: e.target.value })}
+                className="w-full px-4 py-2.5 text-sm border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none"
+              />
+            </div>
+
+            {/* Payment Method Selection */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Select Payment Method
+              </label>
+              <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={() => handlePayNow(paymentModal.type, paymentModal.amount)}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300"
+                  type="button"
+                  onClick={() => setPaymentMethod('online')}
+                  className={`p-3 border-2 rounded-lg text-left transition-all ${
+                    paymentMethod === 'online'
+                      ? 'border-purple-500 bg-purple-50'
+                      : 'border-gray-200 hover:border-purple-300'
+                  }`}
                 >
-                  Proceed to Pay
+                  <div className="flex items-center space-x-2">
+                    <CreditCard className={`w-5 h-5 ${paymentMethod === 'online' ? 'text-purple-600' : 'text-gray-400'}`} />
+                    <div>
+                      <p className="font-semibold text-gray-900 text-sm">Online</p>
+                      <p className="text-[10px] text-gray-500">Cards, UPI</p>
+                      <p className="text-[10px] text-orange-600 font-medium">⚠️ 2% surcharge</p>
+                    </div>
+                  </div>
                 </button>
                 <button
-                  onClick={() => setPaymentModal(null)}
-                  className="px-6 py-3 bg-gray-500 text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300"
+                  type="button"
+                  onClick={() => setPaymentMethod('offline')}
+                  className={`p-3 border-2 rounded-lg text-left transition-all ${
+                    paymentMethod === 'offline'
+                      ? 'border-purple-500 bg-purple-50'
+                      : 'border-gray-200 hover:border-purple-300'
+                  }`}
                 >
-                  Cancel
+                  <div className="flex items-center space-x-2">
+                    <Banknote className={`w-5 h-5 ${paymentMethod === 'offline' ? 'text-purple-600' : 'text-gray-400'}`} />
+                    <div>
+                      <p className="font-semibold text-gray-900 text-sm">Offline</p>
+                      <p className="text-[10px] text-gray-500">QR / Cash / Transfer</p>
+                    </div>
+                  </div>
                 </button>
               </div>
+            </div>
+
+            {/* QR Code for offline */}
+            {paymentMethod === 'offline' && (
+              <div className="mb-4 space-y-3">
+                <div className="bg-white border-2 border-purple-200 rounded-lg p-3">
+                  <p className="font-semibold text-purple-800 mb-2 text-center text-sm">Scan QR Code to Pay</p>
+                  <div className="flex justify-center mb-2">
+                    <img 
+                      src="https://customer-assets.emergentagent.com/job_troaresidents/artifacts/4hvho9rv_WhatsApp%20Image%202025-12-13%20at%2011.32.42.jpeg" 
+                      alt="Payment QR Code" 
+                      className="w-32 h-32 object-contain border rounded-lg"
+                    />
+                  </div>
+                  <p className="text-[10px] text-gray-600 text-center">Or pay via Cash / Bank Transfer</p>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-2">
+                  <div className="flex items-start space-x-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-800">
+                      Offline payments require admin approval. Your request will be pending until confirmed.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex space-x-2">
+              <button
+                onClick={() => handlePayNow(paymentModal.type, paymentModal.amount)}
+                disabled={submitting}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300 disabled:opacity-50 flex items-center justify-center space-x-2"
+              >
+                {submitting ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                ) : (
+                  <>
+                    {paymentMethod === 'online' ? <CreditCard className="w-4 h-4" /> : <Banknote className="w-4 h-4" />}
+                    <span>{paymentMethod === 'online' ? 'Proceed to Pay' : 'Submit Request'}</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => { setPaymentModal(null); setPaymentMethod('online'); }}
+                className="px-4 py-3 bg-gray-500 text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {/* Hero Section */}
-      <section className="relative py-20 bg-gradient-to-br from-purple-600 via-pink-600 to-orange-600 text-white">
+      <section className="relative py-12 md:py-20 bg-gradient-to-br from-purple-600 via-pink-600 to-orange-600 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">Resources</h1>
-            <p className="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 md:mb-6">Resources</h1>
+            <p className="text-base md:text-xl lg:text-2xl text-white/90 max-w-3xl mx-auto">
               Your one-stop resource for community services and information
             </p>
           </div>
