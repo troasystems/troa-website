@@ -847,7 +847,7 @@ class TROAAPITester:
                             'amount' in data and 
                             float(data['amount']) == float(payment_data['expected_amount']) and
                             'success' in data and data['success'] and
-                            'pending_approval' in data.get('message', '').lower()):
+                            'awaiting' in data.get('message', '').lower()):
                             
                             self.created_payment_ids.append(data['payment_id'])
                             self.log_success(f"/payment/offline-payment ({payment_data['type']}, {payment_method})", "POST", 
