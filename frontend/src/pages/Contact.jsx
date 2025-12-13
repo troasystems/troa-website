@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from '../hooks/use-toast';
-import { MapPin, Send, CreditCard, LogIn, Info, CheckCircle } from 'lucide-react';
+import { MapPin, Send, CreditCard, LogIn, Info, CheckCircle, Banknote, AlertCircle } from 'lucide-react';
 import { Toaster } from '../components/ui/toaster';
 import { useAuth } from '../context/AuthContext';
 
@@ -21,6 +21,8 @@ const Contact = () => {
   });
   const [loading, setLoading] = useState(false);
   const [showPaymentOption, setShowPaymentOption] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('online');
+  const [submittingOffline, setSubmittingOffline] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
