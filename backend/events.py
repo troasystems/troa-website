@@ -588,6 +588,8 @@ async def modify_registration(registration_id: str, request: Request):
         # Calculate new total and difference based on pricing type
         old_registrants = registration.get("registrants", [])
         old_total = registration.get("total_amount", 0)
+        old_count = len(old_registrants)
+        new_count = len(new_registrants)
         
         if event["payment_type"] == "per_villa":
             # Per villa - no additional payment needed
@@ -604,7 +606,6 @@ async def modify_registration(registration_id: str, request: Request):
             difference = new_total - old_total
         else:
             # Uniform per_person pricing
-            new_count = len(new_registrants)
             new_total = event["amount"] * new_count
             difference = new_total - old_total
         
@@ -622,7 +623,7 @@ async def modify_registration(registration_id: str, request: Request):
                 "timestamp": datetime.utcnow().isoformat(),
                 "by_name": user.get('name', user['email']),
                 "by_email": user['email'],
-                "details": f"Requested to add {new_count - old_count} person(s). Additional amount: ₹{difference}",
+                "details": f"Requested modification. Old: {old_count}, New: {new_count}. Additional amount: ₹{difference}",
                 "old_count": old_count,
                 "new_count": new_count,
                 "additional_amount": difference,
