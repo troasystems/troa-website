@@ -102,8 +102,8 @@ async def create_event(event_data: EventCreate, request: Request):
 
 @events_router.patch("/{event_id}")
 async def update_event(event_id: str, event_data: dict, request: Request):
-    """Update an event (admin only)"""
-    await require_admin(request)
+    """Update an event (admin or manager)"""
+    await require_manager_or_admin(request)
     
     db, client = await get_db()
     try:
