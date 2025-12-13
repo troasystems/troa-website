@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, LogOut, Shield, MessageSquare, Calendar, PartyPopper } from 'lucide-react';
+import { Menu, X, User, LogOut, Shield, Calendar, PartyPopper } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { getBackendUrl } from '../utils/api';
