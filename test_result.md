@@ -772,7 +772,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Admin Portal Events Management Pricing Type Display"
+    - "Mark as Paid Endpoint for Event Registrations"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
