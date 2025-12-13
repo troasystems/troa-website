@@ -887,6 +887,7 @@ class TROAAPITester:
         # Group results by category
         categories = {
             'Basic APIs': ['committee', 'amenities', 'gallery', 'membership'],
+            'GridFS Image Storage': ['gridfs_storage'],
             'Events CRUD': ['events'],
             'Event Registration': ['event_registration'],
             'Admin Approval': ['admin_approval'],
