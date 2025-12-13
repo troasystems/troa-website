@@ -212,11 +212,11 @@ const EventsManagement = () => {
                           </span>
                           {/* Payment Method Badge */}
                           <span className={`px-2 py-1 text-xs font-medium rounded flex items-center gap-1 ${
-                            reg.payment_method === 'online' 
+                            (isMod ? reg.modification_payment_method : reg.payment_method) === 'online' 
                               ? 'bg-blue-100 text-blue-700' 
                               : 'bg-purple-100 text-purple-700'
                           }`}>
-                            {reg.payment_method === 'online' ? (
+                            {(isMod ? reg.modification_payment_method : reg.payment_method) === 'online' ? (
                               <>
                                 <CreditCard className="w-3 h-3" />
                                 Online Payment
@@ -445,6 +445,26 @@ const EventsManagement = () => {
                               </>
                             )}
                           </span>
+                          {/* Show modification payment method if different */}
+                          {reg.modification_status === 'pending_modification_approval' && reg.modification_payment_method && (
+                            <span className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded mt-1 ${
+                              reg.modification_payment_method === 'online' 
+                                ? 'bg-blue-100 text-blue-700' 
+                                : 'bg-orange-100 text-orange-700'
+                            }`}>
+                              {reg.modification_payment_method === 'online' ? (
+                                <>
+                                  <CreditCard className="w-3 h-3" />
+                                  Mod: Online
+                                </>
+                              ) : (
+                                <>
+                                  <Banknote className="w-3 h-3" />
+                                  Mod: Offline
+                                </>
+                              )}
+                            </span>
+                          )}
                         </div>
                       </div>
 
