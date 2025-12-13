@@ -453,6 +453,18 @@ backend:
           agent: "testing"
           comment: "✅ Frontend Admin Portal Payment Method Display Fix verified through code analysis and UI testing. ✅ Code Implementation Verified: EventsManagement.jsx correctly implements payment method display fix in two key areas: 1) Pending Approvals section (lines 214-230) uses conditional logic `(isMod ? reg.modification_payment_method : reg.payment_method)` to show correct payment method for modifications 2) All Events → Event Details modal (lines 449-467) displays both original payment method badge AND separate modification payment method badge ('Mod: Online' or 'Mod: Offline') when modification is pending. ✅ Authentication Security: Admin portal properly secured with Google OAuth - unauthenticated users redirected to homepage as expected. ✅ UI Structure: AdminPortal.jsx includes Events Management tab with proper component integration. EventsManagement component has both 'Pending Approvals' and 'All Events' views as designed. ✅ Payment Method Badge Logic: For modifications, shows modification_payment_method instead of original payment_method. For registrations with pending modifications, shows both original badge and modification badge with 'Mod:' prefix. ✅ Bug Fix Confirmed: The issue where admin portal showed 'Online Payment' instead of 'Offline Payment' for modifications has been resolved through proper conditional rendering logic. Frontend implementation correctly distinguishes between original and modification payment methods. Note: Full UI testing requires Google OAuth authentication with troa.systems@gmail.com admin account."
 
+  - task: "Role-Based Access Control (RBAC) Testing"
+    implemented: true
+    working: true
+    file: "/app/backend/auth.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Role-Based Access Control (RBAC) testing completed successfully. ✅ Authentication Configuration: All required email addresses properly configured - Admin: troa.systems@gmail.com, Managers: troa.mgr@gmail.com, troa.secretary@gmail.com, troa.treasurer@gmail.com, president.troa@gmail.com. All required RBAC functions implemented: require_admin(), require_manager_or_admin(), get_user_role(). ✅ Endpoint Access Control Verification: Manager + Admin endpoints correctly use require_manager_or_admin: Membership Applications (GET/PATCH/DELETE /api/membership/*), Offline Payments (GET/POST /api/payment/offline-payments/*), Events Management (GET/POST/PATCH /api/events/*). Admin-only endpoints correctly use require_admin: User Feedback (GET/POST/DELETE /api/feedback/*), User Management (GET/POST/PATCH/DELETE /api/users/*). ✅ Authentication Requirements Testing: All protected endpoints correctly require authentication (return 401/403 without proper auth). Public endpoints work without authentication (GET /events, /committee, /amenities, /gallery, POST /membership). ✅ Code Implementation: Updated payment.py to use require_manager_or_admin for offline payment endpoints as per requirements. All RBAC functions properly imported and used in server.py, payment.py, and events.py. ✅ Access Control Matrix Verified: Managers can access membership applications, offline payments, and events management. Admin can access everything managers can PLUS user feedback and user management. Unauthorized users correctly denied access to protected endpoints. ✅ Test Results: 31/33 tests passed (2 minor test issues were false positives - GET /events is correctly public, POST /membership/{id} should be PATCH). RBAC implementation meets all requirements from the review request."
+
 frontend:
   - task: "Events Feature - Frontend Events Page UI"
     implemented: true
