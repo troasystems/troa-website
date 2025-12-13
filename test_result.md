@@ -369,6 +369,42 @@ backend:
           agent: "testing"
           comment: "✅ GridFS Image Storage system testing completed successfully. GET /api/upload/image/{filename} endpoint working perfectly for all tested images: 87b85abf-1066-4288-8af4-0ad4075cedcd.webp, 4f5739a8-23c8-40ff-be81-a9f496a75e31.png, and 0deb1f66-a518-4ee2-b8d6-953328859b0f.jpeg. All images served with correct Content-Type headers (image/webp, image/png, image/jpeg). Browser caching implemented correctly with Cache-Control: public, max-age=2592000 (30 days). ETag support working - all images return proper ETag headers with MD5 hash. 304 Not Modified responses working correctly when client sends If-None-Match header with matching ETag. 404 responses correctly returned for non-existent images. GridFS integration with MongoDB working perfectly - 21 images stored and accessible. Production-ready image serving system with proper caching and performance optimization."
 
+  - task: "Unified Payment System - Offline Payment API"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/payment.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Unified payment system implemented with offline payment creation endpoint POST /api/payment/offline-payment. Supports move_in, move_out, and membership payment types with QR code and cash transfer methods. Requires testing for proper amount calculations and status handling."
+
+  - task: "Unified Payment System - Admin Offline Payments Management"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/payment.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Admin endpoints implemented: GET /api/payment/offline-payments (admin only) and POST /api/payment/offline-payments/approve for approving/rejecting offline payments. Requires testing for proper authentication and approval workflow."
+
+  - task: "Unified Payment System - Payment Amount Verification"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/payment.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Payment amounts configured: move_in ₹2360 (₹2000 + 18% GST), move_out ₹2360 (₹2000 + 18% GST), membership ₹11800 (₹10000 + 18% GST). Requires testing to verify correct amount calculations across all payment flows."
+
   - task: "Homepage and Contact Page UI Updates"
     implemented: true
     working: true
