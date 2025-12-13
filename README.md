@@ -2,7 +2,7 @@
 
 A full-stack web application for managing a residential community association. Built with React, FastAPI, and MongoDB.
 
-![TROA Screenshot](https://customer-assets.emergentagent.com/job_tron-inspired/artifacts/s7kqkc41_Gemini_Generated_Image_b3s3itb3s3itb3s3.png)
+![TROA Screenshot](https://customer-assets.emergentagent.com/job_troaresidents/artifacts/ig305kse_821366b6-decf-46dc-8c80-2dade0f65395.jpeg)
 
 ## Features
 
