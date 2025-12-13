@@ -304,14 +304,17 @@ const Events = () => {
       event_date: '',
       event_time: '',
       amount: '',
-      payment_type: 'per_person',
+      payment_type: 'per_villa',
+      per_person_type: 'uniform',
+      adult_price: '',
+      child_price: '',
       preferences: [],
       max_registrations: ''
     });
   };
 
   const resetRegistrationForm = () => {
-    setRegistrants([{ name: '', preferences: {} }]);
+    setRegistrants([{ name: '', registrant_type: 'adult', preferences: {} }]);
     setPaymentMethod('online');
   };
 
