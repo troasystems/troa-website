@@ -642,6 +642,23 @@ const EventsManagement = () => {
                         </div>
                       )}
 
+                      {/* Mark as Paid button for pending online payments */}
+                      {reg.payment_status === 'pending' && reg.status === 'registered' && !reg.modification_status && (
+                        <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <p className="text-sm text-yellow-800 mb-2">
+                            <AlertCircle className="w-4 h-4 inline mr-1" />
+                            Online payment pending. If payment was received, you can manually mark it as paid.
+                          </p>
+                          <button
+                            onClick={() => handleMarkAsPaid(reg.id)}
+                            className="flex items-center space-x-1 px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+                          >
+                            <CheckCircle className="w-3 h-3" />
+                            <span>Mark as Paid</span>
+                          </button>
+                        </div>
+                      )}
+
                       {/* Audit Log Section */}
                       {reg.audit_log && reg.audit_log.length > 0 && (
                         <div className="mt-3 border-t pt-3">
