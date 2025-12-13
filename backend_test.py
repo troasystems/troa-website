@@ -856,6 +856,9 @@ class TROAAPITester:
         self.test_gallery()
         self.test_membership()
         
+        # Test new GridFS Image Storage feature
+        self.test_gridfs_image_storage()
+        
         # Test new Events feature
         self.test_events_crud()
         self.test_event_registration()
