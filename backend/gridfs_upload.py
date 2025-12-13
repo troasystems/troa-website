@@ -81,7 +81,7 @@ async def upload_image(request: Request, file: UploadFile = File(...)):
         try:
             img = Image.open(io.BytesIO(content))
             img.verify()
-        except Exception as e:
+        except Exception:
             raise HTTPException(status_code=400, detail="Invalid image file")
         
         # Generate unique filename and ETag
