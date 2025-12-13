@@ -1372,6 +1372,9 @@ class TROAAPITester:
         # Test new Event Pricing Options feature
         self.test_event_pricing_options()
         
+        # Test Event Registration Modification feature
+        self.test_event_registration_modification()
+        
         # Test edge cases
         self.test_edge_cases()
         
