@@ -423,6 +423,15 @@ const EventsManagement = () => {
                   <p className="text-sm opacity-90">
                     {formatDate(selectedEvent.event_date)} at {selectedEvent.event_time}
                   </p>
+                  <p className="text-sm opacity-90 mt-1">
+                    {selectedEvent.payment_type === 'per_villa' ? (
+                      `🏠 Per Villa: ₹${selectedEvent.amount}`
+                    ) : selectedEvent.per_person_type === 'adult_child' ? (
+                      `👨‍👩‍👧 Adult: ₹${selectedEvent.adult_price || 0} / Child: ₹${selectedEvent.child_price || 0}`
+                    ) : (
+                      `👤 Per Person: ₹${selectedEvent.amount}`
+                    )}
+                  </p>
                 </div>
                 <button
                   onClick={() => {
