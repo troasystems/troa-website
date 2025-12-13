@@ -467,16 +467,16 @@ const Contact = () => {
                     {/* QR Code for offline */}
                     {paymentMethod === 'offline' && (
                       <div className="mb-4 space-y-3">
-                        <div className="bg-white border-2 border-purple-200 rounded-lg p-3">
-                          <p className="font-semibold text-purple-800 mb-2 text-center text-sm">Scan QR Code to Pay</p>
-                          <div className="flex justify-center mb-2">
+                        <div className="bg-white border-2 border-purple-200 rounded-lg p-4">
+                          <p className="font-semibold text-purple-800 mb-3 text-center">Scan QR Code to Pay</p>
+                          <div className="flex justify-center mb-3">
                             <img 
                               src="https://customer-assets.emergentagent.com/job_troaresidents/artifacts/4hvho9rv_WhatsApp%20Image%202025-12-13%20at%2011.32.42.jpeg" 
                               alt="Payment QR Code" 
-                              className="w-32 h-32 object-contain border rounded-lg"
+                              className="w-56 h-56 object-contain border-2 border-gray-200 rounded-lg shadow-md"
                             />
                           </div>
-                          <p className="text-[10px] text-gray-600 text-center">Or pay via Cash / Bank Transfer</p>
+                          <p className="text-xs text-gray-600 text-center">Or pay via Cash / Bank Transfer</p>
                         </div>
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-2">
                           <div className="flex items-start space-x-2">
