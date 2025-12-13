@@ -415,16 +415,103 @@ const Contact = () => {
                 </button>
 
                 {showPaymentOption && (
-                  <div className="mt-3 md:mt-4 p-3 md:p-4 bg-green-50 border-2 border-green-200 rounded-lg">
-                    <p className="text-green-800 font-semibold mb-2 md:mb-3 text-sm md:text-base">
-                      Application submitted! Complete your membership by paying ₹11,800
+                  <div className="mt-3 md:mt-4 p-4 md:p-5 bg-green-50 border-2 border-green-200 rounded-lg">
+                    <p className="text-green-800 font-semibold mb-3 md:mb-4 text-sm md:text-base">
+                      Application submitted! Complete your membership by paying the fee.
                     </p>
+                    
+                    {/* Payment Method Selection */}
+                    <div className="mb-4">
+                      <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-2">
+                        Select Payment Method
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('online')}
+                          className={`p-3 border-2 rounded-lg text-left transition-all ${
+                            paymentMethod === 'online'
+                              ? 'border-purple-500 bg-purple-50'
+                              : 'border-gray-200 hover:border-purple-300'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <CreditCard className={`w-5 h-5 ${paymentMethod === 'online' ? 'text-purple-600' : 'text-gray-400'}`} />
+                            <div>
+                              <p className="font-semibold text-gray-900 text-sm">Online Payment</p>
+                              <p className="text-[10px] text-gray-500">Razorpay (Cards, UPI)</p>
+                              <p className="text-[10px] text-orange-600 font-medium">⚠️ 2% surcharge</p>
+                            </div>
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('offline')}
+                          className={`p-3 border-2 rounded-lg text-left transition-all ${
+                            paymentMethod === 'offline'
+                              ? 'border-purple-500 bg-purple-50'
+                              : 'border-gray-200 hover:border-purple-300'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <Banknote className={`w-5 h-5 ${paymentMethod === 'offline' ? 'text-purple-600' : 'text-gray-400'}`} />
+                            <div>
+                              <p className="font-semibold text-gray-900 text-sm">Offline Payment</p>
+                              <p className="text-[10px] text-gray-500">QR Code / Cash / Transfer</p>
+                            </div>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {/* QR Code for offline */}
+                    {paymentMethod === 'offline' && (
+                      <div className="mb-4 space-y-3">
+                        <div className="bg-white border-2 border-purple-200 rounded-lg p-3">
+                          <p className="font-semibold text-purple-800 mb-2 text-center text-sm">Scan QR Code to Pay</p>
+                          <div className="flex justify-center mb-2">
+                            <img 
+                              src="https://customer-assets.emergentagent.com/job_troaresidents/artifacts/4hvho9rv_WhatsApp%20Image%202025-12-13%20at%2011.32.42.jpeg" 
+                              alt="Payment QR Code" 
+                              className="w-32 h-32 object-contain border rounded-lg"
+                            />
+                          </div>
+                          <p className="text-[10px] text-gray-600 text-center">Or pay via Cash / Bank Transfer</p>
+                        </div>
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-2">
+                          <div className="flex items-start space-x-2">
+                            <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                            <p className="text-xs text-amber-800">
+                              Offline payments require admin approval. Your membership will be pending until confirmed.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Payment Button */}
                     <button
+                      type="button"
                       onClick={handlePayMembership}
-                      className="w-full px-4 md:px-6 py-2.5 md:py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold text-sm md:text-base hover:scale-105 transform transition-all duration-300 shadow-lg flex items-center justify-center space-x-2"
+                      disabled={submittingOffline}
+                      className="w-full px-4 md:px-6 py-2.5 md:py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold text-sm md:text-base hover:scale-105 transform transition-all duration-300 shadow-lg flex items-center justify-center space-x-2 disabled:opacity-50"
                     >
-                      <CreditCard className="w-4 h-4 md:w-5 md:h-5" />
-                      <span>Pay Membership Fee (₹11,800)</span>
+                      {submittingOffline ? (
+                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                      ) : (
+                        <>
+                          {paymentMethod === 'online' ? (
+                            <CreditCard className="w-4 h-4 md:w-5 md:h-5" />
+                          ) : (
+                            <Banknote className="w-4 h-4 md:w-5 md:h-5" />
+                          )}
+                          <span>
+                            {paymentMethod === 'online' 
+                              ? 'Pay ₹10,000 + 18% GST' 
+                              : 'Submit Offline Payment Request'}
+                          </span>
+                        </>
+                      )}
                     </button>
                   </div>
                 )}
