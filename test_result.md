@@ -264,7 +264,7 @@ backend:
   - task: "Image Upload Authentication"
     implemented: true
     working: true
-    file: "/app/backend/upload.py"
+    file: "/app/backend/gridfs_upload.py"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
@@ -272,6 +272,9 @@ backend:
         - working: true
           agent: "testing"
           comment: "✅ POST /api/upload/image endpoint properly secured with admin authentication. Returns 401 Unauthorized when no auth token provided. Image upload authentication requirement working correctly."
+        - working: true
+          agent: "testing"
+          comment: "✅ Image Upload 403 Fix testing completed successfully. POST /api/upload/image endpoint now uses require_manager_or_admin() instead of require_admin(), allowing both managers and admins to upload images. ✅ Comprehensive Testing: Created image_upload_auth_test.py and tested all scenarios: 1) Admin upload: ✅ Working (uploaded ed839715-b95d-48d1-bea7-21811d5ff524.png) 2) Manager upload: ✅ Working (uploaded 1eb32e46-c5a2-41c3-b7ea-fcd6fa1ce4c5.jpg) - 403 FIX VERIFIED 3) Existing manager upload: ✅ Working (uploaded 045cb2cf-6bf1-456c-9eee-b0d01525aec5.webp) 4) Regular user upload: ✅ Correctly blocked with 403 Forbidden 5) Unauthenticated upload: ✅ Correctly blocked with 401 Unauthorized 6) Invalid file type: ✅ Correctly blocked with 400 Bad Request. ✅ cURL Testing: Verified all scenarios with curl commands using test session tokens. ✅ Authentication Matrix: Admin (✅ can upload), Manager (✅ can upload - FIX WORKING), User (❌ blocked with 403), Unauthenticated (❌ blocked with 401). ✅ File Validation: Invalid file types (.txt) correctly rejected with proper error message. The 403 fix is working perfectly - managers can now upload images alongside admins. Feature is production-ready."
 
   - task: "Database UUID Verification"
     implemented: true
