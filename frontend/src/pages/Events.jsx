@@ -916,14 +916,30 @@ const Events = () => {
                         </button>
                       )}
                     </div>
-                    <input
-                      type="text"
-                      value={registrant.name}
-                      onChange={(e) => updateRegistrant(index, 'name', e.target.value)}
-                      placeholder="Full Name"
-                      className="w-full px-4 py-2 border rounded-lg mb-2"
-                      required
-                    />
+                    
+                    {/* Name and Type Row */}
+                    <div className={`grid gap-2 mb-2 ${selectedEvent.payment_type === 'per_person' && selectedEvent.per_person_type === 'adult_child' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                      <input
+                        type="text"
+                        value={registrant.name}
+                        onChange={(e) => updateRegistrant(index, 'name', e.target.value)}
+                        placeholder="Full Name"
+                        className="w-full px-4 py-2 border rounded-lg"
+                        required
+                      />
+                      
+                      {/* Adult/Child selector - only show for adult_child pricing */}
+                      {selectedEvent.payment_type === 'per_person' && selectedEvent.per_person_type === 'adult_child' && (
+                        <select
+                          value={registrant.registrant_type || 'adult'}
+                          onChange={(e) => updateRegistrant(index, 'registrant_type', e.target.value)}
+                          className="w-full px-4 py-2 border rounded-lg"
+                        >
+                          <option value="adult">Adult (₹{selectedEvent.adult_price || 0})</option>
+                          <option value="child">Child (₹{selectedEvent.child_price || 0})</option>
+                        </select>
+                      )}
+                    </div>
                     
                     {/* Preferences for this registrant */}
                     {selectedEvent.preferences && selectedEvent.preferences.length > 0 && (
