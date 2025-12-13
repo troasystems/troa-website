@@ -618,14 +618,17 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "GridFS Image Storage"
+    - "Homepage and Contact page membership messaging"
+    - "Logo update"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
     - agent: "main"
-      message: "Implemented registration modification feature: 1) Backend - Added GET /api/events/my/status to check user's registration status, PATCH /api/events/registrations/{id}/modify to add/remove registrants, payment order and completion endpoints for modifications. 2) Frontend Events.jsx - Now checks user registration status and shows 'You're already registered! Add/Remove Members' with link to My Events. 3) Frontend MyEvents.jsx - Added Modify button that opens modal to add/remove people, calculates additional payment needed, supports online (Razorpay) or offline payment for adding people."
+      message: "Implemented 3 major changes: 1) GridFS Image Storage - Migrated image uploads from filesystem to MongoDB GridFS for production persistence. Created gridfs_upload.py with browser caching support (30-day Cache-Control, ETag). Migrated all 21 existing images. 2) Homepage & Contact page updates - Clarified membership messaging to distinguish new residents from existing ones. Added 'Already a Resident? Login' button on homepage hero, CTA section shows both options. Contact page has blue info box telling existing residents to login instead. Form renamed to 'New Member Application'. 3) Logo update - Changed logo to new 'The Retreat' image in Navbar and Footer."
     - agent: "testing"
       message: "Comprehensive backend API testing completed successfully. All 8 endpoints (4 GET, 4 POST) are working correctly. Created backend_test.py and backend_error_test.py for thorough testing. All APIs return proper responses, handle errors correctly (404 for invalid endpoints, 422 for validation errors), and maintain data integrity. Database contains proper seed data: 10 committee members, 7 amenities, 9 gallery images, and 1 membership application. Error handling and data validation working as expected."
     - agent: "testing"
