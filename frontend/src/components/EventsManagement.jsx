@@ -535,10 +535,21 @@ const EventsManagement = () => {
 
                       <div className="flex flex-wrap gap-2 mt-2">
                         {reg.registrants?.map((person, idx) => (
-                          <span key={idx} className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded">
+                          <span key={idx} className={`px-2 py-1 text-xs rounded ${
+                            selectedEvent?.per_person_type === 'adult_child'
+                              ? person.registrant_type === 'child'
+                                ? 'bg-pink-50 text-pink-700 border border-pink-200'
+                                : 'bg-blue-50 text-blue-700 border border-blue-200'
+                              : 'bg-purple-50 text-purple-700'
+                          }`}>
                             {person.name}
+                            {selectedEvent?.per_person_type === 'adult_child' && (
+                              <span className="ml-1 font-medium">
+                                ({person.registrant_type === 'child' ? '👧 Child' : '👤 Adult'})
+                              </span>
+                            )}
                             {Object.keys(person.preferences || {}).length > 0 && (
-                              <span className="ml-1 text-purple-500">
+                              <span className="ml-1 text-gray-500">
                                 ({Object.values(person.preferences).join(', ')})
                               </span>
                             )}
