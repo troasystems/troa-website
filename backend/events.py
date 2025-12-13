@@ -129,8 +129,8 @@ async def update_event(event_id: str, event_data: dict, request: Request):
 
 @events_router.delete("/{event_id}")
 async def delete_event(event_id: str, request: Request):
-    """Delete an event (admin only)"""
-    await require_admin(request)
+    """Delete an event (admin or manager)"""
+    await require_manager_or_admin(request)
     
     db, client = await get_db()
     try:
