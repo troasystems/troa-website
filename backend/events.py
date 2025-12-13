@@ -57,8 +57,8 @@ async def get_event(event_id: str):
 
 @events_router.post("")
 async def create_event(event_data: EventCreate, request: Request):
-    """Create a new event (admin only)"""
-    admin = await require_admin(request)
+    """Create a new event (admin or manager)"""
+    user = await require_manager_or_admin(request)
     
     # Validate event date is not in the past
     today = datetime.now().strftime('%Y-%m-%d')
