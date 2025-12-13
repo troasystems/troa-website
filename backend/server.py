@@ -68,7 +68,7 @@ async def root():
 @api_router.get("/committee", response_model=List[CommitteeMember])
 async def get_committee_members():
     try:
-        members = await db.committee_members.find().to_list(100)
+        members = await db.committee_members.find({}, {"_id": 0}).to_list(100)
         return [CommitteeMember(**member) for member in members]
     except Exception as e:
         logger.error(f"Error fetching committee members: {e}")
