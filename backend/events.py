@@ -228,7 +228,10 @@ async def register_for_event(event_id: str, registration_data: EventRegistration
 @events_router.post("/registrations/{registration_id}/complete-payment")
 async def complete_registration_payment(registration_id: str, payment_id: str, request: Request):
     """Mark registration payment as completed (for online Razorpay payments)"""
+    logger.info(f"Complete payment request - Registration: {registration_id}, Payment ID: {payment_id}")
+    
     user = await require_auth(request)
+    logger.info(f"User authenticated: {user['email']}")
     
     db, client = await get_db()
     try:
@@ -238,9 +241,12 @@ async def complete_registration_payment(registration_id: str, payment_id: str, r
         })
         
         if not registration:
+            logger.error(f"Registration not found: {registration_id} for user {user['email']}")
             raise HTTPException(status_code=404, detail="Registration not found")
         
-        await db.event_registrations.update_one(
+        logger.info(f"Found registration, current status: {registration.get('payment_status')}")
+        
+        result = await db.event_registrations.update_one(
             {"id": registration_id},
             {"$set": {
                 "payment_status": "completed",
@@ -250,7 +256,13 @@ async def complete_registration_payment(registration_id: str, payment_id: str, r
             }}
         )
         
-        return {"message": "Payment completed successfully"}
+        logger.info(f"Payment completed - Registration: {registration_id}, Modified count: {result.modified_count}")
+        return {"message": "Payment completed successfully", "registration_id": registration_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error completing payment: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         client.close()
 
