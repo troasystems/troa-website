@@ -14,7 +14,7 @@ import io
 import os
 import logging
 from datetime import datetime, timezone
-from auth import require_admin
+from auth import require_admin, require_manager_or_admin
 
 logger = logging.getLogger(__name__)
 
