@@ -427,9 +427,24 @@ const EventsManagement = () => {
                               ? 'Pending Approval'
                               : 'Payment Pending'}
                           </span>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {reg.payment_method === 'offline' ? 'Offline' : 'Online'}
-                          </p>
+                          {/* Payment Method Badge */}
+                          <span className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded mt-1 ${
+                            reg.payment_method === 'online' 
+                              ? 'bg-blue-100 text-blue-700' 
+                              : 'bg-purple-100 text-purple-700'
+                          }`}>
+                            {reg.payment_method === 'online' ? (
+                              <>
+                                <CreditCard className="w-3 h-3" />
+                                Online
+                              </>
+                            ) : (
+                              <>
+                                <Banknote className="w-3 h-3" />
+                                Offline
+                              </>
+                            )}
+                          </span>
                         </div>
                       </div>
 
