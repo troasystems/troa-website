@@ -32,7 +32,8 @@ class TROAAPITester:
             'event_registration': {'register': None, 'my_registrations': None, 'withdraw': None},
             'admin_approval': {'pending_approvals': None, 'approve': None, 'reject': None},
             'payment_integration': {'create_order': None, 'complete_payment': None},
-            'amenity_booking': {'create_booking': None}
+            'amenity_booking': {'create_booking': None},
+            'gridfs_storage': {'get_image': None, 'cache_headers': None, 'etag_support': None, 'not_modified': None}
         }
         self.errors = []
         self.created_event_id = None
