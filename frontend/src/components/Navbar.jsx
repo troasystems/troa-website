@@ -12,7 +12,7 @@ const Navbar = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [hasUpcomingEvent, setHasUpcomingEvent] = useState(false);
   const location = useLocation();
-  const { isAuthenticated, user, logout, login, isAdmin } = useAuth();
+  const { isAuthenticated, user, logout, login, isAdmin, isManager, role } = useAuth();
 
   const navItems = [
     { name: 'Home', path: '/' },
