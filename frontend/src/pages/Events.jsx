@@ -343,13 +343,13 @@ const Events = () => {
   };
 
   const addRegistrant = () => {
-    setRegistrants([...registrants, { name: '', preferences: {} }]);
+    setRegistrants([...registrants, { name: '', registrant_type: 'adult', preferences: {} }]);
   };
 
   const updateRegistrant = (index, field, value) => {
     const newRegistrants = [...registrants];
-    if (field === 'name') {
-      newRegistrants[index].name = value;
+    if (field === 'name' || field === 'registrant_type') {
+      newRegistrants[index][field] = value;
     } else {
       newRegistrants[index].preferences[field] = value;
     }
