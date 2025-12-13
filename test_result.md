@@ -764,6 +764,18 @@ frontend:
           agent: "testing"
           comment: "✅ Admin Portal Events Management Pricing Type Display testing completed successfully. ✅ Code Implementation Verified: EventsManagement.jsx correctly implements all requested pricing type display features: 1) Pricing Type Badges (lines 214-226): '🏠 Per Villa' for per_villa events (green background), '👨‍👩‍👧 Adult/Child Pricing' for adult_child events (indigo background), '👤 Per Person' for uniform per_person events (indigo background). 2) Event Pricing Info (lines 257-268): Shows '₹{amount} per villa' for per_villa, '₹{adult_price} adult / ₹{child_price} child' for adult_child, '₹{amount} per person' for uniform pricing. 3) Registrant Type Labels (lines 285-296, 540-550): Adult registrants show '(👤 Adult)' with blue background, Child registrants show '(👧 Child)' with pink background. ✅ All Events View Implementation (lines 385-393): Event cards display pricing with emojis - '🏠 ₹{amount} per villa', '👨‍👩‍👧 ₹{adult_price} adult / ₹{child_price} child', '👤 ₹{amount} per person'. ✅ Modal Header Implementation (lines 427-434): Registration modal header shows pricing type info with proper emoji icons and formatting. ✅ Public Events Page Verification: Confirmed different pricing types display correctly - Villa Pool Party (₹1000 per villa), test event (₹2 adult / ₹1 child), Community Yoga Session (₹500 per person). ✅ Backend Data Verification: API returns correct event data with proper payment_type, per_person_type, amount, adult_price, and child_price fields. ✅ Authentication Security: Admin portal properly secured with Google OAuth - requires troa.systems@gmail.com authentication. All requested pricing type display features are fully implemented and working correctly. Feature is production-ready."
 
+  - task: "Mark as Paid Endpoint for Event Registrations"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/events.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "New 'Mark as Paid' endpoint implemented at POST /api/events/registrations/{registration_id}/mark-paid. Requires admin or manager authentication. Allows manually marking registration payment as completed. Includes validation for already paid and withdrawn registrations. Creates audit log entries for tracking. Needs comprehensive testing for all scenarios."
+
 metadata:
   created_by: "testing_agent"
   version: "1.0"
