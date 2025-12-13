@@ -108,6 +108,7 @@ class EventModificationPaymentTester:
             
         try:
             registration_data = {
+                "event_id": self.created_event_id,  # Required field
                 "registrants": [
                     {
                         "name": "John Doe",
