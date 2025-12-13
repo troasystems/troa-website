@@ -1365,6 +1365,9 @@ class TROAAPITester:
         # Test Unified Payment System
         self.test_unified_payment_system()
         
+        # Test new Event Pricing Options feature
+        self.test_event_pricing_options()
+        
         # Test edge cases
         self.test_edge_cases()
         
