@@ -16,12 +16,12 @@ const Navbar = () => {
 
   const navItems = [
     { name: 'Home', path: '/' },
-    { name: 'About', path: '/about' },
     { name: 'Committee', path: '/committee' },
     { name: 'Amenities', path: '/amenities' },
     { name: 'Events', path: '/events' },
     { name: 'Gallery', path: '/gallery' },
     { name: 'Resources', path: '/help-desk' },
+    { name: 'About', path: '/about' },
     { name: 'Contact', path: '/contact' }
   ];
 
