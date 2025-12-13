@@ -228,21 +228,6 @@ const Navbar = () => {
               </Link>
             ))}
             
-            {/* Mobile Feedback Link - Only for authenticated users */}
-            {isAuthenticated && (
-              <Link
-                to="/feedback"
-                onClick={() => setIsOpen(false)}
-                className={`block px-3 py-2 rounded-lg font-medium text-sm transition-all duration-300 ${
-                  isActive('/feedback')
-                    ? 'bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white'
-                    : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-100 hover:to-pink-100'
-                }`}
-              >
-                Feedback
-              </Link>
-            )}
-            
             {/* Mobile Auth */}
             {isAuthenticated ? (
               <div className="pt-2 border-t border-gray-200 mt-2 space-y-1">
@@ -264,13 +249,13 @@ const Navbar = () => {
                 >
                   My Events
                 </Link>
-                {isAdmin && (
+                {(isAdmin || isManager) && (
                   <Link
                     to="/admin"
                     onClick={() => setIsOpen(false)}
                     className="block px-3 py-2 rounded-lg font-medium text-sm text-purple-600 hover:bg-purple-50"
                   >
-                    Admin Portal
+                    {isAdmin ? 'Admin Portal' : 'Manager Portal'}
                   </Link>
                 )}
                 <button
