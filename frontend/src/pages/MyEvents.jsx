@@ -633,13 +633,29 @@ const MyEvents = () => {
                         </button>
                       )}
                     </div>
-                    <input
-                      type="text"
-                      value={registrant.name}
-                      onChange={(e) => updateRegistrant(index, 'name', e.target.value)}
-                      placeholder="Full Name"
-                      className="w-full px-4 py-2 border rounded-lg"
-                    />
+                    
+                    {/* Name and Type Row */}
+                    <div className={`grid gap-2 mb-2 ${selectedRegistration.event?.per_person_type === 'adult_child' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                      <input
+                        type="text"
+                        value={registrant.name}
+                        onChange={(e) => updateRegistrant(index, 'name', e.target.value)}
+                        placeholder="Full Name"
+                        className="w-full px-4 py-2 border rounded-lg"
+                      />
+                      
+                      {/* Adult/Child selector - only show for adult_child pricing */}
+                      {selectedRegistration.event?.per_person_type === 'adult_child' && (
+                        <select
+                          value={registrant.registrant_type || 'adult'}
+                          onChange={(e) => updateRegistrant(index, 'registrant_type', e.target.value)}
+                          className="w-full px-4 py-2 border rounded-lg"
+                        >
+                          <option value="adult">Adult (₹{selectedRegistration.event?.adult_price || 0})</option>
+                          <option value="child">Child (₹{selectedRegistration.event?.child_price || 0})</option>
+                        </select>
+                      )}
+                    </div>
                     
                     {/* Preferences */}
                     {selectedRegistration.event?.preferences?.length > 0 && (
