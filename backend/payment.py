@@ -202,6 +202,8 @@ async def get_offline_payments(request: Request):
         
         payments = await db.offline_payments.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
         return payments
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions (like 401, 403) without modification
     except Exception as e:
         logger.error(f"Error fetching offline payments: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to fetch offline payments")
