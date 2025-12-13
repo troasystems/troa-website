@@ -112,10 +112,25 @@ RAZORPAY_KEY_ID=your_razorpay_key_id
 RAZORPAY_KEY_SECRET=your_razorpay_key_secret
 
 # Session Secret (Change this!)
-SESSION_SECRET=generate-a-random-secret-key-here
+SECRET_KEY=generate-a-random-secret-key-here
 
 # OpenAI for Chatbot (Optional)
 EMERGENT_LLM_KEY=your_openai_api_key
+```
+
+Also create the frontend environment file:
+
+```bash
+cp frontend/.env.example frontend/.env
+```
+
+Then edit `frontend/.env`:
+
+```env
+# For local Docker setup
+REACT_APP_BACKEND_URL=http://localhost:8001
+REACT_APP_BASIC_AUTH_USERNAME=admin
+REACT_APP_BASIC_AUTH_PASSWORD=your-secure-password
 ```
 
 ### Production Deployment with Docker
