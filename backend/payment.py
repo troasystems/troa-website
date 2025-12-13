@@ -25,9 +25,9 @@ db = client[os.environ['DB_NAME']]
 
 # Payment amounts (in paise - 1 INR = 100 paise)
 PAYMENT_AMOUNTS = {
-    'move_in': 238000,  # ₹2380
-    'move_out': 238000,  # ₹2380
-    'membership': 1180000  # ₹11800
+    'move_in': 236000,  # ₹2360 (₹2000 + 18% GST)
+    'move_out': 236000,  # ₹2360 (₹2000 + 18% GST)
+    'membership': 1180000  # ₹11800 (₹10000 + 18% GST)
 }
 
 class PaymentOrderRequest(BaseModel):
