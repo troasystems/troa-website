@@ -196,14 +196,13 @@ async def delete_image(filename: str, request: Request):
         bucket, client, db = await get_gridfs_bucket()
         
         # Find the file by filename
-        cursor = bucket.find({"filename": filename})
-        grid_out = await cursor.to_list(length=1)
+        file_doc = await db["images.files"].find_one({"filename": filename})
         
-        if not grid_out:
+        if not file_doc:
             client.close()
             raise HTTPException(status_code=404, detail="Image not found")
         
-        file_id = grid_out[0]._id
+        file_id = file_doc["_id"]
         
         # Delete the file
         await bucket.delete(file_id)
