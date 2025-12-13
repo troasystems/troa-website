@@ -195,13 +195,15 @@ async def create_offline_payment(payment_request: OfflinePaymentRequest):
 
 @payment_router.get("/offline-payments")
 async def get_offline_payments(request: Request):
-    """Get all offline payment requests - admin only"""
+    """Get all offline payment requests - manager and admin access"""
     try:
-        from auth import require_admin
-        await require_admin(request)
+        from auth import require_manager_or_admin
+        await require_manager_or_admin(request)
         
         payments = await db.offline_payments.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
         return payments
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions (like 401, 403) without modification
     except Exception as e:
         logger.error(f"Error fetching offline payments: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to fetch offline payments")
@@ -214,12 +216,12 @@ class ApproveOfflinePayment(BaseModel):
 
 @payment_router.post("/offline-payments/approve")
 async def approve_offline_payment(request: Request, approval: ApproveOfflinePayment):
-    """Approve or reject an offline payment - admin only"""
+    """Approve or reject an offline payment - manager and admin access"""
     try:
-        from auth import require_admin
+        from auth import require_manager_or_admin
         from datetime import timezone
         
-        admin = await require_admin(request)
+        admin = await require_manager_or_admin(request)
         
         payment = await db.offline_payments.find_one({"id": approval.payment_id})
         if not payment:

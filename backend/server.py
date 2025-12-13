@@ -20,7 +20,6 @@ from models import (
 from auth import auth_router, require_admin, require_manager_or_admin, require_auth
 from basic_auth import basic_auth_middleware
 from instagram import instagram_router
-from upload import upload_router
 from gridfs_upload import gridfs_router  # GridFS-based upload for production
 from payment import payment_router
 from chatbot import chatbot_router
@@ -69,7 +68,7 @@ async def root():
 @api_router.get("/committee", response_model=List[CommitteeMember])
 async def get_committee_members():
     try:
-        members = await db.committee_members.find().to_list(100)
+        members = await db.committee_members.find({}, {"_id": 0}).to_list(100)
         return [CommitteeMember(**member) for member in members]
     except Exception as e:
         logger.error(f"Error fetching committee members: {e}")
@@ -352,6 +351,12 @@ async def update_user_role(user_id: str, update: UserUpdate, request: Request):
         if update.role not in ['admin', 'manager', 'user']:
             raise HTTPException(status_code=400, detail="Invalid role. Must be: admin, manager, or user")
         
+        # Check if trying to modify super admin
+        from auth import SUPER_ADMIN_EMAIL
+        user_to_update = await db.users.find_one({"id": user_id}, {"_id": 0})
+        if user_to_update and user_to_update.get('email') == SUPER_ADMIN_EMAIL:
+            raise HTTPException(status_code=400, detail="Cannot modify the super admin's role")
+        
         from datetime import datetime
         result = await db.users.find_one_and_update(
             {"id": user_id},
@@ -383,10 +388,20 @@ async def delete_user(user_id: str, request: Request):
     try:
         admin = await require_admin(request)
         
-        # Prevent admin from deleting themselves
+        # Get user to delete
         user_to_delete = await db.users.find_one({"id": user_id}, {"_id": 0})
-        if user_to_delete and user_to_delete.get('email') == admin.get('email'):
+        
+        if not user_to_delete:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Prevent admin from deleting themselves
+        if user_to_delete.get('email') == admin.get('email'):
             raise HTTPException(status_code=400, detail="Cannot delete your own account")
+        
+        # Prevent deleting the super admin
+        from auth import SUPER_ADMIN_EMAIL
+        if user_to_delete.get('email') == SUPER_ADMIN_EMAIL:
+            raise HTTPException(status_code=400, detail="Cannot delete the super admin account")
         
         result = await db.users.delete_one({"id": user_id})
         
@@ -426,9 +441,9 @@ async def submit_feedback(feedback: FeedbackCreate, request: Request):
 
 @api_router.get("/feedback", response_model=List[Feedback])
 async def get_all_feedback(request: Request):
-    """Get all feedback - manager and admin only"""
+    """Get all feedback - admin only"""
     try:
-        await require_manager_or_admin(request)
+        await require_admin(request)
         
         feedback_list = await db.feedback.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
         return [Feedback(**fb) for fb in feedback_list]
@@ -440,9 +455,9 @@ async def get_all_feedback(request: Request):
 
 @api_router.post("/feedback/{feedback_id}/vote")
 async def vote_feedback(feedback_id: str, request: Request):
-    """Vote/upvote feedback - manager and admin only"""
+    """Vote/upvote feedback - admin only"""
     try:
-        user = await require_manager_or_admin(request)
+        user = await require_admin(request)
         user_email = user['email']
         
         # Get feedback
@@ -638,8 +653,9 @@ app.add_middleware(
     secret_key=os.getenv('SECRET_KEY', 'your-secret-key-change-in-production')
 )
 
-# CORS configuration - must specify exact origins when using credentials
-CORS_ORIGINS = [
+# CORS configuration - read from environment variable or use defaults
+# Set CORS_ORIGINS env var as comma-separated list: "https://troa.in,http://localhost:3000"
+default_cors_origins = [
     "https://troa.in",
     "http://troa.in",
     "https://troa-residence.preview.emergentagent.com",
@@ -647,6 +663,13 @@ CORS_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
+
+# Parse CORS_ORIGINS from environment variable if set
+cors_origins_env = os.environ.get('CORS_ORIGINS', '')
+if cors_origins_env:
+    CORS_ORIGINS = [origin.strip() for origin in cors_origins_env.split(',') if origin.strip()]
+else:
+    CORS_ORIGINS = default_cors_origins
 
 app.add_middleware(
     CORSMiddleware,

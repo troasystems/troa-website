@@ -116,8 +116,10 @@ const Contact = () => {
         order_id: order_id,
         handler: async function (response) {
           try {
+            console.log('Verifying membership payment:', response.razorpay_payment_id);
+            
             // Verify payment
-            await axios.post(`${getAPI()}/payment/verify`, {
+            const verifyResponse = await axios.post(`${getAPI()}/payment/verify`, {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
@@ -129,6 +131,8 @@ const Contact = () => {
                 villaNo: formData.villaNo
               }
             });
+
+            console.log('Membership payment verification response:', verifyResponse.data);
 
             toast({
               title: 'Payment Successful!',
@@ -145,11 +149,19 @@ const Contact = () => {
               message: ''
             });
           } catch (error) {
+            console.error('Membership payment verification error:', error);
+            console.error('Error response:', error.response?.data);
+            
             toast({
               title: 'Payment Verification Failed',
-              description: 'Please contact support',
+              description: error.response?.data?.detail || 'Please contact support. Your payment was received but verification failed.',
               variant: 'destructive'
             });
+          }
+        },
+        modal: {
+          ondismiss: function() {
+            console.log('Razorpay modal dismissed');
           }
         },
         prefill: {

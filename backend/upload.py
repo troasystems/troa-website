@@ -14,7 +14,7 @@ upload_router = APIRouter(prefix="/upload")
 
 # Upload directory
 UPLOAD_DIR = Path("/app/backend/uploads")
-UPLOAD_DIR.mkdir(exist_ok=True)
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # Allowed image extensions
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}

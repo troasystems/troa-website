@@ -45,13 +45,16 @@ const Events = () => {
     event_date: '',
     event_time: '',
     amount: '',
-    payment_type: 'per_person',
+    payment_type: 'per_villa',
+    per_person_type: 'uniform',
+    adult_price: '',
+    child_price: '',
     preferences: [],
     max_registrations: ''
   });
   
   // Registration form state
-  const [registrants, setRegistrants] = useState([{ name: '', preferences: {} }]);
+  const [registrants, setRegistrants] = useState([{ name: '', registrant_type: 'adult', preferences: {} }]);
   const [paymentMethod, setPaymentMethod] = useState('online');
   const [registering, setRegistering] = useState(false);
   
@@ -129,7 +132,9 @@ const Events = () => {
     try {
       const payload = {
         ...eventForm,
-        amount: parseFloat(eventForm.amount),
+        amount: parseFloat(eventForm.amount) || 0,
+        adult_price: eventForm.per_person_type === 'adult_child' ? parseFloat(eventForm.adult_price) || 0 : null,
+        child_price: eventForm.per_person_type === 'adult_child' ? parseFloat(eventForm.child_price) || 0 : null,
         max_registrations: eventForm.max_registrations ? parseInt(eventForm.max_registrations) : null
       };
       
@@ -244,13 +249,19 @@ const Events = () => {
           description: `Registration for ${selectedEvent.name}`,
           order_id: order.order_id,
           handler: async function (response) {
-            // Verify payment
+            // Verify payment - get fresh token inside handler
+            const freshToken = localStorage.getItem('session_token');
             try {
-              await axios.post(
+              console.log('Completing payment for registration:', registration.id);
+              console.log('Payment ID:', response.razorpay_payment_id);
+              
+              const completeResponse = await axios.post(
                 `${getAPI()}/events/registrations/${registration.id}/complete-payment?payment_id=${response.razorpay_payment_id}`,
                 {},
-                { headers: { 'X-Session-Token': `Bearer ${token}` } }
+                { headers: { 'X-Session-Token': `Bearer ${freshToken}` } }
               );
+              
+              console.log('Payment completion response:', completeResponse.data);
               
               toast({
                 title: 'Payment Successful!',
@@ -261,9 +272,23 @@ const Events = () => {
               resetRegistrationForm();
               navigate('/my-events');
             } catch (err) {
+              console.error('Payment completion error:', err);
+              console.error('Error response:', err.response?.data);
+              console.error('Error status:', err.response?.status);
+              
               toast({
                 title: 'Payment Verification Failed',
-                description: 'Please contact support.',
+                description: err.response?.data?.detail || 'Please contact support. Your payment was received but verification failed.',
+                variant: 'destructive'
+              });
+            }
+          },
+          modal: {
+            ondismiss: function() {
+              console.log('Razorpay modal dismissed');
+              toast({
+                title: 'Payment Cancelled',
+                description: 'You cancelled the payment. Your registration is pending payment.',
                 variant: 'destructive'
               });
             }
@@ -299,14 +324,17 @@ const Events = () => {
       event_date: '',
       event_time: '',
       amount: '',
-      payment_type: 'per_person',
+      payment_type: 'per_villa',
+      per_person_type: 'uniform',
+      adult_price: '',
+      child_price: '',
       preferences: [],
       max_registrations: ''
     });
   };
 
   const resetRegistrationForm = () => {
-    setRegistrants([{ name: '', preferences: {} }]);
+    setRegistrants([{ name: '', registrant_type: 'adult', preferences: {} }]);
     setPaymentMethod('online');
   };
 
@@ -335,13 +363,13 @@ const Events = () => {
   };
 
   const addRegistrant = () => {
-    setRegistrants([...registrants, { name: '', preferences: {} }]);
+    setRegistrants([...registrants, { name: '', registrant_type: 'adult', preferences: {} }]);
   };
 
   const updateRegistrant = (index, field, value) => {
     const newRegistrants = [...registrants];
-    if (field === 'name') {
-      newRegistrants[index].name = value;
+    if (field === 'name' || field === 'registrant_type') {
+      newRegistrants[index][field] = value;
     } else {
       newRegistrants[index].preferences[field] = value;
     }
@@ -357,10 +385,19 @@ const Events = () => {
   const calculateTotal = () => {
     if (!selectedEvent) return 0;
     const validRegistrants = registrants.filter(r => r.name.trim());
-    if (selectedEvent.payment_type === 'per_person') {
-      return selectedEvent.amount * validRegistrants.length;
+    
+    if (selectedEvent.payment_type === 'per_villa') {
+      return selectedEvent.amount;
     }
-    return selectedEvent.amount;
+    
+    if (selectedEvent.per_person_type === 'adult_child') {
+      const adultCount = validRegistrants.filter(r => r.registrant_type === 'adult').length;
+      const childCount = validRegistrants.filter(r => r.registrant_type === 'child').length;
+      return (adultCount * (selectedEvent.adult_price || 0)) + (childCount * (selectedEvent.child_price || 0));
+    }
+    
+    // Uniform per_person pricing
+    return selectedEvent.amount * validRegistrants.length;
   };
 
   const formatDate = (dateStr) => {
@@ -461,6 +498,9 @@ const Events = () => {
                               event_time: event.event_time,
                               amount: event.amount.toString(),
                               payment_type: event.payment_type,
+                              per_person_type: event.per_person_type || 'uniform',
+                              adult_price: event.adult_price?.toString() || '',
+                              child_price: event.child_price?.toString() || '',
                               preferences: event.preferences || [],
                               max_registrations: event.max_registrations?.toString() || ''
                             });
@@ -504,7 +544,13 @@ const Events = () => {
                         <div className="flex items-center text-gray-600">
                           <IndianRupee className="w-4 h-4 mr-2 text-orange-600" />
                           <span className="text-sm">
-                            ₹{event.amount} {event.payment_type === 'per_person' ? 'per person' : 'per villa'}
+                            {event.payment_type === 'per_villa' ? (
+                              `₹${event.amount} per villa`
+                            ) : event.per_person_type === 'adult_child' ? (
+                              `₹${event.adult_price || 0} adult / ₹${event.child_price || 0} child`
+                            ) : (
+                              `₹${event.amount} per person`
+                            )}
                           </span>
                         </div>
                       </div>
@@ -655,30 +701,100 @@ const Events = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Pricing Section */}
+              <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-semibold text-gray-800">Pricing Options</h3>
+                
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Amount (₹) *</label>
-                  <input
-                    type="number"
-                    value={eventForm.amount}
-                    onChange={(e) => setEventForm({ ...eventForm, amount: e.target.value })}
-                    min="0"
-                    step="0.01"
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Payment Type *</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Pricing Type *</label>
                   <select
                     value={eventForm.payment_type}
                     onChange={(e) => setEventForm({ ...eventForm, payment_type: e.target.value })}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   >
+                    <option value="per_villa">Per Villa (Single Price)</option>
                     <option value="per_person">Per Person</option>
-                    <option value="per_villa">Per Villa</option>
                   </select>
                 </div>
+
+                {eventForm.payment_type === 'per_villa' && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Price per Villa (₹) *</label>
+                    <input
+                      type="number"
+                      value={eventForm.amount}
+                      onChange={(e) => setEventForm({ ...eventForm, amount: e.target.value })}
+                      min="0"
+                      step="0.01"
+                      placeholder="e.g., 1000"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                )}
+
+                {eventForm.payment_type === 'per_person' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Per Person Pricing Type *</label>
+                      <select
+                        value={eventForm.per_person_type}
+                        onChange={(e) => setEventForm({ ...eventForm, per_person_type: e.target.value })}
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      >
+                        <option value="uniform">Uniform Price (Same for all)</option>
+                        <option value="adult_child">Adult & Child (Different prices)</option>
+                      </select>
+                    </div>
+
+                    {eventForm.per_person_type === 'uniform' && (
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Price per Person (₹) *</label>
+                        <input
+                          type="number"
+                          value={eventForm.amount}
+                          onChange={(e) => setEventForm({ ...eventForm, amount: e.target.value })}
+                          min="0"
+                          step="0.01"
+                          placeholder="e.g., 500"
+                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          required
+                        />
+                      </div>
+                    )}
+
+                    {eventForm.per_person_type === 'adult_child' && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">Adult Price (₹) *</label>
+                          <input
+                            type="number"
+                            value={eventForm.adult_price}
+                            onChange={(e) => setEventForm({ ...eventForm, adult_price: e.target.value })}
+                            min="0"
+                            step="0.01"
+                            placeholder="e.g., 500"
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">Child Price (₹) *</label>
+                          <input
+                            type="number"
+                            value={eventForm.child_price}
+                            onChange={(e) => setEventForm({ ...eventForm, child_price: e.target.value })}
+                            min="0"
+                            step="0.01"
+                            placeholder="e.g., 250"
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            required
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               <div>
@@ -779,7 +895,13 @@ const Events = () => {
                     <h3 className="font-bold text-gray-900">{selectedEvent.name}</h3>
                     <p className="text-sm text-gray-600">{formatDate(selectedEvent.event_date)} at {selectedEvent.event_time}</p>
                     <p className="text-sm font-semibold text-purple-600">
-                      ₹{selectedEvent.amount} {selectedEvent.payment_type === 'per_person' ? 'per person' : 'per villa'}
+                      {selectedEvent.payment_type === 'per_villa' ? (
+                        `₹${selectedEvent.amount} per villa`
+                      ) : selectedEvent.per_person_type === 'adult_child' ? (
+                        `₹${selectedEvent.adult_price || 0} adult / ₹${selectedEvent.child_price || 0} child`
+                      ) : (
+                        `₹${selectedEvent.amount} per person`
+                      )}
                     </p>
                   </div>
                 </div>
@@ -814,14 +936,30 @@ const Events = () => {
                         </button>
                       )}
                     </div>
-                    <input
-                      type="text"
-                      value={registrant.name}
-                      onChange={(e) => updateRegistrant(index, 'name', e.target.value)}
-                      placeholder="Full Name"
-                      className="w-full px-4 py-2 border rounded-lg mb-2"
-                      required
-                    />
+                    
+                    {/* Name and Type Row */}
+                    <div className={`grid gap-2 mb-2 ${selectedEvent.payment_type === 'per_person' && selectedEvent.per_person_type === 'adult_child' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                      <input
+                        type="text"
+                        value={registrant.name}
+                        onChange={(e) => updateRegistrant(index, 'name', e.target.value)}
+                        placeholder="Full Name"
+                        className="w-full px-4 py-2 border rounded-lg"
+                        required
+                      />
+                      
+                      {/* Adult/Child selector - only show for adult_child pricing */}
+                      {selectedEvent.payment_type === 'per_person' && selectedEvent.per_person_type === 'adult_child' && (
+                        <select
+                          value={registrant.registrant_type || 'adult'}
+                          onChange={(e) => updateRegistrant(index, 'registrant_type', e.target.value)}
+                          className="w-full px-4 py-2 border rounded-lg"
+                        >
+                          <option value="adult">Adult (₹{selectedEvent.adult_price || 0})</option>
+                          <option value="child">Child (₹{selectedEvent.child_price || 0})</option>
+                        </select>
+                      )}
+                    </div>
                     
                     {/* Preferences for this registrant */}
                     {selectedEvent.preferences && selectedEvent.preferences.length > 0 && (
@@ -905,7 +1043,7 @@ const Events = () => {
                       </div>
                       <p className="text-xs text-gray-600 text-center">Or pay via Cash / Bank Transfer</p>
                       <p className="text-xs text-green-700 text-center mt-2 font-medium">
-                        ✓ QR Payments go directly to TROA's official bank account
+                        ✓ QR Payments go directly to TROA&apos;s official bank account
                       </p>
                     </div>
                     
@@ -928,7 +1066,18 @@ const Events = () => {
                   <span className="text-lg font-semibold text-gray-700">Total Amount</span>
                   <span className="text-2xl font-bold text-purple-600">₹{calculateTotal()}</span>
                 </div>
-                {selectedEvent.payment_type === 'per_person' && (
+                {selectedEvent.payment_type === 'per_villa' && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Fixed price per villa
+                  </p>
+                )}
+                {selectedEvent.payment_type === 'per_person' && selectedEvent.per_person_type === 'adult_child' && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    {registrants.filter(r => r.name.trim() && r.registrant_type === 'adult').length} adult(s) × ₹{selectedEvent.adult_price || 0} + {' '}
+                    {registrants.filter(r => r.name.trim() && r.registrant_type === 'child').length} child(ren) × ₹{selectedEvent.child_price || 0}
+                  </p>
+                )}
+                {selectedEvent.payment_type === 'per_person' && selectedEvent.per_person_type !== 'adult_child' && (
                   <p className="text-sm text-gray-500 mt-1">
                     ₹{selectedEvent.amount} × {registrants.filter(r => r.name.trim()).length} person(s)
                   </p>

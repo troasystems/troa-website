@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, LogOut, Shield, MessageSquare, Calendar, PartyPopper } from 'lucide-react';
+import { Menu, X, User, LogOut, Shield, Calendar, PartyPopper } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { getBackendUrl } from '../utils/api';
@@ -12,7 +12,7 @@ const Navbar = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [hasUpcomingEvent, setHasUpcomingEvent] = useState(false);
   const location = useLocation();
-  const { isAuthenticated, user, logout, login, isAdmin } = useAuth();
+  const { isAuthenticated, user, logout, login, isAdmin, isManager, role } = useAuth();
 
   const navItems = [
     { name: 'Home', path: '/' },
@@ -98,20 +98,6 @@ const Navbar = () => {
               </Link>
             ))}
             
-            {/* Feedback Link - Only for authenticated users */}
-            {isAuthenticated && (
-              <Link
-                to="/feedback"
-                className={`px-3 py-2 rounded-lg font-medium transition-all duration-300 whitespace-nowrap ${
-                  isActive('/feedback')
-                    ? 'bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white shadow-lg'
-                    : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-100 hover:to-pink-100'
-                }`}
-              >
-                Feedback
-              </Link>
-            )}
-            
             {/* User Menu */}
             {isAuthenticated ? (
               <div className="relative ml-3">
@@ -154,22 +140,14 @@ const Navbar = () => {
                       <PartyPopper className="w-4 h-4" />
                       <span>My Events</span>
                     </Link>
-                    <Link
-                      to="/feedback"
-                      onClick={() => setProfileOpen(false)}
-                      className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 transition-colors"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                      <span>Feedback</span>
-                    </Link>
-                    {isAdmin && (
+                    {(isAdmin || isManager) && (
                       <Link
                         to="/admin"
                         onClick={() => setProfileOpen(false)}
                         className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 transition-colors"
                       >
                         <Shield className="w-4 h-4" />
-                        <span>Admin Portal</span>
+                        <span>{isAdmin ? 'Admin Portal' : 'Manager Portal'}</span>
                       </Link>
                     )}
                     <button
@@ -236,21 +214,6 @@ const Navbar = () => {
               </Link>
             ))}
             
-            {/* Mobile Feedback Link - Only for authenticated users */}
-            {isAuthenticated && (
-              <Link
-                to="/feedback"
-                onClick={() => setIsOpen(false)}
-                className={`block px-3 py-2 rounded-lg font-medium text-sm transition-all duration-300 ${
-                  isActive('/feedback')
-                    ? 'bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white'
-                    : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-100 hover:to-pink-100'
-                }`}
-              >
-                Feedback
-              </Link>
-            )}
-            
             {/* Mobile Auth */}
             {isAuthenticated ? (
               <div className="pt-2 border-t border-gray-200 mt-2 space-y-1">
@@ -272,13 +235,13 @@ const Navbar = () => {
                 >
                   My Events
                 </Link>
-                {isAdmin && (
+                {(isAdmin || isManager) && (
                   <Link
                     to="/admin"
                     onClick={() => setIsOpen(false)}
                     className="block px-3 py-2 rounded-lg font-medium text-sm text-purple-600 hover:bg-purple-50"
                   >
-                    Admin Portal
+                    {isAdmin ? 'Admin Portal' : 'Manager Portal'}
                   </Link>
                 )}
                 <button

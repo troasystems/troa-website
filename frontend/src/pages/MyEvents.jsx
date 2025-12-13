@@ -93,13 +93,18 @@ const MyEvents = () => {
 
   const openModifyModal = (reg) => {
     setSelectedRegistration(reg);
-    setModifyRegistrants(reg.registrants?.map(r => ({ ...r })) || [{ name: '', preferences: {} }]);
+    // Copy registrants with all fields including registrant_type
+    setModifyRegistrants(reg.registrants?.map(r => ({ 
+      name: r.name || '',
+      registrant_type: r.registrant_type || 'adult',
+      preferences: r.preferences || {}
+    })) || [{ name: '', registrant_type: 'adult', preferences: {} }]);
     setModifyPaymentMethod('online');
     setShowModifyModal(true);
   };
 
   const addRegistrant = () => {
-    setModifyRegistrants([...modifyRegistrants, { name: '', preferences: {} }]);
+    setModifyRegistrants([...modifyRegistrants, { name: '', registrant_type: 'adult', preferences: {} }]);
   };
 
   const removeRegistrant = (index) => {
@@ -110,8 +115,8 @@ const MyEvents = () => {
 
   const updateRegistrant = (index, field, value) => {
     const updated = [...modifyRegistrants];
-    if (field === 'name') {
-      updated[index].name = value;
+    if (field === 'name' || field === 'registrant_type') {
+      updated[index][field] = value;
     } else {
       updated[index].preferences = { ...updated[index].preferences, [field]: value };
     }
@@ -122,15 +127,25 @@ const MyEvents = () => {
     if (!selectedRegistration || !selectedRegistration.event) return { newTotal: 0, difference: 0 };
     
     const event = selectedRegistration.event;
-    const oldCount = selectedRegistration.registrants?.length || 0;
-    const newCount = modifyRegistrants.filter(r => r.name.trim()).length;
+    const validRegistrants = modifyRegistrants.filter(r => r.name.trim());
+    const oldTotal = selectedRegistration.total_amount || 0;
     
-    if (event.payment_type === 'per_person') {
-      const newTotal = event.amount * newCount;
-      const oldTotal = selectedRegistration.total_amount || (event.amount * oldCount);
-      return { newTotal, difference: newTotal - oldTotal };
+    let newTotal = 0;
+    
+    if (event.payment_type === 'per_villa') {
+      // Per villa - fixed price
+      newTotal = event.amount;
+    } else if (event.per_person_type === 'adult_child') {
+      // Adult/child pricing
+      const adultCount = validRegistrants.filter(r => r.registrant_type === 'adult').length;
+      const childCount = validRegistrants.filter(r => r.registrant_type === 'child').length;
+      newTotal = (adultCount * (event.adult_price || 0)) + (childCount * (event.child_price || 0));
+    } else {
+      // Uniform per_person pricing
+      newTotal = event.amount * validRegistrants.length;
     }
-    return { newTotal: event.amount, difference: 0 };
+    
+    return { newTotal, difference: newTotal - oldTotal };
   };
 
   const handleModifySubmit = async () => {
@@ -184,12 +199,19 @@ const MyEvents = () => {
             description: `Additional payment for ${selectedRegistration.event_name}`,
             order_id: order.order_id,
             handler: async function (razorpayResponse) {
+              // Get fresh token inside handler
+              const freshToken = localStorage.getItem('session_token');
               try {
-                await axios.post(
+                console.log('Completing modification payment for registration:', selectedRegistration.id);
+                console.log('Payment ID:', razorpayResponse.razorpay_payment_id);
+                
+                const completeResponse = await axios.post(
                   `${getAPI()}/events/registrations/${selectedRegistration.id}/complete-modification-payment?payment_id=${razorpayResponse.razorpay_payment_id}`,
                   {},
-                  { headers: { 'X-Session-Token': `Bearer ${token}` } }
+                  { headers: { 'X-Session-Token': `Bearer ${freshToken}` } }
                 );
+
+                console.log('Modification payment completion response:', completeResponse.data);
 
                 toast({
                   title: 'Payment Successful!',
@@ -199,9 +221,22 @@ const MyEvents = () => {
                 setSelectedRegistration(null);
                 fetchRegistrations();
               } catch (err) {
+                console.error('Modification payment completion error:', err);
+                console.error('Error response:', err.response?.data);
+                
                 toast({
                   title: 'Payment Verification Failed',
-                  description: 'Please contact support.',
+                  description: err.response?.data?.detail || 'Please contact support. Your payment was received but verification failed.',
+                  variant: 'destructive'
+                });
+              }
+            },
+            modal: {
+              ondismiss: function() {
+                console.log('Razorpay modal dismissed');
+                toast({
+                  title: 'Payment Cancelled',
+                  description: 'You cancelled the payment.',
                   variant: 'destructive'
                 });
               }
@@ -416,10 +451,29 @@ const MyEvents = () => {
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {reg.registrants?.map((person, index) => (
-                          <div key={index} className="bg-purple-50 px-3 py-1 rounded-full">
-                            <span className="text-sm text-purple-700">{person.name}</span>
+                          <div key={index} className={`px-3 py-1 rounded-full ${
+                            reg.event?.per_person_type === 'adult_child'
+                              ? person.registrant_type === 'child'
+                                ? 'bg-pink-50 border border-pink-200'
+                                : 'bg-blue-50 border border-blue-200'
+                              : 'bg-purple-50'
+                          }`}>
+                            <span className={`text-sm ${
+                              reg.event?.per_person_type === 'adult_child'
+                                ? person.registrant_type === 'child'
+                                  ? 'text-pink-700'
+                                  : 'text-blue-700'
+                                : 'text-purple-700'
+                            }`}>
+                              {person.name}
+                              {reg.event?.per_person_type === 'adult_child' && (
+                                <span className="ml-1 font-medium">
+                                  ({person.registrant_type === 'child' ? '👧 Child' : '👤 Adult'})
+                                </span>
+                              )}
+                            </span>
                             {Object.keys(person.preferences || {}).length > 0 && (
-                              <span className="text-xs text-purple-500 ml-1">
+                              <span className="text-xs text-gray-500 ml-1">
                                 ({Object.values(person.preferences).join(', ')})
                               </span>
                             )}
@@ -572,9 +626,18 @@ const MyEvents = () => {
             <div className="p-6 space-y-6">
               {/* Current Info */}
               <div className="bg-purple-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 mb-1">
                   Current registrants: <strong>{selectedRegistration.registrants?.length || 0}</strong> | 
                   Current total: <strong>₹{selectedRegistration.total_amount}</strong>
+                </p>
+                <p className="text-sm text-purple-600">
+                  {selectedRegistration.event?.payment_type === 'per_villa' ? (
+                    `🏠 Per Villa: ₹${selectedRegistration.event?.amount}`
+                  ) : selectedRegistration.event?.per_person_type === 'adult_child' ? (
+                    `👨‍👩‍👧 Adult: ₹${selectedRegistration.event?.adult_price || 0} / Child: ₹${selectedRegistration.event?.child_price || 0}`
+                  ) : (
+                    `👤 Per Person: ₹${selectedRegistration.event?.amount}`
+                  )}
                 </p>
               </div>
 
@@ -609,13 +672,29 @@ const MyEvents = () => {
                         </button>
                       )}
                     </div>
-                    <input
-                      type="text"
-                      value={registrant.name}
-                      onChange={(e) => updateRegistrant(index, 'name', e.target.value)}
-                      placeholder="Full Name"
-                      className="w-full px-4 py-2 border rounded-lg"
-                    />
+                    
+                    {/* Name and Type Row */}
+                    <div className={`grid gap-2 mb-2 ${selectedRegistration.event?.per_person_type === 'adult_child' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                      <input
+                        type="text"
+                        value={registrant.name}
+                        onChange={(e) => updateRegistrant(index, 'name', e.target.value)}
+                        placeholder="Full Name"
+                        className="w-full px-4 py-2 border rounded-lg"
+                      />
+                      
+                      {/* Adult/Child selector - only show for adult_child pricing */}
+                      {selectedRegistration.event?.per_person_type === 'adult_child' && (
+                        <select
+                          value={registrant.registrant_type || 'adult'}
+                          onChange={(e) => updateRegistrant(index, 'registrant_type', e.target.value)}
+                          className="w-full px-4 py-2 border rounded-lg"
+                        >
+                          <option value="adult">Adult (₹{selectedRegistration.event?.adult_price || 0})</option>
+                          <option value="child">Child (₹{selectedRegistration.event?.child_price || 0})</option>
+                        </select>
+                      )}
+                    </div>
                     
                     {/* Preferences */}
                     {selectedRegistration.event?.preferences?.length > 0 && (
@@ -645,6 +724,8 @@ const MyEvents = () => {
               {(() => {
                 const { newTotal, difference } = calculateModificationCost();
                 const hasAdditionalCost = difference > 0;
+                const validRegistrants = modifyRegistrants.filter(r => r.name.trim());
+                const event = selectedRegistration.event;
                 
                 return (
                   <>
@@ -653,6 +734,15 @@ const MyEvents = () => {
                         <span className="text-gray-600">New Total</span>
                         <span className="text-xl font-bold text-purple-600">₹{newTotal}</span>
                       </div>
+                      
+                      {/* Show breakdown for adult/child pricing */}
+                      {event?.per_person_type === 'adult_child' && (
+                        <div className="text-sm text-gray-500 mb-2">
+                          {validRegistrants.filter(r => r.registrant_type === 'adult').length} adult(s) × ₹{event?.adult_price || 0} + {' '}
+                          {validRegistrants.filter(r => r.registrant_type === 'child').length} child(ren) × ₹{event?.child_price || 0}
+                        </div>
+                      )}
+                      
                       {difference !== 0 && (
                         <div className={`flex justify-between items-center ${difference > 0 ? 'text-orange-600' : 'text-green-600'}`}>
                           <span>{difference > 0 ? 'Additional Payment' : 'Refund Amount'}</span>
