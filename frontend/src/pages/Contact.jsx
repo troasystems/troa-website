@@ -153,8 +153,29 @@ const Contact = () => {
               <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
                 Get in Touch
               </h2>
+              
+              {/* Important Notice for Existing Residents */}
+              <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+                <div className="flex items-start space-x-3">
+                  <Info className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-blue-900 mb-1">Already living in The Retreat?</h3>
+                    <p className="text-sm text-blue-800 mb-3">
+                      If you are already a resident of The Retreat community, you don't need to apply for membership. Simply login with your registered email to access all features.
+                    </p>
+                    <Link
+                      to="/login-info"
+                      className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
+                    >
+                      <LogIn className="w-4 h-4" />
+                      <span>Login to Your Account</span>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
               <p className="text-lg text-gray-700 mb-8">
-                If you have recently purchased a property or rented a villa in The Retreat, please complete the form to receive your membership application.
+                <strong>New to The Retreat?</strong> If you have recently purchased a property or rented a villa, please complete the membership form to register as a new member.
               </p>
 
               <div className="space-y-6">
