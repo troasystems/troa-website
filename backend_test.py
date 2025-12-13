@@ -41,6 +41,10 @@ class TROAAPITester:
         self.created_event_id = None
         self.created_registration_id = None
         self.created_payment_ids = []
+        self.per_villa_event_id = None
+        self.uniform_event_id = None
+        self.adult_child_event_id = None
+        self.adult_child_registration_id = None
         
         # Setup authentication headers
         self.basic_auth = base64.b64encode(f"{BASIC_AUTH_USERNAME}:{BASIC_AUTH_PASSWORD}".encode()).decode()
