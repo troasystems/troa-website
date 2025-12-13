@@ -661,7 +661,7 @@ async def modify_registration(registration_id: str, request: Request):
                 "timestamp": datetime.utcnow().isoformat(),
                 "by_name": user.get('name', user['email']),
                 "by_email": user['email'],
-                "details": f"Reduced registrants from {old_count} to {new_count}. Refund amount: ₹{abs(difference)}" if difference < 0 else f"Updated registrant details (no count change)",
+                "details": f"Reduced registrants from {old_count} to {new_count}. Refund amount: Rs{abs(difference)}" if difference < 0 else "Updated registrant details (no count change)",
                 "old_count": old_count,
                 "new_count": new_count,
                 "refund_amount": abs(difference) if difference < 0 else 0
