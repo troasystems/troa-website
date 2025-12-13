@@ -214,12 +214,12 @@ class ApproveOfflinePayment(BaseModel):
 
 @payment_router.post("/offline-payments/approve")
 async def approve_offline_payment(request: Request, approval: ApproveOfflinePayment):
-    """Approve or reject an offline payment - admin only"""
+    """Approve or reject an offline payment - manager and admin access"""
     try:
-        from auth import require_admin
+        from auth import require_manager_or_admin
         from datetime import timezone
         
-        admin = await require_admin(request)
+        admin = await require_manager_or_admin(request)
         
         payment = await db.offline_payments.find_one({"id": approval.payment_id})
         if not payment:
