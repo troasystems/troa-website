@@ -681,30 +681,100 @@ const Events = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Pricing Section */}
+              <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-semibold text-gray-800">Pricing Options</h3>
+                
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Amount (₹) *</label>
-                  <input
-                    type="number"
-                    value={eventForm.amount}
-                    onChange={(e) => setEventForm({ ...eventForm, amount: e.target.value })}
-                    min="0"
-                    step="0.01"
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Payment Type *</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Pricing Type *</label>
                   <select
                     value={eventForm.payment_type}
                     onChange={(e) => setEventForm({ ...eventForm, payment_type: e.target.value })}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   >
+                    <option value="per_villa">Per Villa (Single Price)</option>
                     <option value="per_person">Per Person</option>
-                    <option value="per_villa">Per Villa</option>
                   </select>
                 </div>
+
+                {eventForm.payment_type === 'per_villa' && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Price per Villa (₹) *</label>
+                    <input
+                      type="number"
+                      value={eventForm.amount}
+                      onChange={(e) => setEventForm({ ...eventForm, amount: e.target.value })}
+                      min="0"
+                      step="0.01"
+                      placeholder="e.g., 1000"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                )}
+
+                {eventForm.payment_type === 'per_person' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Per Person Pricing Type *</label>
+                      <select
+                        value={eventForm.per_person_type}
+                        onChange={(e) => setEventForm({ ...eventForm, per_person_type: e.target.value })}
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      >
+                        <option value="uniform">Uniform Price (Same for all)</option>
+                        <option value="adult_child">Adult & Child (Different prices)</option>
+                      </select>
+                    </div>
+
+                    {eventForm.per_person_type === 'uniform' && (
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Price per Person (₹) *</label>
+                        <input
+                          type="number"
+                          value={eventForm.amount}
+                          onChange={(e) => setEventForm({ ...eventForm, amount: e.target.value })}
+                          min="0"
+                          step="0.01"
+                          placeholder="e.g., 500"
+                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          required
+                        />
+                      </div>
+                    )}
+
+                    {eventForm.per_person_type === 'adult_child' && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">Adult Price (₹) *</label>
+                          <input
+                            type="number"
+                            value={eventForm.adult_price}
+                            onChange={(e) => setEventForm({ ...eventForm, adult_price: e.target.value })}
+                            min="0"
+                            step="0.01"
+                            placeholder="e.g., 500"
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">Child Price (₹) *</label>
+                          <input
+                            type="number"
+                            value={eventForm.child_price}
+                            onChange={(e) => setEventForm({ ...eventForm, child_price: e.target.value })}
+                            min="0"
+                            step="0.01"
+                            placeholder="e.g., 250"
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            required
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               <div>
