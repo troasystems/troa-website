@@ -438,6 +438,18 @@ backend:
           agent: "testing"
           comment: "✅ Admin Portal Offline Payments Tab testing completed successfully. Code Structure: AdminPortal.jsx correctly includes 'Offline Payments' tab with Banknote icon, positioned as second tab. OfflinePaymentsManagement.jsx fully implemented with header, pending count badge, filter buttons (Pending, Approved, Rejected, All), info box, payment cards with all required elements (payment type/method/status badges, user details with icons, amount display, approve/reject buttons). Authentication: Admin portal properly secured - redirects unauthenticated users as expected. Google OAuth login flow working (redirects to accounts.google.com). Backend Integration: Offline payment APIs working - created test payments successfully. UI Components: All required interface elements present and properly structured. Note: Full UI testing requires Google OAuth authentication with troa.systems@gmail.com admin account. Feature is production-ready."
 
+  - task: "Event Registration Modification Payment Method Display Fix"
+    implemented: true
+    working: true
+    file: "/app/backend/events.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Event Registration Modification Payment Method Display Fix testing completed successfully. Bug Context: When a user creates an event registration with online payment, then modifies their registration to add more people with offline payment, the admin portal was showing 'Online Payment' instead of 'Offline Payment' for the modification. ✅ Backend Testing: Created comprehensive test suite (backend_modification_payment_test.py) that verifies: 1) Initial registration with online payment correctly stored 2) Modification with offline payment creates separate modification_payment_method field 3) GET /api/events/admin/pending-approvals correctly returns modification_payment_method='offline' for modifications 4) Database fields properly stored: payment_method='online' (original), modification_payment_method='offline' (modification), modification_status='pending_modification_approval' ✅ Admin Approval Flow: Created additional test (backend_modification_approval_test.py) verifying complete approval workflow: offline modifications appear in pending approvals, admin can approve them, approved modifications are applied to registrations, modification fields are cleared after approval. ✅ Key Database Fields Verified: payment_method (original), modification_payment_method (modification), modification_status, additional_amount. All backend endpoints working correctly: POST /api/events/{id}/register, PATCH /api/events/registrations/{id}/modify, GET /api/events/admin/pending-approvals, POST /api/events/registrations/{id}/approve-modification. Bug fix is working correctly - admin portal can now distinguish between original and modification payment methods."
+
 frontend:
   - task: "Events Feature - Frontend Events Page UI"
     implemented: true
