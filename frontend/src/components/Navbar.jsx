@@ -98,20 +98,6 @@ const Navbar = () => {
               </Link>
             ))}
             
-            {/* Feedback Link - Only for authenticated users */}
-            {isAuthenticated && (
-              <Link
-                to="/feedback"
-                className={`px-3 py-2 rounded-lg font-medium transition-all duration-300 whitespace-nowrap ${
-                  isActive('/feedback')
-                    ? 'bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white shadow-lg'
-                    : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-100 hover:to-pink-100'
-                }`}
-              >
-                Feedback
-              </Link>
-            )}
-            
             {/* User Menu */}
             {isAuthenticated ? (
               <div className="relative ml-3">
