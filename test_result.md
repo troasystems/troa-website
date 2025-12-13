@@ -371,39 +371,48 @@ backend:
 
   - task: "Unified Payment System - Offline Payment API"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/payment.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Unified payment system implemented with offline payment creation endpoint POST /api/payment/offline-payment. Supports move_in, move_out, and membership payment types with QR code and cash transfer methods. Requires testing for proper amount calculations and status handling."
+        - working: true
+          agent: "testing"
+          comment: "✅ POST /api/payment/offline-payment endpoint tested successfully across all payment flows. Successfully creates offline payment requests for move_in (₹2360), move_out (₹2360), and membership (₹11800) payment types. Supports both qr_code and cash_transfer payment methods. Returns proper response structure with payment_id, amount, and 'pending_approval' status. All payment requests created with correct user details, villa numbers, and notes. Endpoint handles validation correctly and stores payments in database for admin review."
 
   - task: "Unified Payment System - Admin Offline Payments Management"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/payment.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Admin endpoints implemented: GET /api/payment/offline-payments (admin only) and POST /api/payment/offline-payments/approve for approving/rejecting offline payments. Requires testing for proper authentication and approval workflow."
+        - working: true
+          agent: "testing"
+          comment: "✅ Admin offline payments management tested successfully. GET /api/payment/offline-payments endpoint working correctly with admin authentication - returns list of all offline payment requests with proper structure (id, payment_type, payment_method, amount, status, user_details, created_at). POST /api/payment/offline-payments/approve endpoint working perfectly for both approve and reject actions. Successfully tested approval workflow: payment status updates from 'pending_approval' to 'completed', admin_approved flag set to true, approver information recorded. Authentication requirements working correctly - endpoints require admin privileges and return 401/403 without proper authentication."
 
   - task: "Unified Payment System - Payment Amount Verification"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/payment.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Payment amounts configured: move_in ₹2360 (₹2000 + 18% GST), move_out ₹2360 (₹2000 + 18% GST), membership ₹11800 (₹10000 + 18% GST). Requires testing to verify correct amount calculations across all payment flows."
+        - working: true
+          agent: "testing"
+          comment: "✅ Payment amount verification completed successfully. All payment types return correct amounts: move_in = ₹2360 (₹2000 + 18% GST), move_out = ₹2360 (₹2000 + 18% GST), membership = ₹11800 (₹10000 + 18% GST). Amount calculations are accurate and consistent across all payment creation requests. GST calculation (18%) applied correctly to base amounts. Payment amounts stored properly in database and returned in API responses."
 
   - task: "Homepage and Contact Page UI Updates"
     implemented: true
