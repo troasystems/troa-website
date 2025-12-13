@@ -905,7 +905,7 @@ const Events = () => {
                       </div>
                       <p className="text-xs text-gray-600 text-center">Or pay via Cash / Bank Transfer</p>
                       <p className="text-xs text-green-700 text-center mt-2 font-medium">
-                        ✓ Payments go directly to TROA's official bank account
+                        ✓ QR Payments go directly to TROA's official bank account
                       </p>
                     </div>
                     
