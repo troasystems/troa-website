@@ -137,17 +137,15 @@ async def get_image(filename: str, request: Request):
     try:
         bucket, client, db = await get_gridfs_bucket()
         
-        # Find the file by filename
-        cursor = bucket.find({"filename": filename})
-        grid_out = await cursor.to_list(length=1)
+        # Find the file by filename in the files collection
+        file_doc = await db["images.files"].find_one({"filename": filename})
         
-        if not grid_out:
+        if not file_doc:
             client.close()
             raise HTTPException(status_code=404, detail="Image not found")
         
-        file_doc = grid_out[0]
-        file_id = file_doc._id
-        metadata = file_doc.metadata or {}
+        file_id = file_doc["_id"]
+        metadata = file_doc.get("metadata", {})
         
         # Get ETag from metadata
         etag = metadata.get("etag", str(file_id))
