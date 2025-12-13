@@ -727,7 +727,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Role-Based Access Control Testing"
+    - "Database-Driven Role Management System"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
