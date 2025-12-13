@@ -653,8 +653,9 @@ app.add_middleware(
     secret_key=os.getenv('SECRET_KEY', 'your-secret-key-change-in-production')
 )
 
-# CORS configuration - must specify exact origins when using credentials
-CORS_ORIGINS = [
+# CORS configuration - read from environment variable or use defaults
+# Set CORS_ORIGINS env var as comma-separated list: "https://troa.in,http://localhost:3000"
+default_cors_origins = [
     "https://troa.in",
     "http://troa.in",
     "https://troa-residence.preview.emergentagent.com",
@@ -662,6 +663,13 @@ CORS_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
+
+# Parse CORS_ORIGINS from environment variable if set
+cors_origins_env = os.environ.get('CORS_ORIGINS', '')
+if cors_origins_env:
+    CORS_ORIGINS = [origin.strip() for origin in cors_origins_env.split(',') if origin.strip()]
+else:
+    CORS_ORIGINS = default_cors_origins
 
 app.add_middleware(
     CORSMiddleware,
