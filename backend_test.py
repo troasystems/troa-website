@@ -39,6 +39,7 @@ class TROAAPITester:
         self.errors = []
         self.created_event_id = None
         self.created_registration_id = None
+        self.created_payment_ids = []
         
         # Setup authentication headers
         self.basic_auth = base64.b64encode(f"{BASIC_AUTH_USERNAME}:{BASIC_AUTH_PASSWORD}".encode()).decode()
