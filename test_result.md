@@ -643,9 +643,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "GridFS Image Storage"
-    - "Homepage and Contact page membership messaging"
-    - "Logo update"
+    - "Homepage and Contact Page UI Updates"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
