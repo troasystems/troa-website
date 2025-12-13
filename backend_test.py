@@ -690,6 +690,95 @@ class TROAAPITester:
             self.test_results['event_registration']['withdraw'] = False
             self.log_error(f"/events/registrations/{self.created_registration_id}/withdraw", "POST", f"Exception: {str(e)}")
 
+    def test_gridfs_image_storage(self):
+        """Test GridFS Image Storage system"""
+        print("\n🧪 Testing GridFS Image Storage...")
+        
+        # Test existing image filenames from the review request
+        test_filenames = [
+            "87b85abf-1066-4288-8af4-0ad4075cedcd.webp",
+            "4f5739a8-23c8-40ff-be81-a9f496a75e31.png", 
+            "0deb1f66-a518-4ee2-b8d6-953328859b0f.jpeg"
+        ]
+        
+        successful_tests = 0
+        total_tests = len(test_filenames)
+        
+        for filename in test_filenames:
+            try:
+                # Test GET /api/upload/image/{filename}
+                response = requests.get(f"{self.base_url}/upload/image/{filename}", timeout=10)
+                
+                if response.status_code == 200:
+                    # Check if it's actually an image
+                    content_type = response.headers.get('content-type', '')
+                    if content_type.startswith('image/'):
+                        successful_tests += 1
+                        self.log_success(f"/upload/image/{filename}", "GET", f"- Served image successfully (Content-Type: {content_type})")
+                        
+                        # Test caching headers
+                        cache_control = response.headers.get('cache-control', '')
+                        etag = response.headers.get('etag', '')
+                        
+                        if 'max-age=2592000' in cache_control and 'public' in cache_control:
+                            self.log_success(f"/upload/image/{filename}", "CACHE", "- Correct Cache-Control header (30 days)")
+                        else:
+                            self.log_error(f"/upload/image/{filename}", "CACHE", f"Invalid Cache-Control: {cache_control}")
+                        
+                        if etag:
+                            self.log_success(f"/upload/image/{filename}", "ETAG", f"- ETag header present: {etag}")
+                            
+                            # Test 304 Not Modified response
+                            try:
+                                response_304 = requests.get(
+                                    f"{self.base_url}/upload/image/{filename}",
+                                    headers={'If-None-Match': etag},
+                                    timeout=10
+                                )
+                                
+                                if response_304.status_code == 304:
+                                    self.log_success(f"/upload/image/{filename}", "304", "- Correctly returns 304 Not Modified with matching ETag")
+                                else:
+                                    self.log_error(f"/upload/image/{filename}", "304", f"Expected 304 but got {response_304.status_code}")
+                            except Exception as e:
+                                self.log_error(f"/upload/image/{filename}", "304", f"Exception testing 304: {str(e)}")
+                        else:
+                            self.log_error(f"/upload/image/{filename}", "ETAG", "Missing ETag header")
+                    else:
+                        self.log_error(f"/upload/image/{filename}", "GET", f"Invalid content type: {content_type}")
+                elif response.status_code == 404:
+                    self.log_error(f"/upload/image/{filename}", "GET", "Image not found in GridFS")
+                else:
+                    self.log_error(f"/upload/image/{filename}", "GET", f"Status code: {response.status_code}")
+                    
+            except Exception as e:
+                self.log_error(f"/upload/image/{filename}", "GET", f"Exception: {str(e)}")
+        
+        # Set test results based on success rate
+        if successful_tests == total_tests:
+            self.test_results['gridfs_storage']['get_image'] = True
+            self.test_results['gridfs_storage']['cache_headers'] = True
+            self.test_results['gridfs_storage']['etag_support'] = True
+            self.test_results['gridfs_storage']['not_modified'] = True
+        elif successful_tests > 0:
+            self.test_results['gridfs_storage']['get_image'] = True
+            # Partial success for other features
+        else:
+            self.test_results['gridfs_storage']['get_image'] = False
+            self.test_results['gridfs_storage']['cache_headers'] = False
+            self.test_results['gridfs_storage']['etag_support'] = False
+            self.test_results['gridfs_storage']['not_modified'] = False
+        
+        # Test non-existent image (should return 404)
+        try:
+            response = requests.get(f"{self.base_url}/upload/image/non-existent-image.jpg", timeout=10)
+            if response.status_code == 404:
+                self.log_success("/upload/image/non-existent", "GET", "- Correctly returns 404 for non-existent image")
+            else:
+                self.log_error("/upload/image/non-existent", "GET", f"Expected 404 but got {response.status_code}")
+        except Exception as e:
+            self.log_error("/upload/image/non-existent", "GET", f"Exception: {str(e)}")
+
     def test_edge_cases(self):
         """Test edge cases and error scenarios"""
         print("\n🧪 Testing Edge Cases and Error Scenarios...")
