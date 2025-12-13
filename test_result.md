@@ -769,7 +769,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Manager Events Permission Fix"
+    - "Admin Portal Events Management Pricing Type Display"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
