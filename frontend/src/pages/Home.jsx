@@ -110,33 +110,33 @@ const Home = () => {
       </section>
 
       {/* Welcome Section */}
-      <section className="py-20 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+      <section className="py-12 md:py-20 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
             <div>
-              <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
                 Welcome to The Retreat
               </h2>
-              <p className="text-lg text-gray-700 mb-6 leading-relaxed">
+              <p className="text-sm md:text-base lg:text-lg text-gray-700 mb-4 md:mb-6 leading-relaxed">
                 A thriving community is built on mutual respect, shared responsibility, and a commitment to harmonious living. At The Retreat, our goal is to ensure a safe, enjoyable, and well-maintained environment for all residents.
               </p>
-              <p className="text-lg text-gray-700 mb-8 leading-relaxed">
+              <p className="text-sm md:text-base lg:text-lg text-gray-700 mb-6 md:mb-8 leading-relaxed">
                 The administration and upkeep of The Retreat is overseen by its registered body, the THE RETREAT OWNERS ASSOCIATION (TROA), in accordance with applicable laws.
               </p>
               <Link
                 to="/about"
-                className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold hover:scale-105 transform transition-all duration-300 shadow-lg hover:shadow-xl"
+                className="inline-flex items-center space-x-2 px-5 md:px-6 py-2.5 md:py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold text-sm md:text-base hover:scale-105 transform transition-all duration-300 shadow-lg hover:shadow-xl"
               >
                 <span>Read More</span>
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
               </Link>
             </div>
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-3xl transform rotate-3"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl md:rounded-3xl transform rotate-3"></div>
               <img
                 src="https://images.unsplash.com/photo-1763463158922-f2a70d5a063b?w=800&q=80"
                 alt="Community"
-                className="relative rounded-3xl shadow-2xl transform hover:scale-105 transition-transform duration-500"
+                className="relative rounded-2xl md:rounded-3xl shadow-2xl transform hover:scale-105 transition-transform duration-500"
               />
             </div>
           </div>
@@ -144,25 +144,25 @@ const Home = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-white">
+      <section className="py-12 md:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+          <div className="text-center mb-8 md:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
               Why Choose The Retreat
             </h2>
-            <p className="text-xl text-gray-600">Experience the best in community living</p>
+            <p className="text-sm md:text-base lg:text-xl text-gray-600">Experience the best in community living</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="group p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-transparent hover:scale-105"
+                className="group p-5 md:p-8 bg-white rounded-xl md:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-transparent hover:scale-105"
               >
-                <div className={`w-16 h-16 bg-gradient-to-r ${feature.gradient} rounded-xl flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                  {feature.icon}
+                <div className={`w-12 h-12 md:w-16 md:h-16 bg-gradient-to-r ${feature.gradient} rounded-lg md:rounded-xl flex items-center justify-center text-white mb-4 md:mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                  {React.cloneElement(feature.icon, { className: "w-6 h-6 md:w-8 md:h-8" })}
                 </div>
-                <h3 className="text-2xl font-bold mb-4 text-gray-900">{feature.title}</h3>
+                <h3 className="text-lg md:text-xl lg:text-2xl font-bold mb-2 md:mb-4 text-gray-900">{feature.title}</h3>
                 <p className="text-gray-600 leading-relaxed">{feature.description}</p>
               </div>
             ))}
