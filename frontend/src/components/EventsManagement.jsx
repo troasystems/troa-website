@@ -15,7 +15,9 @@ import {
   ChevronDown,
   ChevronUp,
   Edit,
-  X
+  X,
+  CreditCard,
+  Banknote
 } from 'lucide-react';
 
 const getAPI = () => `${getBackendUrl()}/api`;
