@@ -34,7 +34,8 @@ class TROAAPITester:
             'payment_integration': {'create_order': None, 'complete_payment': None},
             'amenity_booking': {'create_booking': None},
             'gridfs_storage': {'get_image': None, 'cache_headers': None, 'etag_support': None, 'not_modified': None},
-            'unified_payment': {'offline_payment': None, 'get_offline_payments': None, 'approve_payment': None, 'reject_payment': None, 'amount_verification': None}
+            'unified_payment': {'offline_payment': None, 'get_offline_payments': None, 'approve_payment': None, 'reject_payment': None, 'amount_verification': None},
+            'event_pricing': {'per_villa': None, 'uniform_per_person': None, 'adult_child': None, 'adult_child_registration': None, 'validation': None, 'per_villa_registration': None}
         }
         self.errors = []
         self.created_event_id = None
