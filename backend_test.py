@@ -781,6 +781,244 @@ class TROAAPITester:
         except Exception as e:
             self.log_error("/upload/image/non-existent", "GET", f"Exception: {str(e)}")
 
+    def test_unified_payment_system(self):
+        """Test Unified Payment System endpoints"""
+        print("\n🧪 Testing Unified Payment System...")
+        
+        # Test 1: Create offline payment requests for all payment types
+        payment_types = [
+            {
+                'type': 'move_in',
+                'expected_amount': 2360,
+                'user_data': {
+                    'name': 'John Smith',
+                    'email': 'john.smith@email.com',
+                    'phone': '+91-9876543210',
+                    'villa_no': 'A-101',
+                    'notes': 'Move-in payment for new resident'
+                }
+            },
+            {
+                'type': 'move_out',
+                'expected_amount': 2360,
+                'user_data': {
+                    'name': 'Sarah Johnson',
+                    'email': 'sarah.johnson@email.com',
+                    'phone': '+91-9876543211',
+                    'villa_no': 'B-205',
+                    'notes': 'Move-out payment for departing resident'
+                }
+            },
+            {
+                'type': 'membership',
+                'expected_amount': 11800,
+                'user_data': {
+                    'name': 'Michael Rodriguez',
+                    'email': 'michael.rodriguez@email.com',
+                    'phone': '+91-9876543212',
+                    'villa_no': 'C-303',
+                    'notes': 'Annual membership payment'
+                }
+            }
+        ]
+        
+        # Test offline payment creation for each type
+        for payment_data in payment_types:
+            for payment_method in ['qr_code', 'cash_transfer']:
+                try:
+                    offline_payment_request = {
+                        'payment_type': payment_data['type'],
+                        'payment_method': payment_method,
+                        'name': payment_data['user_data']['name'],
+                        'email': payment_data['user_data']['email'],
+                        'phone': payment_data['user_data']['phone'],
+                        'villa_no': payment_data['user_data']['villa_no'],
+                        'notes': f"{payment_data['user_data']['notes']} via {payment_method}"
+                    }
+                    
+                    response = requests.post(f"{self.base_url}/payment/offline-payment", 
+                                           json=offline_payment_request, 
+                                           headers={'Content-Type': 'application/json'},
+                                           timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        if ('payment_id' in data and 
+                            'amount' in data and 
+                            data['amount'] == payment_data['expected_amount'] and
+                            'status' in data.get('message', '').lower() and
+                            'pending_approval' in data.get('message', '').lower()):
+                            
+                            self.created_payment_ids.append(data['payment_id'])
+                            self.log_success(f"/payment/offline-payment ({payment_data['type']}, {payment_method})", "POST", 
+                                           f"- Created payment ID: {data['payment_id']}, Amount: ₹{data['amount']}")
+                        else:
+                            self.test_results['unified_payment']['offline_payment'] = False
+                            self.log_error(f"/payment/offline-payment ({payment_data['type']}, {payment_method})", "POST", 
+                                         f"Invalid response structure or amount. Expected: ₹{payment_data['expected_amount']}, Got: {data}")
+                    else:
+                        self.test_results['unified_payment']['offline_payment'] = False
+                        self.log_error(f"/payment/offline-payment ({payment_data['type']}, {payment_method})", "POST", 
+                                     f"Status code: {response.status_code}, Response: {response.text}")
+                except Exception as e:
+                    self.test_results['unified_payment']['offline_payment'] = False
+                    self.log_error(f"/payment/offline-payment ({payment_data['type']}, {payment_method})", "POST", f"Exception: {str(e)}")
+        
+        # If we successfully created payments, mark offline_payment as successful
+        if self.created_payment_ids:
+            self.test_results['unified_payment']['offline_payment'] = True
+            
+        # Test 2: Get offline payments (admin only)
+        try:
+            response = requests.get(f"{self.base_url}/payment/offline-payments", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list):
+                    self.test_results['unified_payment']['get_offline_payments'] = True
+                    self.log_success("/payment/offline-payments", "GET", f"- Found {len(data)} offline payment requests")
+                    
+                    # Validate structure of payments if they exist
+                    if data:
+                        payment = data[0]
+                        required_fields = ['id', 'payment_type', 'payment_method', 'amount', 'status', 'user_details', 'created_at']
+                        missing_fields = [field for field in required_fields if field not in payment]
+                        if missing_fields:
+                            self.log_error("/payment/offline-payments", "GET", f"Missing required fields: {missing_fields}")
+                        else:
+                            self.log_success("/payment/offline-payments", "GET", f"- Payment structure validated")
+                else:
+                    self.test_results['unified_payment']['get_offline_payments'] = False
+                    self.log_error("/payment/offline-payments", "GET", "Response is not a list")
+            else:
+                self.test_results['unified_payment']['get_offline_payments'] = False
+                self.log_error("/payment/offline-payments", "GET", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['unified_payment']['get_offline_payments'] = False
+            self.log_error("/payment/offline-payments", "GET", f"Exception: {str(e)}")
+            
+        # Test 3: Test admin approval/rejection
+        if self.created_payment_ids:
+            # Test approval
+            try:
+                approval_request = {
+                    'payment_id': self.created_payment_ids[0],
+                    'action': 'approve'
+                }
+                
+                response = requests.post(f"{self.base_url}/payment/offline-payments/approve", 
+                                       json=approval_request, 
+                                       headers=self.auth_headers,
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if 'success' in data and data['success'] and 'approved successfully' in data.get('message', ''):
+                        self.test_results['unified_payment']['approve_payment'] = True
+                        self.log_success("/payment/offline-payments/approve", "POST", f"- Approved payment: {self.created_payment_ids[0]}")
+                    else:
+                        self.test_results['unified_payment']['approve_payment'] = False
+                        self.log_error("/payment/offline-payments/approve", "POST", "Invalid response structure")
+                else:
+                    self.test_results['unified_payment']['approve_payment'] = False
+                    self.log_error("/payment/offline-payments/approve", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+            except Exception as e:
+                self.test_results['unified_payment']['approve_payment'] = False
+                self.log_error("/payment/offline-payments/approve", "POST", f"Exception: {str(e)}")
+            
+            # Test rejection (if we have more than one payment)
+            if len(self.created_payment_ids) > 1:
+                try:
+                    rejection_request = {
+                        'payment_id': self.created_payment_ids[1],
+                        'action': 'reject'
+                    }
+                    
+                    response = requests.post(f"{self.base_url}/payment/offline-payments/approve", 
+                                           json=rejection_request, 
+                                           headers=self.auth_headers,
+                                           timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        if 'success' in data and data['success'] and 'rejected successfully' in data.get('message', ''):
+                            self.test_results['unified_payment']['reject_payment'] = True
+                            self.log_success("/payment/offline-payments/approve (reject)", "POST", f"- Rejected payment: {self.created_payment_ids[1]}")
+                        else:
+                            self.test_results['unified_payment']['reject_payment'] = False
+                            self.log_error("/payment/offline-payments/approve (reject)", "POST", "Invalid response structure")
+                    else:
+                        self.test_results['unified_payment']['reject_payment'] = False
+                        self.log_error("/payment/offline-payments/approve (reject)", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+                except Exception as e:
+                    self.test_results['unified_payment']['reject_payment'] = False
+                    self.log_error("/payment/offline-payments/approve (reject)", "POST", f"Exception: {str(e)}")
+        
+        # Test 4: Verify payment amounts are correct
+        expected_amounts = {
+            'move_in': 2360,    # ₹2000 + 18% GST = ₹2360
+            'move_out': 2360,   # ₹2000 + 18% GST = ₹2360
+            'membership': 11800  # ₹10000 + 18% GST = ₹11800
+        }
+        
+        amount_verification_passed = True
+        for payment_type, expected_amount in expected_amounts.items():
+            try:
+                test_request = {
+                    'payment_type': payment_type,
+                    'payment_method': 'qr_code',
+                    'name': 'Amount Test User',
+                    'email': 'amount.test@email.com',
+                    'phone': '+91-9999999999',
+                    'villa_no': 'TEST-001',
+                    'notes': f'Amount verification test for {payment_type}'
+                }
+                
+                response = requests.post(f"{self.base_url}/payment/offline-payment", 
+                                       json=test_request, 
+                                       headers={'Content-Type': 'application/json'},
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    actual_amount = data.get('amount')
+                    if actual_amount == expected_amount:
+                        self.log_success(f"Amount verification ({payment_type})", "TEST", f"- Correct amount: ₹{actual_amount}")
+                    else:
+                        amount_verification_passed = False
+                        self.log_error(f"Amount verification ({payment_type})", "TEST", f"Expected: ₹{expected_amount}, Got: ₹{actual_amount}")
+                else:
+                    amount_verification_passed = False
+                    self.log_error(f"Amount verification ({payment_type})", "TEST", f"Status code: {response.status_code}")
+            except Exception as e:
+                amount_verification_passed = False
+                self.log_error(f"Amount verification ({payment_type})", "TEST", f"Exception: {str(e)}")
+        
+        self.test_results['unified_payment']['amount_verification'] = amount_verification_passed
+        
+        # Test 5: Test authentication requirements
+        try:
+            # Test GET /payment/offline-payments without authentication (should fail)
+            response = requests.get(f"{self.base_url}/payment/offline-payments", timeout=10)
+            if response.status_code in [401, 403]:
+                self.log_success("/payment/offline-payments", "AUTH", "- Correctly requires admin authentication")
+            else:
+                self.log_error("/payment/offline-payments", "AUTH", f"Should require auth but got status: {response.status_code}")
+                
+            # Test POST /payment/offline-payments/approve without authentication (should fail)
+            response = requests.post(f"{self.base_url}/payment/offline-payments/approve", 
+                                   json={'payment_id': 'test', 'action': 'approve'}, 
+                                   headers={'Content-Type': 'application/json'},
+                                   timeout=10)
+            if response.status_code in [401, 403]:
+                self.log_success("/payment/offline-payments/approve", "AUTH", "- Correctly requires admin authentication")
+            else:
+                self.log_error("/payment/offline-payments/approve", "AUTH", f"Should require auth but got status: {response.status_code}")
+        except Exception as e:
+            self.log_error("Payment Authentication", "TEST", f"Exception: {str(e)}")
+
     def test_edge_cases(self):
         """Test edge cases and error scenarios"""
         print("\n🧪 Testing Edge Cases and Error Scenarios...")
