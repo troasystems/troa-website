@@ -47,6 +47,13 @@ const AdminPortal = () => {
       roles: ['admin', 'manager']
     },
     {
+      id: 'payments',
+      name: 'Offline Payments',
+      icon: Banknote,
+      component: OfflinePaymentsManagement,
+      roles: ['admin', 'manager']
+    },
+    {
       id: 'events',
       name: 'Events Management',
       icon: PartyPopper,
