@@ -21,6 +21,7 @@ from auth import auth_router, require_admin, require_manager_or_admin, require_a
 from basic_auth import basic_auth_middleware
 from instagram import instagram_router
 from upload import upload_router
+from gridfs_upload import gridfs_router  # GridFS-based upload for production
 from payment import payment_router
 from chatbot import chatbot_router
 from events import events_router
