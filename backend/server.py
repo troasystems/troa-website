@@ -388,10 +388,20 @@ async def delete_user(user_id: str, request: Request):
     try:
         admin = await require_admin(request)
         
-        # Prevent admin from deleting themselves
+        # Get user to delete
         user_to_delete = await db.users.find_one({"id": user_id}, {"_id": 0})
-        if user_to_delete and user_to_delete.get('email') == admin.get('email'):
+        
+        if not user_to_delete:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Prevent admin from deleting themselves
+        if user_to_delete.get('email') == admin.get('email'):
             raise HTTPException(status_code=400, detail="Cannot delete your own account")
+        
+        # Prevent deleting the super admin
+        from auth import SUPER_ADMIN_EMAIL
+        if user_to_delete.get('email') == SUPER_ADMIN_EMAIL:
+            raise HTTPException(status_code=400, detail="Cannot delete the super admin account")
         
         result = await db.users.delete_one({"id": user_id})
         
