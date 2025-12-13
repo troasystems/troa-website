@@ -679,7 +679,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Homepage and Contact Page UI Updates"
+    - "Unified Payment System - Offline Payment API"
+    - "Unified Payment System - Admin Offline Payments Management"
+    - "Unified Payment System - Payment Amount Verification"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
