@@ -1810,6 +1810,7 @@ class TROAAPITester:
             'Payment Integration': ['payment_integration'],
             'Unified Payment System': ['unified_payment'],
             'Event Pricing Options': ['event_pricing'],
+            'Event Registration Modification': ['event_modification'],
             'Amenity Booking': ['amenity_booking']
         }
         
