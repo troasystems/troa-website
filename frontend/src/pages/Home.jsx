@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Shield, Heart, ArrowRight, Building2, TreePine, Waves } from 'lucide-react';
+import { Users, Shield, Heart, ArrowRight, Building2, TreePine, Waves, CheckCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Home = () => {
+  const { isAuthenticated } = useAuth();
   const features = [
     {
       icon: <Users className="w-8 h-8" />,
