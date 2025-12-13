@@ -587,9 +587,18 @@ const MyEvents = () => {
             <div className="p-6 space-y-6">
               {/* Current Info */}
               <div className="bg-purple-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 mb-1">
                   Current registrants: <strong>{selectedRegistration.registrants?.length || 0}</strong> | 
                   Current total: <strong>₹{selectedRegistration.total_amount}</strong>
+                </p>
+                <p className="text-sm text-purple-600">
+                  {selectedRegistration.event?.payment_type === 'per_villa' ? (
+                    `🏠 Per Villa: ₹${selectedRegistration.event?.amount}`
+                  ) : selectedRegistration.event?.per_person_type === 'adult_child' ? (
+                    `👨‍👩‍👧 Adult: ₹${selectedRegistration.event?.adult_price || 0} / Child: ₹${selectedRegistration.event?.child_price || 0}`
+                  ) : (
+                    `👤 Per Person: ₹${selectedRegistration.event?.amount}`
+                  )}
                 </p>
               </div>
 
