@@ -356,6 +356,28 @@ mongod --dbpath ./data/db
 - Check that GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are correct
 - Clear browser cookies and try again
 
+### emergentintegrations Package Not Found
+
+If you see `ERROR: No matching distribution found for emergentintegrations`, it means the private package registry is not being used. This is already configured in the Dockerfile, but if you're installing manually:
+
+```bash
+pip install --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/ -r requirements.txt
+```
+
+### Missing .env Files
+
+The `.env` files are gitignored for security. You need to create them from the examples:
+
+```bash
+# Backend
+cp backend/.env.example backend/.env
+# Edit backend/.env with your credentials
+
+# Frontend
+cp frontend/.env.example frontend/.env
+# Edit frontend/.env with your credentials
+```
+
 ---
 
 ## 🤝 Contributing
