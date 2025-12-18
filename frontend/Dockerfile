@@ -3,12 +3,12 @@ FROM node:20-alpine as build
 
 WORKDIR /app
 
-# Copy package files (yarn.lock is optional for local builds)
+# Copy package files
 COPY package.json ./
-COPY yarn.lock* ./
+COPY yarn.lock ./
 
 # Install dependencies
-RUN yarn install
+RUN yarn install --frozen-lockfile
 
 # Copy source code
 COPY . .
