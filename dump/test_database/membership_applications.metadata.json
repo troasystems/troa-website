@@ -1,1 +1,0 @@
-{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"85775f4cb471405aa9a35fa6b069546a","collectionName":"membership_applications","type":"collection"}
