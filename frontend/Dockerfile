@@ -5,10 +5,12 @@ WORKDIR /app
 
 # Copy package files
 COPY package.json ./
-COPY yarn.lock ./
+
+# Copy yarn.lock if it exists, otherwise it will be generated
+COPY yarn.loc[k] ./
 
 # Install dependencies
-RUN yarn install --frozen-lockfile
+RUN yarn install
 
 # Copy source code
 COPY . .
