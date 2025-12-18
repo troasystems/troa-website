@@ -119,6 +119,33 @@ const EventsManagement = () => {
     }
   };
 
+  const handleMarkAsPaid = async (registrationId) => {
+    if (!window.confirm('Are you sure you want to mark this registration as paid? This should only be done if you have confirmed the payment was received.')) return;
+    
+    const token = localStorage.getItem('session_token');
+    try {
+      await axios.post(
+        `${getAPI()}/events/registrations/${registrationId}/mark-paid`,
+        {},
+        { headers: { 'X-Session-Token': `Bearer ${token}` } }
+      );
+      toast({ 
+        title: 'Success', 
+        description: 'Registration marked as paid successfully!' 
+      });
+      fetchData();
+      if (selectedEvent) {
+        fetchEventRegistrations(selectedEvent.id);
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.detail || 'Failed to mark as paid',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const formatDate = (dateStr) => {
     return new Date(dateStr).toLocaleDateString('en-IN', {
       weekday: 'short',
@@ -210,13 +237,27 @@ const EventsManagement = () => {
                           }`}>
                             {isMod ? 'Modification Request' : 'New Registration'}
                           </span>
+                          {/* Pricing Type Badge */}
+                          <span className={`px-2 py-1 text-xs font-medium rounded ${
+                            reg.event?.payment_type === 'per_villa' 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-indigo-100 text-indigo-700'
+                          }`}>
+                            {reg.event?.payment_type === 'per_villa' ? (
+                              '🏠 Per Villa'
+                            ) : reg.event?.per_person_type === 'adult_child' ? (
+                              '👨‍👩‍👧 Adult/Child Pricing'
+                            ) : (
+                              '👤 Per Person'
+                            )}
+                          </span>
                           {/* Payment Method Badge */}
                           <span className={`px-2 py-1 text-xs font-medium rounded flex items-center gap-1 ${
-                            reg.payment_method === 'online' 
+                            (isMod ? reg.modification_payment_method : reg.payment_method) === 'online' 
                               ? 'bg-blue-100 text-blue-700' 
                               : 'bg-purple-100 text-purple-700'
                           }`}>
-                            {reg.payment_method === 'online' ? (
+                            {(isMod ? reg.modification_payment_method : reg.payment_method) === 'online' ? (
                               <>
                                 <CreditCard className="w-3 h-3" />
                                 Online Payment
@@ -239,6 +280,20 @@ const EventsManagement = () => {
                           {reg.user_name} ({reg.user_email})
                         </p>
                         
+                        {/* Event Pricing Info */}
+                        {reg.event && (
+                          <p className="text-sm text-gray-500 mt-1">
+                            <IndianRupee className="w-3 h-3 inline" />
+                            {reg.event.payment_type === 'per_villa' ? (
+                              `₹${reg.event.amount} per villa`
+                            ) : reg.event.per_person_type === 'adult_child' ? (
+                              `₹${reg.event.adult_price || 0} adult / ₹${reg.event.child_price || 0} child`
+                            ) : (
+                              `₹${reg.event.amount} per person`
+                            )}
+                          </p>
+                        )}
+                        
                         {isMod ? (
                           <>
                             <div className="mt-2 p-2 bg-orange-50 rounded-lg">
@@ -253,8 +308,19 @@ const EventsManagement = () => {
                             <div className="mt-2 flex flex-wrap gap-2">
                               <span className="text-xs text-gray-500">New registrants:</span>
                               {reg.pending_registrants?.map((person, idx) => (
-                                <span key={idx} className="px-2 py-1 bg-orange-50 text-orange-700 text-xs rounded">
+                                <span key={idx} className={`px-2 py-1 text-xs rounded ${
+                                  reg.event?.per_person_type === 'adult_child'
+                                    ? person.registrant_type === 'child'
+                                      ? 'bg-pink-50 text-pink-700 border border-pink-200'
+                                      : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                    : 'bg-orange-50 text-orange-700'
+                                }`}>
                                   {person.name}
+                                  {reg.event?.per_person_type === 'adult_child' && (
+                                    <span className="ml-1 font-medium">
+                                      ({person.registrant_type === 'child' ? '👧 Child' : '👤 Adult'})
+                                    </span>
+                                  )}
                                 </span>
                               ))}
                             </div>
@@ -262,8 +328,19 @@ const EventsManagement = () => {
                         ) : (
                           <div className="mt-2 flex flex-wrap gap-2">
                             {reg.registrants?.map((person, idx) => (
-                              <span key={idx} className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded">
+                              <span key={idx} className={`px-2 py-1 text-xs rounded ${
+                                reg.event?.per_person_type === 'adult_child'
+                                  ? person.registrant_type === 'child'
+                                    ? 'bg-pink-50 text-pink-700 border border-pink-200'
+                                    : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                  : 'bg-purple-50 text-purple-700'
+                              }`}>
                                 {person.name}
+                                {reg.event?.per_person_type === 'adult_child' && (
+                                  <span className="ml-1 font-medium">
+                                    ({person.registrant_type === 'child' ? '👧 Child' : '👤 Adult'})
+                                  </span>
+                                )}
                               </span>
                             ))}
                           </div>
@@ -333,7 +410,13 @@ const EventsManagement = () => {
                           {formatDate(event.event_date)} at {event.event_time}
                         </p>
                         <p className="text-sm text-purple-600 font-medium">
-                          ₹{event.amount} {event.payment_type === 'per_person' ? 'per person' : 'per villa'}
+                          {event.payment_type === 'per_villa' ? (
+                            `🏠 ₹${event.amount} per villa`
+                          ) : event.per_person_type === 'adult_child' ? (
+                            `👨‍👩‍👧 ₹${event.adult_price || 0} adult / ₹${event.child_price || 0} child`
+                          ) : (
+                            `👤 ₹${event.amount} per person`
+                          )}
                         </p>
                       </div>
                     </div>
@@ -366,6 +449,15 @@ const EventsManagement = () => {
                   <h2 className="text-xl font-bold">{selectedEvent.name}</h2>
                   <p className="text-sm opacity-90">
                     {formatDate(selectedEvent.event_date)} at {selectedEvent.event_time}
+                  </p>
+                  <p className="text-sm opacity-90 mt-1">
+                    {selectedEvent.payment_type === 'per_villa' ? (
+                      `🏠 Per Villa: ₹${selectedEvent.amount}`
+                    ) : selectedEvent.per_person_type === 'adult_child' ? (
+                      `👨‍👩‍👧 Adult: ₹${selectedEvent.adult_price || 0} / Child: ₹${selectedEvent.child_price || 0}`
+                    ) : (
+                      `👤 Per Person: ₹${selectedEvent.amount}`
+                    )}
                   </p>
                 </div>
                 <button
@@ -445,15 +537,46 @@ const EventsManagement = () => {
                               </>
                             )}
                           </span>
+                          {/* Show modification payment method if different */}
+                          {reg.modification_status === 'pending_modification_approval' && reg.modification_payment_method && (
+                            <span className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded mt-1 ${
+                              reg.modification_payment_method === 'online' 
+                                ? 'bg-blue-100 text-blue-700' 
+                                : 'bg-orange-100 text-orange-700'
+                            }`}>
+                              {reg.modification_payment_method === 'online' ? (
+                                <>
+                                  <CreditCard className="w-3 h-3" />
+                                  Mod: Online
+                                </>
+                              ) : (
+                                <>
+                                  <Banknote className="w-3 h-3" />
+                                  Mod: Offline
+                                </>
+                              )}
+                            </span>
+                          )}
                         </div>
                       </div>
 
                       <div className="flex flex-wrap gap-2 mt-2">
                         {reg.registrants?.map((person, idx) => (
-                          <span key={idx} className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded">
+                          <span key={idx} className={`px-2 py-1 text-xs rounded ${
+                            selectedEvent?.per_person_type === 'adult_child'
+                              ? person.registrant_type === 'child'
+                                ? 'bg-pink-50 text-pink-700 border border-pink-200'
+                                : 'bg-blue-50 text-blue-700 border border-blue-200'
+                              : 'bg-purple-50 text-purple-700'
+                          }`}>
                             {person.name}
+                            {selectedEvent?.per_person_type === 'adult_child' && (
+                              <span className="ml-1 font-medium">
+                                ({person.registrant_type === 'child' ? '👧 Child' : '👤 Adult'})
+                              </span>
+                            )}
                             {Object.keys(person.preferences || {}).length > 0 && (
-                              <span className="ml-1 text-purple-500">
+                              <span className="ml-1 text-gray-500">
                                 ({Object.values(person.preferences).join(', ')})
                               </span>
                             )}
@@ -515,6 +638,23 @@ const EventsManagement = () => {
                           >
                             <XCircle className="w-3 h-3" />
                             <span>Reject</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Mark as Paid button for pending online payments */}
+                      {reg.payment_status === 'pending' && reg.status === 'registered' && !reg.modification_status && (
+                        <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <p className="text-sm text-yellow-800 mb-2">
+                            <AlertCircle className="w-4 h-4 inline mr-1" />
+                            Online payment pending. If payment was received, you can manually mark it as paid.
+                          </p>
+                          <button
+                            onClick={() => handleMarkAsPaid(reg.id)}
+                            className="flex items-center space-x-1 px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+                          >
+                            <CheckCircle className="w-3 h-3" />
+                            <span>Mark as Paid</span>
                           </button>
                         </div>
                       )}

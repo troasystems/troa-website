@@ -112,10 +112,25 @@ RAZORPAY_KEY_ID=your_razorpay_key_id
 RAZORPAY_KEY_SECRET=your_razorpay_key_secret
 
 # Session Secret (Change this!)
-SESSION_SECRET=generate-a-random-secret-key-here
+SECRET_KEY=generate-a-random-secret-key-here
 
 # OpenAI for Chatbot (Optional)
 EMERGENT_LLM_KEY=your_openai_api_key
+```
+
+Also create the frontend environment file:
+
+```bash
+cp frontend/.env.example frontend/.env
+```
+
+Then edit `frontend/.env`:
+
+```env
+# For local Docker setup
+REACT_APP_BACKEND_URL=http://localhost:8001
+REACT_APP_BASIC_AUTH_USERNAME=admin
+REACT_APP_BASIC_AUTH_PASSWORD=your-secure-password
 ```
 
 ### Production Deployment with Docker
@@ -163,8 +178,8 @@ cd backend
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies (note: emergentintegrations requires extra index URL)
+pip install --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/ -r requirements.txt
 
 # Create .env file
 cat << EOF > .env
@@ -340,6 +355,28 @@ mongod --dbpath ./data/db
 - For Docker: Use `http://localhost:8001/api/auth/google/callback`
 - Check that GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are correct
 - Clear browser cookies and try again
+
+### emergentintegrations Package Not Found
+
+If you see `ERROR: No matching distribution found for emergentintegrations`, it means the private package registry is not being used. This is already configured in the Dockerfile, but if you're installing manually:
+
+```bash
+pip install --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/ -r requirements.txt
+```
+
+### Missing .env Files
+
+The `.env` files are gitignored for security. You need to create them from the examples:
+
+```bash
+# Backend
+cp backend/.env.example backend/.env
+# Edit backend/.env with your credentials
+
+# Frontend
+cp frontend/.env.example frontend/.env
+# Edit frontend/.env with your credentials
+```
 
 ---
 
