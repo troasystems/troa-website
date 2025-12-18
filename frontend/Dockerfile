@@ -4,7 +4,10 @@ FROM node:20-alpine as build
 WORKDIR /app
 
 # Copy package files
-COPY package.json yarn.lock ./
+COPY package.json ./
+
+# Copy yarn.lock if it exists, otherwise it will be generated
+COPY yarn.loc[k] ./
 
 # Install dependencies
 RUN yarn install
