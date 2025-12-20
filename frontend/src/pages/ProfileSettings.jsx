@@ -136,13 +136,15 @@ const ProfileSettings = () => {
 
       setProfilePicture(response.data.picture);
       
+      // Refresh user data to update navbar immediately
+      await refreshUser();
+      
       toast({
         title: 'Success',
         description: 'Profile picture updated successfully',
       });
 
-      // Reload page to update navbar
-      setTimeout(() => {
+      setPictureLoading(false);
         window.location.reload();
       }, 1000);
 
