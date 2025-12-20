@@ -1028,7 +1028,7 @@ async def resend_verification_by_email(request: Request, email_data: dict):
         verification_link = f"{origin}/verify-email?token={new_token}&email={email}"
         
         # Send verification email
-        email_result = await email_service.send_verification_email(
+        await email_service.send_verification_email(
             recipient_email=email,
             verification_link=verification_link,
             user_name=db_user.get('name'),
