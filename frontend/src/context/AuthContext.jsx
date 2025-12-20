@@ -73,6 +73,24 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const refreshUser = async () => {
+    try {
+      const token = localStorage.getItem('session_token');
+      const response = await axios.get(`${API}/auth/user`, {
+        withCredentials: true,
+        headers: {
+          ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
+        }
+      });
+      console.log('[Auth] User data refreshed');
+      setUser(response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[Auth] Failed to refresh user data:', error);
+      throw error;
+    }
+  };
+
   const loginWithGoogle = () => {
     // Open Google OAuth in a popup window
     const width = 500;
