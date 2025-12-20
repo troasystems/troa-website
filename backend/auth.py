@@ -567,13 +567,23 @@ async def login_with_email(credentials: EmailPasswordLogin):
             {'$set': {'last_login': datetime.utcnow()}}
         )
         
+        # Determine user role - super admin always gets admin, others use database role
+        user_role = 'admin' if user['email'] == SUPER_ADMIN_EMAIL else user.get('role', 'user')
+        
+        # If user is super admin but database doesn't have admin role, update it
+        if user['email'] == SUPER_ADMIN_EMAIL and user.get('role') != 'admin':
+            await db.users.update_one(
+                {'email': credentials.email},
+                {'$set': {'role': 'admin', 'is_admin': True}}
+            )
+        
         # Create session
         user_data = {
             'email': user['email'],
             'name': user['name'],
             'picture': user.get('picture', ''),
-            'role': user.get('role', 'user'),
-            'is_admin': user.get('role') == 'admin'
+            'role': user_role,
+            'is_admin': user_role == 'admin'
         }
         
         session_token = await create_session(user_data)
