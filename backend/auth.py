@@ -468,7 +468,7 @@ class EmailPasswordRegister(BaseModel):
     email: EmailStr
     password: str
     name: str
-    villa_number: Optional[str] = None
+    villa_number: str  # Required field
 
 class EmailPasswordLogin(BaseModel):
     email: EmailStr
