@@ -78,6 +78,9 @@ class User(BaseModel):
     role: str = "user"  # admin, manager, user
     is_admin: bool = False  # Deprecated - use role instead
     villa_number: str = ""  # Villa/Unit number - required for email signups
+    email_verified: bool = False  # Email verification status
+    verification_token: Optional[str] = None  # One-time verification token
+    verification_expires_at: Optional[datetime] = None  # Token expiry (2 weeks)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     last_login: Optional[datetime] = Field(default_factory=datetime.utcnow)
 
