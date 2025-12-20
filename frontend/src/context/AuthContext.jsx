@@ -73,8 +73,87 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = () => {
-    window.location.href = `${API}/auth/google/login`;
+  const loginWithGoogle = () => {
+    // Open Google OAuth in a popup window
+    const width = 500;
+    const height = 600;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+    
+    const popup = window.open(
+      `${API}/auth/google/login`,
+      'Google Login',
+      `width=${width},height=${height},left=${left},top=${top}`
+    );
+
+    // Listen for messages from the popup
+    const handleMessage = async (event) => {
+      // Verify the origin
+      if (event.origin !== window.location.origin && event.origin !== BACKEND_URL) {
+        return;
+      }
+
+      if (event.data.type === 'oauth_success' && event.data.token) {
+        console.log('[Auth] OAuth success, storing token');
+        localStorage.setItem('session_token', event.data.token);
+        
+        // Close popup
+        if (popup) {
+          popup.close();
+        }
+        
+        // Check auth to update user state
+        await checkAuth();
+        
+        // Remove event listener
+        window.removeEventListener('message', handleMessage);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    // Check if popup was blocked
+    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+      alert('Popup blocked! Please allow popups for this website.');
+      window.removeEventListener('message', handleMessage);
+    }
+  };
+
+  const loginWithEmail = async (email, password) => {
+    try {
+      const response = await axios.post(`${API}/auth/login`, {
+        email,
+        password
+      });
+
+      if (response.data.token) {
+        localStorage.setItem('session_token', response.data.token);
+        setUser(response.data.user);
+        console.log('[Auth] Email login successful');
+      }
+    } catch (error) {
+      console.error('[Auth] Email login failed:', error.response?.data);
+      throw error;
+    }
+  };
+
+  const registerWithEmail = async (email, password, name) => {
+    try {
+      const response = await axios.post(`${API}/auth/register`, {
+        email,
+        password,
+        name
+      });
+
+      if (response.data.token) {
+        localStorage.setItem('session_token', response.data.token);
+        setUser(response.data.user);
+        console.log('[Auth] Registration successful');
+      }
+    } catch (error) {
+      console.error('[Auth] Registration failed:', error.response?.data);
+      throw error;
+    }
   };
 
   const logout = async () => {
@@ -96,7 +175,9 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     loading,
-    login,
+    loginWithGoogle,
+    loginWithEmail,
+    registerWithEmail,
     logout,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
