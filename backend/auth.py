@@ -586,7 +586,8 @@ async def login_with_email(credentials: EmailPasswordLogin):
             'name': user['name'],
             'picture': user.get('picture', ''),
             'role': user_role,
-            'is_admin': user_role == 'admin'
+            'is_admin': user_role == 'admin',
+            'villa_number': user.get('villa_number')
         }
         
         session_token = await create_session(user_data)
