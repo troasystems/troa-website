@@ -1,7 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogIn, Mail, Lock, User, Eye, EyeOff, Home, Camera } from 'lucide-react';
+import { LogIn, Mail, Lock, User, Eye, EyeOff, Home, Camera, AlertTriangle, RefreshCw } from 'lucide-react';
+import axios from 'axios';
+
+const getBackendUrl = () => {
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return window.location.origin;
+  }
+  return process.env.REACT_APP_BACKEND_URL || '';
+};
+
+const API = `${getBackendUrl()}/api`;
 
 const Login = () => {
   const { loginWithGoogle, loginWithEmail, registerWithEmail, isAuthenticated, loading } = useAuth();
@@ -19,6 +29,9 @@ const Login = () => {
   const [picturePreview, setPicturePreview] = useState('');
   const [formLoading, setFormLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showVerificationExpired, setShowVerificationExpired] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
 
   useEffect(() => {
     if (isAuthenticated) {
