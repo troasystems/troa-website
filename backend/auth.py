@@ -457,6 +457,11 @@ async def get_user(request: Request):
         mongo_client.close()
         
         if db_user:
+            # Format verification_expires_at
+            verification_expires_at = db_user.get('verification_expires_at')
+            if verification_expires_at and isinstance(verification_expires_at, datetime):
+                verification_expires_at = verification_expires_at.isoformat()
+            
             # Return fresh data from database with session role info
             return {
                 'email': db_user.get('email'),
@@ -464,7 +469,10 @@ async def get_user(request: Request):
                 'picture': db_user.get('picture', ''),
                 'role': user.get('role', 'user'),  # Keep role from session for consistency
                 'is_admin': user.get('role') == 'admin',
-                'villa_number': db_user.get('villa_number')
+                'villa_number': db_user.get('villa_number'),
+                'email_verified': db_user.get('email_verified', False),
+                'verification_expires_at': verification_expires_at,
+                'provider': db_user.get('provider', 'email')
             }
         
         return user
