@@ -237,7 +237,7 @@ const UserManagement = () => {
             <h3 className="text-xl font-semibold text-gray-900">Add New User to Whitelist</h3>
           </div>
           <p className="text-gray-600 mb-4 text-sm">
-            Pre-authorize users by adding their email before they log in. When they sign in with Google using this email, they'll automatically have the assigned role.
+            Pre-authorize users by adding their email before they log in. When they sign in with Google using this email, they&apos;ll automatically have the assigned role.
           </p>
           <form onSubmit={handleAddNewUser} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
