@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 import Navbar from './components/Navbar';
 import FeedbackBanner from './components/FeedbackBanner';
+import EmailVerificationBanner from './components/EmailVerificationBanner';
 import Footer from './components/Footer';
 import Chatbot from './components/Chatbot';
 import Home from './pages/Home';
@@ -21,6 +22,7 @@ import MyBookings from './pages/MyBookings';
 import Events from './pages/Events';
 import MyEvents from './pages/MyEvents';
 import ProfileSettings from './pages/ProfileSettings';
+import VerifyEmail from './pages/VerifyEmail';
 
 function App() {
   return (
@@ -30,6 +32,7 @@ function App() {
           <ScrollToTop />
           <Navbar />
           <FeedbackBanner />
+          <EmailVerificationBanner />
           <div className="pt-12">
             <Routes>
               <Route path="/" element={<Home />} />
@@ -46,6 +49,7 @@ function App() {
               <Route path="/my-events" element={<MyEvents />} />
               <Route path="/profile" element={<ProfileSettings />} />
               <Route path="/admin" element={<AdminPortal />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
             </Routes>
           </div>
           <Footer />
