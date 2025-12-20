@@ -488,6 +488,10 @@ async def logout(request: Request):
 # Email/Password Authentication Routes
 from pydantic import BaseModel, EmailStr
 import bcrypt
+from email_service import email_service
+
+# Verification token expiry in days
+VERIFICATION_EXPIRY_DAYS = 14
 
 class EmailPasswordRegister(BaseModel):
     email: EmailStr
@@ -500,8 +504,12 @@ class EmailPasswordLogin(BaseModel):
     email: EmailStr
     password: str
 
+class VerifyEmailRequest(BaseModel):
+    token: str
+    email: Optional[str] = None
+
 @auth_router.post('/register')
-async def register_with_email(credentials: EmailPasswordRegister):
+async def register_with_email(credentials: EmailPasswordRegister, request: Request):
     """Register a new user with email and password"""
     try:
         # Get database
@@ -521,6 +529,10 @@ async def register_with_email(credentials: EmailPasswordRegister):
         # Determine user role - super admin gets admin role, others get user role
         user_role = 'admin' if credentials.email == SUPER_ADMIN_EMAIL else 'user'
         
+        # Generate verification token and expiry
+        verification_token = secrets.token_urlsafe(32)
+        verification_expires_at = datetime.utcnow() + timedelta(days=VERIFICATION_EXPIRY_DAYS)
+        
         # Create new user
         user_obj = User(
             email=credentials.email,
@@ -529,7 +541,10 @@ async def register_with_email(credentials: EmailPasswordRegister):
             provider='email',
             role=user_role,
             is_admin=user_role == 'admin',
-            villa_number=credentials.villa_number
+            villa_number=credentials.villa_number,
+            email_verified=False,
+            verification_token=verification_token,
+            verification_expires_at=verification_expires_at
         )
         
         user_dict = user_obj.dict()
@@ -538,6 +553,34 @@ async def register_with_email(credentials: EmailPasswordRegister):
         await db.users.insert_one(user_dict)
         logger.info(f"New user registered: {credentials.email} with role: {user_role}, villa: {credentials.villa_number}")
         
+        # Send verification email
+        # Determine the frontend URL for the verification link
+        origin = None
+        referer = request.headers.get('referer')
+        if referer:
+            from urllib.parse import urlparse
+            parsed = urlparse(referer)
+            if parsed.scheme and parsed.netloc:
+                origin = f"{parsed.scheme}://{parsed.netloc}"
+        
+        if not origin:
+            origin = os.getenv('REACT_APP_BACKEND_URL', 'https://villa-manager-13.preview.emergentagent.com')
+        
+        verification_link = f"{origin}/verify-email?token={verification_token}&email={credentials.email}"
+        
+        # Send email asynchronously (don't block registration)
+        try:
+            email_result = await email_service.send_verification_email(
+                recipient_email=credentials.email,
+                verification_link=verification_link,
+                user_name=credentials.name,
+                expiry_days=VERIFICATION_EXPIRY_DAYS
+            )
+            logger.info(f"Verification email sent to {credentials.email}: {email_result}")
+        except Exception as email_error:
+            logger.error(f"Failed to send verification email: {email_error}")
+            # Continue with registration even if email fails
+        
         # Create session
         user_data = {
             'email': credentials.email,
@@ -545,7 +588,9 @@ async def register_with_email(credentials: EmailPasswordRegister):
             'picture': credentials.picture or '',
             'role': user_role,
             'is_admin': user_role == 'admin',
-            'villa_number': credentials.villa_number
+            'villa_number': credentials.villa_number,
+            'email_verified': False,
+            'verification_expires_at': verification_expires_at.isoformat()
         }
         
         session_token = await create_session(user_data)
@@ -553,7 +598,7 @@ async def register_with_email(credentials: EmailPasswordRegister):
         mongo_client.close()
         
         return {
-            'message': 'Registration successful',
+            'message': 'Registration successful. Please check your email to verify your account.',
             'token': session_token,
             'user': user_data
         }
