@@ -312,7 +312,8 @@ const Login = () => {
                 onClick={() => {
                   setIsSignUp(!isSignUp);
                   setError('');
-                  setFormData({ email: '', password: '', name: '', villa_number: '' });
+                  setFormData({ email: '', password: '', name: '', villa_number: '', picture: '' });
+                  setPicturePreview('');
                 }}
                 className="text-sm text-purple-600 hover:text-purple-700 font-medium"
               >
