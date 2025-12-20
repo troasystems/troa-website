@@ -34,6 +34,33 @@ const Login = () => {
     setError('');
   };
 
+  const handlePictureUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file size (max 1MB)
+      if (file.size > 1 * 1024 * 1024) {
+        setError('Image size should be less than 1MB');
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please upload an image file');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPicturePreview(reader.result);
+        setFormData({
+          ...formData,
+          picture: reader.result
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleEmailPasswordSubmit = async (e) => {
     e.preventDefault();
     setError('');
