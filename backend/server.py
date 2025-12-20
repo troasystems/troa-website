@@ -596,6 +596,38 @@ async def create_booking(booking: AmenityBookingCreate, request: Request):
         
         await db.bookings.insert_one(booking_obj.dict())
         logger.info(f"Booking created by {user['email']} for {booking.amenity_name}")
+        
+        # Send booking confirmation email to user
+        try:
+            await email_service.send_booking_confirmation(
+                recipient_email=user['email'],
+                user_name=user['name'],
+                amenity_name=booking.amenity_name,
+                booking_date=booking.booking_date,
+                start_time=booking.start_time,
+                end_time=end_time,
+                booking_id=booking_obj.id,
+                additional_guests=booking.additional_guests
+            )
+        except Exception as email_error:
+            logger.error(f"Failed to send booking confirmation email: {email_error}")
+        
+        # Send notification to admins/managers
+        try:
+            admin_emails = await get_admin_manager_emails()
+            await email_service.send_booking_notification_to_admins(
+                action='created',
+                user_name=user['name'],
+                user_email=user['email'],
+                amenity_name=booking.amenity_name,
+                booking_date=booking.booking_date,
+                start_time=booking.start_time,
+                end_time=end_time,
+                admin_emails=admin_emails
+            )
+        except Exception as email_error:
+            logger.error(f"Failed to send admin booking notification: {email_error}")
+        
         return booking_obj
     except HTTPException:
         raise
