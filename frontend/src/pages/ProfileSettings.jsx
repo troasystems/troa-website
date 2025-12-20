@@ -145,10 +145,6 @@ const ProfileSettings = () => {
       });
 
       setPictureLoading(false);
-        window.location.reload();
-      }, 1000);
-
-      setPictureLoading(false);
     } catch (error) {
       toast({
         title: 'Error',
