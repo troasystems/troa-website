@@ -74,9 +74,10 @@ class User(BaseModel):
     email: EmailStr
     name: str
     picture: Optional[str] = None
-    provider: str = "google"  # google, facebook
+    provider: str = "google"  # google, facebook, email
     role: str = "user"  # admin, manager, user
     is_admin: bool = False  # Deprecated - use role instead
+    villa_number: Optional[str] = None  # Villa/Unit number for audit purposes
     created_at: datetime = Field(default_factory=datetime.utcnow)
     last_login: Optional[datetime] = Field(default_factory=datetime.utcnow)
 
@@ -86,6 +87,7 @@ class UserCreate(BaseModel):
     picture: Optional[str] = None
     provider: str = "whitelist"
     role: str = "user"  # admin, manager, user
+    villa_number: Optional[str] = None
 
 class UserUpdate(BaseModel):
     role: str  # admin, manager, user
