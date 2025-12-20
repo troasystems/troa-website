@@ -107,6 +107,13 @@ class EmailService:
                 f"{error_code} - {error_message}"
             )
             
+            # Check if it's a sandbox mode issue
+            if 'not verified' in error_message.lower():
+                logger.warning(
+                    f"AWS SES Sandbox Mode: Cannot send to {recipient_email}. "
+                    "Request production access in AWS SES console to send to any email."
+                )
+            
             return {
                 'status': 'error',
                 'message': f"Email sending failed: {error_message}"
