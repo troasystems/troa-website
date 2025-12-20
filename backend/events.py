@@ -291,6 +291,27 @@ async def complete_registration_payment(registration_id: str, payment_id: str, r
         )
         
         logger.info(f"Payment completed - Registration: {registration_id}, Modified count: {result.modified_count}")
+        
+        # Send email notification for payment completion
+        try:
+            # Get event details
+            event = await db.events.find_one({"id": registration.get("event_id")}, {"_id": 0})
+            if event:
+                admin_emails = await get_admin_manager_emails()
+                await email_service.send_event_notification_to_admins(
+                    action='payment_completed',
+                    user_name=user['name'],
+                    user_email=user['email'],
+                    event_name=registration.get('event_name', event.get('name', 'Unknown')),
+                    event_date=event.get('event_date', 'TBD'),
+                    registrants_count=len(registration.get('registrants', [])),
+                    total_amount=registration.get('total_amount', 0),
+                    payment_method='online',
+                    admin_emails=admin_emails
+                )
+        except Exception as email_error:
+            logger.error(f"Failed to send payment completion email: {email_error}")
+        
         return {"message": "Payment completed successfully", "registration_id": registration_id}
     except HTTPException:
         raise
