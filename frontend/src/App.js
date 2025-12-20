@@ -39,7 +39,6 @@ function App() {
               <Route path="/gallery" element={<Gallery />} />
               <Route path="/help-desk" element={<HelpDesk />} />
               <Route path="/contact" element={<Contact />} />
-              <Route path="/login-info" element={<LoginInfo />} />
               <Route path="/login" element={<Login />} />
               <Route path="/feedback" element={<Feedback />} />
               <Route path="/my-bookings" element={<MyBookings />} />
