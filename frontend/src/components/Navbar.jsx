@@ -252,6 +252,13 @@ const Navbar = () => {
                     {isAdmin ? 'Admin Portal' : 'Manager Portal'}
                   </Link>
                 )}
+                <Link
+                  to="/profile"
+                  onClick={() => setIsOpen(false)}
+                  className="block px-3 py-2 rounded-lg font-medium text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Profile Settings
+                </Link>
                 <button
                   onClick={() => {
                     setIsOpen(false);
