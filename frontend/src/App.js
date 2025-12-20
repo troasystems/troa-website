@@ -21,6 +21,7 @@ import Feedback from './pages/Feedback';
 import MyBookings from './pages/MyBookings';
 import Events from './pages/Events';
 import MyEvents from './pages/MyEvents';
+import ProfileSettings from './pages/ProfileSettings';
 
 function App() {
   return (
