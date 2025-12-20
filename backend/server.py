@@ -694,6 +694,35 @@ async def cancel_booking(booking_id: str, request: Request):
             {"$set": {"status": "cancelled", "updated_at": datetime.utcnow()}}
         )
         
+        # Send cancellation email to user
+        try:
+            await email_service.send_booking_cancellation(
+                recipient_email=user['email'],
+                user_name=user['name'],
+                amenity_name=booking['amenity_name'],
+                booking_date=booking['booking_date'],
+                start_time=booking['start_time'],
+                end_time=booking['end_time']
+            )
+        except Exception as email_error:
+            logger.error(f"Failed to send cancellation email: {email_error}")
+        
+        # Send notification to admins/managers
+        try:
+            admin_emails = await get_admin_manager_emails()
+            await email_service.send_booking_notification_to_admins(
+                action='cancelled',
+                user_name=user['name'],
+                user_email=user['email'],
+                amenity_name=booking['amenity_name'],
+                booking_date=booking['booking_date'],
+                start_time=booking['start_time'],
+                end_time=booking['end_time'],
+                admin_emails=admin_emails
+            )
+        except Exception as email_error:
+            logger.error(f"Failed to send admin cancellation notification: {email_error}")
+        
         return {"message": "Booking cancelled successfully"}
     except HTTPException:
         raise
