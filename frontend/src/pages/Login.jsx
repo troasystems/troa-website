@@ -252,7 +252,7 @@ const Login = () => {
                 onClick={() => {
                   setIsSignUp(!isSignUp);
                   setError('');
-                  setFormData({ email: '', password: '', name: '' });
+                  setFormData({ email: '', password: '', name: '', villa_number: '' });
                 }}
                 className="text-sm text-purple-600 hover:text-purple-700 font-medium"
               >
