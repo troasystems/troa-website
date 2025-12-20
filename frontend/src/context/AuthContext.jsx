@@ -199,6 +199,7 @@ export const AuthProvider = ({ children }) => {
     loginWithEmail,
     registerWithEmail,
     logout,
+    refreshUser,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     isManager: user?.role === 'manager',
