@@ -815,6 +815,23 @@ async def modify_registration(registration_id: str, request: Request):
                 }
             )
             
+            # Send modification notification to admins
+            try:
+                admin_emails = await get_admin_manager_emails()
+                await email_service.send_event_notification_to_admins(
+                    action='modified',
+                    user_name=user['name'],
+                    user_email=user['email'],
+                    event_name=registration.get('event_name', event.get('name', 'Event')),
+                    event_date=event.get('event_date', 'TBD'),
+                    registrants_count=new_count,
+                    total_amount=new_total,
+                    payment_method=payment_method,
+                    admin_emails=admin_emails
+                )
+            except Exception as email_error:
+                logger.error(f"Failed to send modification notification: {email_error}")
+            
             return {
                 "message": "Modification pending payment",
                 "additional_amount": difference,
@@ -855,6 +872,23 @@ async def modify_registration(registration_id: str, request: Request):
                     }
                 }
             )
+            
+            # Send modification notification to admins
+            try:
+                admin_emails = await get_admin_manager_emails()
+                await email_service.send_event_notification_to_admins(
+                    action='modified',
+                    user_name=user['name'],
+                    user_email=user['email'],
+                    event_name=registration.get('event_name', event.get('name', 'Event')),
+                    event_date=event.get('event_date', 'TBD'),
+                    registrants_count=new_count,
+                    total_amount=new_total,
+                    payment_method=registration.get('payment_method', 'unknown'),
+                    admin_emails=admin_emails
+                )
+            except Exception as email_error:
+                logger.error(f"Failed to send modification notification: {email_error}")
             
             return {
                 "message": "Registration updated successfully",
