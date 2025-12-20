@@ -137,13 +137,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const registerWithEmail = async (email, password, name, villa_number = null) => {
+  const registerWithEmail = async (email, password, name, villa_number = null, picture = null) => {
     try {
       const response = await axios.post(`${API}/auth/register`, {
         email,
         password,
         name,
-        villa_number
+        villa_number,
+        picture
       });
 
       if (response.data.token) {
