@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 import secrets
 
 # Get backend URL from environment
-BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://troa-residence.preview.emergentagent.com')
+BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://villa-manager-13.preview.emergentagent.com')
 API_BASE_URL = f"{BACKEND_URL}/api"
 
 # Authentication credentials
