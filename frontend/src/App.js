@@ -15,7 +15,6 @@ import Gallery from './pages/Gallery';
 import Contact from './pages/Contact';
 import HelpDesk from './pages/HelpDesk';
 import Login from './pages/Login';
-import LoginInfo from './pages/LoginInfo';
 import AdminPortal from './pages/AdminPortal';
 import Feedback from './pages/Feedback';
 import MyBookings from './pages/MyBookings';
