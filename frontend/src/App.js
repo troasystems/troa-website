@@ -46,6 +46,7 @@ function App() {
               <Route path="/my-bookings" element={<MyBookings />} />
               <Route path="/events" element={<Events />} />
               <Route path="/my-events" element={<MyEvents />} />
+              <Route path="/profile" element={<ProfileSettings />} />
               <Route path="/admin" element={<AdminPortal />} />
             </Routes>
           </div>
