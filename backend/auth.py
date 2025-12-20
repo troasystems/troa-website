@@ -500,7 +500,7 @@ async def register_with_email(credentials: EmailPasswordRegister):
         user_obj = User(
             email=credentials.email,
             name=credentials.name,
-            picture='',
+            picture=credentials.picture or '',
             provider='email',
             role=user_role,
             is_admin=user_role == 'admin',
