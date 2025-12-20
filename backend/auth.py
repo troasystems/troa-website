@@ -576,7 +576,7 @@ async def register_with_email(credentials: EmailPasswordRegister, request: Reque
         
         verification_link = f"{origin}/verify-email?token={verification_token}&email={credentials.email}"
         
-        # Send email asynchronously (don't block registration)
+        # Send verification email
         try:
             email_result = await email_service.send_verification_email(
                 recipient_email=credentials.email,
@@ -587,7 +587,16 @@ async def register_with_email(credentials: EmailPasswordRegister, request: Reque
             logger.info(f"Verification email sent to {credentials.email}: {email_result}")
         except Exception as email_error:
             logger.error(f"Failed to send verification email: {email_error}")
-            # Continue with registration even if email fails
+        
+        # Send welcome email
+        try:
+            await email_service.send_welcome_email(
+                recipient_email=credentials.email,
+                user_name=credentials.name
+            )
+            logger.info(f"Welcome email sent to {credentials.email}")
+        except Exception as email_error:
+            logger.error(f"Failed to send welcome email: {email_error}")
         
         # Create session
         user_data = {
