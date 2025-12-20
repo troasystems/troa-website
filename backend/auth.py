@@ -491,29 +491,32 @@ async def register_with_email(credentials: EmailPasswordRegister):
         # Hash password
         password_hash = bcrypt.hashpw(credentials.password.encode('utf-8'), bcrypt.gensalt())
         
-        # Create new user with default 'user' role
+        # Determine user role - super admin gets admin role, others get user role
+        user_role = 'admin' if credentials.email == SUPER_ADMIN_EMAIL else 'user'
+        
+        # Create new user
         user_obj = User(
             email=credentials.email,
             name=credentials.name,
             picture='',
             provider='email',
-            role='user',
-            is_admin=False
+            role=user_role,
+            is_admin=user_role == 'admin'
         )
         
         user_dict = user_obj.dict()
         user_dict['password_hash'] = password_hash.decode('utf-8')  # Store as string
         
         await db.users.insert_one(user_dict)
-        logger.info(f"New user registered: {credentials.email}")
+        logger.info(f"New user registered: {credentials.email} with role: {user_role}")
         
         # Create session
         user_data = {
             'email': credentials.email,
             'name': credentials.name,
             'picture': '',
-            'role': 'user',
-            'is_admin': False
+            'role': user_role,
+            'is_admin': user_role == 'admin'
         }
         
         session_token = await create_session(user_data)
