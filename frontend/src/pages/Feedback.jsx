@@ -22,7 +22,7 @@ const Feedback = () => {
 
   React.useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      navigate('/login-info');
+      navigate('/login');
       toast({
         title: 'Authentication Required',
         description: 'Please login to submit feedback',

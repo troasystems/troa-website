@@ -91,7 +91,7 @@ const Home = () => {
                   <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
                 </Link>
                 <Link
-                  to="/login-info"
+                  to="/login"
                   className="px-6 md:px-8 py-3 md:py-4 bg-white/20 backdrop-blur-sm rounded-full font-semibold text-sm md:text-lg hover:bg-white/30 transform transition-all duration-300 border-2 border-white/50 flex items-center justify-center space-x-2"
                 >
                   <span>Already a Resident? Login</span>
@@ -256,7 +256,7 @@ const Home = () => {
                   <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
                 </Link>
                 <Link
-                  to="/login-info"
+                  to="/login"
                   className="inline-flex items-center justify-center space-x-2 px-6 md:px-8 py-3 md:py-4 bg-white border-2 border-purple-600 text-purple-600 rounded-full font-semibold text-sm md:text-lg hover:bg-purple-50 transform transition-all duration-300"
                 >
                   <span>Login as Resident</span>

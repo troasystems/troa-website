@@ -76,7 +76,7 @@ const Footer = () => {
               </li>
               {!isAuthenticated && (
                 <li>
-                  <Link to="/login-info" className="text-gray-300 hover:text-purple-400 transition-colors text-xs md:text-sm">
+                  <Link to="/login" className="text-gray-300 hover:text-purple-400 transition-colors text-xs md:text-sm">
                     Login
                   </Link>
                 </li>

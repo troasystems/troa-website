@@ -250,7 +250,7 @@ const Contact = () => {
                           If you are already a resident, you don&apos;t need to apply for membership. Simply login with your registered email.
                         </p>
                         <Link
-                          to="/login-info"
+                          to="/login"
                           className="inline-flex items-center space-x-1 md:space-x-2 px-3 py-1.5 md:px-4 md:py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-xs md:text-sm"
                         >
                           <LogIn className="w-3 h-3 md:w-4 md:h-4" />

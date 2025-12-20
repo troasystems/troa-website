@@ -188,7 +188,7 @@ const Events = () => {
 
   const handleRegister = async () => {
     if (!user) {
-      navigate('/login-info');
+      navigate('/login');
       return;
     }
     
@@ -578,7 +578,7 @@ const Events = () => {
                             <button
                               onClick={() => {
                                 if (!user) {
-                                  navigate('/login-info');
+                                  navigate('/login');
                                   return;
                                 }
                                 setSelectedEvent(event);

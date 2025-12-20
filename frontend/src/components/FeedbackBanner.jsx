@@ -9,7 +9,7 @@ const FeedbackBanner = () => {
   const [isVisible, setIsVisible] = React.useState(true);
 
   // Don't show on login pages or feedback page itself
-  if (!isVisible || location.pathname === '/feedback' || location.pathname === '/login' || location.pathname === '/login-info') {
+  if (!isVisible || location.pathname === '/feedback' || location.pathname === '/login' || location.pathname === '/login') {
     return null;
   }
 
@@ -34,7 +34,7 @@ const FeedbackBanner = () => {
               </Link>
             ) : (
               <Link
-                to="/login-info"
+                to="/login"
                 className="px-4 py-2 bg-white text-pink-600 rounded-lg font-semibold hover:bg-pink-50 transition-all duration-300 hover:scale-105 whitespace-nowrap text-sm"
               >
                 Login to Give Feedback
@@ -69,7 +69,7 @@ const FeedbackBanner = () => {
               </Link>
             ) : (
               <Link
-                to="/login-info"
+                to="/login"
                 className="px-3 py-1.5 bg-white text-pink-600 rounded-lg font-semibold text-xs whitespace-nowrap"
               >
                 Login

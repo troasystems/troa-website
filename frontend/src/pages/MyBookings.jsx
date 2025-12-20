@@ -18,7 +18,7 @@ const MyBookings = () => {
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      navigate('/login-info');
+      navigate('/login');
       toast({
         title: 'Authentication Required',
         description: 'Please login to view your bookings',

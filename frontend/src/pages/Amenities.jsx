@@ -395,7 +395,7 @@ const Amenities = () => {
                             </button>
                           ) : (
                             <button
-                              onClick={() => navigate('/login-info')}
+                              onClick={() => navigate('/login')}
                               className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-300"
                             >
                               <LogIn className="w-5 h-5" />

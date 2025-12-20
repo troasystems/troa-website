@@ -45,7 +45,7 @@ const MyEvents = () => {
 
   useEffect(() => {
     if (!user) {
-      navigate('/login-info');
+      navigate('/login');
       return;
     }
     fetchRegistrations();
