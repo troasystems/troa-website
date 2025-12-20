@@ -502,14 +502,15 @@ async def register_with_email(credentials: EmailPasswordRegister):
             picture='',
             provider='email',
             role=user_role,
-            is_admin=user_role == 'admin'
+            is_admin=user_role == 'admin',
+            villa_number=credentials.villa_number
         )
         
         user_dict = user_obj.dict()
         user_dict['password_hash'] = password_hash.decode('utf-8')  # Store as string
         
         await db.users.insert_one(user_dict)
-        logger.info(f"New user registered: {credentials.email} with role: {user_role}")
+        logger.info(f"New user registered: {credentials.email} with role: {user_role}, villa: {credentials.villa_number}")
         
         # Create session
         user_data = {
@@ -517,7 +518,8 @@ async def register_with_email(credentials: EmailPasswordRegister):
             'name': credentials.name,
             'picture': '',
             'role': user_role,
-            'is_admin': user_role == 'admin'
+            'is_admin': user_role == 'admin',
+            'villa_number': credentials.villa_number
         }
         
         session_token = await create_session(user_data)
