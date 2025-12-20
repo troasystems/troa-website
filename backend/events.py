@@ -431,6 +431,9 @@ async def withdraw_from_event(registration_id: str, request: Request):
         if not registration:
             raise HTTPException(status_code=404, detail="Registration not found or already withdrawn")
         
+        # Get event details for email
+        event = await db.events.find_one({"id": registration["event_id"]}, {"_id": 0})
+        
         await db.event_registrations.update_one(
             {"id": registration_id},
             {"$set": {
@@ -438,6 +441,34 @@ async def withdraw_from_event(registration_id: str, request: Request):
                 "updated_at": datetime.utcnow()
             }}
         )
+        
+        # Send withdrawal email to user
+        try:
+            await email_service.send_event_withdrawal(
+                recipient_email=user['email'],
+                user_name=user['name'],
+                event_name=registration.get('event_name', 'Event'),
+                event_date=event.get('event_date', 'TBD') if event else 'TBD'
+            )
+        except Exception as email_error:
+            logger.error(f"Failed to send withdrawal email: {email_error}")
+        
+        # Send notification to admins/managers
+        try:
+            admin_emails = await get_admin_manager_emails()
+            await email_service.send_event_notification_to_admins(
+                action='withdrawn',
+                user_name=user['name'],
+                user_email=user['email'],
+                event_name=registration.get('event_name', 'Event'),
+                event_date=event.get('event_date', 'TBD') if event else 'TBD',
+                registrants_count=len(registration.get('registrants', [])),
+                total_amount=registration.get('total_amount', 0),
+                payment_method=registration.get('payment_method', 'unknown'),
+                admin_emails=admin_emails
+            )
+        except Exception as email_error:
+            logger.error(f"Failed to send admin withdrawal notification: {email_error}")
         
         return {
             "message": "Successfully withdrawn from event",
