@@ -397,7 +397,6 @@ Visit our website: {self.frontend_url}
         registration_id: str
     ) -> dict:
         """Send event registration confirmation"""
-        status_color = "#22c55e" if payment_status == "completed" else "#f59e0b"
         status_text = "Payment Completed" if payment_status == "completed" else "Payment Pending Approval"
         status_emoji = "✅" if payment_status == "completed" else "⏳"
         
