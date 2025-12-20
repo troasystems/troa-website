@@ -412,3 +412,134 @@ async def logout(request: Request):
     response = Response(content='{"message": "Logged out successfully"}')
     response.delete_cookie('session_token')
     return response
+
+
+# Email/Password Authentication Routes
+from pydantic import BaseModel, EmailStr
+import bcrypt
+
+class EmailPasswordRegister(BaseModel):
+    email: EmailStr
+    password: str
+    name: str
+
+class EmailPasswordLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+@auth_router.post('/register')
+async def register_with_email(credentials: EmailPasswordRegister):
+    """Register a new user with email and password"""
+    try:
+        # Get database
+        mongo_url = os.environ['MONGO_URL']
+        mongo_client = AsyncIOMotorClient(mongo_url)
+        db = mongo_client[os.environ['DB_NAME']]
+        
+        # Check if user already exists
+        existing_user = await db.users.find_one({'email': credentials.email}, {'_id': 0})
+        if existing_user:
+            mongo_client.close()
+            raise HTTPException(status_code=400, detail="User with this email already exists")
+        
+        # Hash password
+        password_hash = bcrypt.hashpw(credentials.password.encode('utf-8'), bcrypt.gensalt())
+        
+        # Create new user with default 'user' role
+        user_obj = User(
+            email=credentials.email,
+            name=credentials.name,
+            picture='',
+            provider='email',
+            role='user',
+            is_admin=False
+        )
+        
+        user_dict = user_obj.dict()
+        user_dict['password_hash'] = password_hash.decode('utf-8')  # Store as string
+        
+        await db.users.insert_one(user_dict)
+        logger.info(f"New user registered: {credentials.email}")
+        
+        # Create session
+        user_data = {
+            'email': credentials.email,
+            'name': credentials.name,
+            'picture': '',
+            'role': 'user',
+            'is_admin': False
+        }
+        
+        session_token = await create_session(user_data)
+        
+        mongo_client.close()
+        
+        return {
+            'message': 'Registration successful',
+            'token': session_token,
+            'user': user_data
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Registration failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
+
+@auth_router.post('/login')
+async def login_with_email(credentials: EmailPasswordLogin):
+    """Login with email and password"""
+    try:
+        # Get database
+        mongo_url = os.environ['MONGO_URL']
+        mongo_client = AsyncIOMotorClient(mongo_url)
+        db = mongo_client[os.environ['DB_NAME']]
+        
+        # Find user
+        user = await db.users.find_one({'email': credentials.email}, {'_id': 0})
+        if not user:
+            mongo_client.close()
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        # Check if user registered with email/password
+        if user.get('provider') != 'email':
+            mongo_client.close()
+            raise HTTPException(status_code=400, detail="This email is registered with Google. Please use Google login.")
+        
+        # Verify password
+        password_hash = user.get('password_hash', '')
+        if not password_hash or not bcrypt.checkpw(credentials.password.encode('utf-8'), password_hash.encode('utf-8')):
+            mongo_client.close()
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        # Update last login
+        await db.users.update_one(
+            {'email': credentials.email},
+            {'$set': {'last_login': datetime.utcnow()}}
+        )
+        
+        # Create session
+        user_data = {
+            'email': user['email'],
+            'name': user['name'],
+            'picture': user.get('picture', ''),
+            'role': user.get('role', 'user'),
+            'is_admin': user.get('role') == 'admin'
+        }
+        
+        session_token = await create_session(user_data)
+        logger.info(f"User logged in: {credentials.email}")
+        
+        mongo_client.close()
+        
+        return {
+            'message': 'Login successful',
+            'token': session_token,
+            'user': user_data
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Login failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
