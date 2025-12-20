@@ -517,7 +517,7 @@ async def register_with_email(credentials: EmailPasswordRegister):
         user_data = {
             'email': credentials.email,
             'name': credentials.name,
-            'picture': '',
+            'picture': credentials.picture or '',
             'role': user_role,
             'is_admin': user_role == 'admin',
             'villa_number': credentials.villa_number
