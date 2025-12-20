@@ -346,6 +346,11 @@ const UserManagement = () => {
                   <div>
                     <p className="font-semibold text-gray-900">{user.name}</p>
                     <p className="text-sm text-gray-600">{user.email}</p>
+                    {user.villa_number && (
+                      <p className="text-xs text-purple-600 mt-1">
+                        🏠 Villa: {user.villa_number}
+                      </p>
+                    )}
                   </div>
                 </div>
                 {editingUserId === user.id ? (
@@ -417,6 +422,11 @@ const UserManagement = () => {
                   <div>
                     <p className="font-semibold text-gray-900">{user.name}</p>
                     <p className="text-sm text-gray-600">{user.email}</p>
+                    {user.villa_number && (
+                      <p className="text-xs text-purple-600 mt-1">
+                        🏠 Villa: {user.villa_number}
+                      </p>
+                    )}
                   </div>
                 </div>
                 {editingUserId === user.id ? (
@@ -494,6 +504,11 @@ const UserManagement = () => {
                   <div>
                     <p className="font-semibold text-gray-900">{user.name}</p>
                     <p className="text-sm text-gray-600">{user.email}</p>
+                    {user.villa_number && (
+                      <p className="text-xs text-purple-600 mt-1">
+                        🏠 Villa: {user.villa_number}
+                      </p>
+                    )}
                   </div>
                 </div>
                 {editingUserId === user.id ? (
