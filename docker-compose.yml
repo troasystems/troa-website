@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: troa-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - troa-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: troa-backend
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - MONGO_URL=mongodb://mongodb:27017
+      - DB_NAME=troa_db
+      # Add your credentials here or use .env file
+      # - GOOGLE_CLIENT_ID=your_client_id
+      # - GOOGLE_CLIENT_SECRET=your_client_secret
+      # - RAZORPAY_KEY_ID=your_key_id
+      # - RAZORPAY_KEY_SECRET=your_key_secret
+      # - SESSION_SECRET=your_secret_key
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/.env:/app/.env:ro
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - troa-network
+    healthcheck:
+      test: curl -f http://localhost:8001/api/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Use empty string to make API calls relative (through nginx proxy)
+        - REACT_APP_BACKEND_URL=
+    container_name: troa-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - troa-network
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  troa-network:
+    driver: bridge
