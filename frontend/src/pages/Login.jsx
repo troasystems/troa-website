@@ -197,6 +197,36 @@ const Login = () => {
                       />
                     </div>
                   </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Profile Picture <span className="text-gray-500 text-xs">(Optional)</span>
+                    </label>
+                    <div className="flex items-center space-x-4">
+                      {picturePreview && (
+                        <img
+                          src={picturePreview}
+                          alt="Preview"
+                          className="w-16 h-16 rounded-full object-cover border-2 border-purple-300"
+                        />
+                      )}
+                      <label className="cursor-pointer flex-1">
+                        <div className="flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 transition-colors">
+                          <Camera className="h-5 w-5 text-gray-400 mr-2" />
+                          <span className="text-sm text-gray-600">
+                            {picturePreview ? 'Change Picture' : 'Upload Picture'}
+                          </span>
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePictureUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Max size: 1MB. Supports: JPG, PNG, GIF</p>
+                  </div>
                 </>
               )}
 
