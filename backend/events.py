@@ -221,6 +221,39 @@ async def register_for_event(event_id: str, registration_data: EventRegistration
         await db.event_registrations.insert_one(registration.dict())
         logger.info(f"Event registration created: {user['email']} for {event['name']} (payment: {payment_method})")
         
+        # Send email to user
+        try:
+            await email_service.send_event_registration(
+                recipient_email=user['email'],
+                user_name=user['name'],
+                event_name=event['name'],
+                event_date=event['event_date'],
+                event_time=event.get('event_time', 'TBD'),
+                registrants=registrants,
+                total_amount=total_amount,
+                payment_status=payment_status,
+                registration_id=registration.id
+            )
+        except Exception as email_error:
+            logger.error(f"Failed to send event registration email: {email_error}")
+        
+        # Send notification to admins/managers
+        try:
+            admin_emails = await get_admin_manager_emails()
+            await email_service.send_event_notification_to_admins(
+                action='registered',
+                user_name=user['name'],
+                user_email=user['email'],
+                event_name=event['name'],
+                event_date=event['event_date'],
+                registrants_count=len(registrants),
+                total_amount=total_amount,
+                payment_method=payment_method,
+                admin_emails=admin_emails
+            )
+        except Exception as email_error:
+            logger.error(f"Failed to send admin event notification: {email_error}")
+        
         return registration.dict()
     finally:
         client.close()
