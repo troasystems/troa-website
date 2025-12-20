@@ -448,6 +448,22 @@ async def submit_feedback(feedback: FeedbackCreate, request: Request):
         )
         await db.feedback.insert_one(feedback_obj.dict())
         logger.info(f"Feedback submitted by {user['email']}")
+        
+        # Send email notification to admins
+        try:
+            admin_emails = await get_admin_manager_emails()
+            await email_service.send_feedback_notification(
+                user_name=user['name'],
+                user_email=user['email'],
+                rating=feedback.rating,
+                works_well=feedback.works_well,
+                needs_improvement=feedback.needs_improvement,
+                feature_suggestions=feedback.feature_suggestions,
+                admin_emails=admin_emails
+            )
+        except Exception as email_error:
+            logger.error(f"Failed to send feedback notification email: {email_error}")
+        
         return feedback_obj
     except HTTPException:
         raise
