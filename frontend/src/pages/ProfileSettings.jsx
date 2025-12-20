@@ -176,15 +176,13 @@ const ProfileSettings = () => {
       setProfilePicture('');
       setPicturePreview('');
       
+      // Refresh user data to update navbar immediately
+      await refreshUser();
+      
       toast({
         title: 'Success',
         description: 'Profile picture removed',
       });
-
-      // Reload page to update navbar
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
 
       setPictureLoading(false);
     } catch (error) {
