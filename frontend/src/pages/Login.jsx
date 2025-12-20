@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogIn, Mail, Lock, User, Eye, EyeOff, Home } from 'lucide-react';
+import { LogIn, Mail, Lock, User, Eye, EyeOff, Home, Camera } from 'lucide-react';
 
 const Login = () => {
   const { loginWithGoogle, loginWithEmail, registerWithEmail, isAuthenticated, loading } = useAuth();
@@ -13,8 +13,10 @@ const Login = () => {
     email: '',
     password: '',
     name: '',
-    villa_number: ''
+    villa_number: '',
+    picture: ''
   });
+  const [picturePreview, setPicturePreview] = useState('');
   const [formLoading, setFormLoading] = useState(false);
   const [error, setError] = useState('');
 
