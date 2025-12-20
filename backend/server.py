@@ -24,6 +24,7 @@ from gridfs_upload import gridfs_router  # GridFS-based upload for production
 from payment import payment_router
 from chatbot import chatbot_router
 from events import events_router
+from email_service import email_service, get_admin_manager_emails
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
