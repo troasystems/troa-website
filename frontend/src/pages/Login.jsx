@@ -41,7 +41,7 @@ const Login = () => {
       if (isSignUp) {
         // Sign up
         if (!formData.name || !formData.email || !formData.password) {
-          setError('All fields are required');
+          setError('Name, email and password are required');
           setFormLoading(false);
           return;
         }
@@ -50,7 +50,7 @@ const Login = () => {
           setFormLoading(false);
           return;
         }
-        await registerWithEmail(formData.email, formData.password, formData.name);
+        await registerWithEmail(formData.email, formData.password, formData.name, formData.villa_number);
       } else {
         // Sign in
         if (!formData.email || !formData.password) {
