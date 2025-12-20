@@ -442,11 +442,36 @@ async def google_callback(code: str, state: str, request: Request):
 
 @auth_router.get('/user')
 async def get_user(request: Request):
-    """Get current user info"""
+    """Get current user info - fetches fresh data from database"""
     user = await get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    return user
+    
+    # Fetch fresh user data from database to get latest picture, etc.
+    try:
+        mongo_url = os.environ['MONGO_URL']
+        mongo_client = AsyncIOMotorClient(mongo_url)
+        db = mongo_client[os.environ['DB_NAME']]
+        
+        db_user = await db.users.find_one({'email': user['email']}, {'_id': 0, 'password_hash': 0})
+        mongo_client.close()
+        
+        if db_user:
+            # Return fresh data from database with session role info
+            return {
+                'email': db_user.get('email'),
+                'name': db_user.get('name'),
+                'picture': db_user.get('picture', ''),
+                'role': user.get('role', 'user'),  # Keep role from session for consistency
+                'is_admin': user.get('role') == 'admin',
+                'villa_number': db_user.get('villa_number')
+            }
+        
+        return user
+    except Exception as e:
+        logger.error(f"Error fetching fresh user data: {str(e)}")
+        # Fallback to session data if database fetch fails
+        return user
 
 @auth_router.post('/logout')
 async def logout(request: Request):
