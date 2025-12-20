@@ -469,6 +469,7 @@ class EmailPasswordRegister(BaseModel):
     password: str
     name: str
     villa_number: str  # Required field
+    picture: Optional[str] = None  # Optional profile picture
 
 class EmailPasswordLogin(BaseModel):
     email: EmailStr
