@@ -77,6 +77,8 @@ const Login = () => {
   const handleEmailPasswordSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setShowVerificationExpired(false);
+    setResendMessage('');
     setFormLoading(true);
 
     try {
@@ -103,8 +105,37 @@ const Login = () => {
         await loginWithEmail(formData.email, formData.password);
       }
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || 'An error occurred');
+      const errorDetail = err.response?.data?.detail || err.message || 'An error occurred';
+      
+      // Check if it's a grace period expired error
+      if (err.response?.status === 403 && errorDetail.includes('not verified')) {
+        setShowVerificationExpired(true);
+        setError(errorDetail);
+      } else {
+        setError(errorDetail);
+      }
       setFormLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResendingEmail(true);
+    setResendMessage('');
+
+    try {
+      const response = await axios.post(`${API}/auth/resend-verification-by-email`, {
+        email: formData.email
+      });
+
+      if (response.data.status === 'sent') {
+        setResendMessage('Verification email sent! Check your inbox and verify to login.');
+      } else {
+        setResendMessage(response.data.message || 'Please try again.');
+      }
+    } catch (error) {
+      setResendMessage(error.response?.data?.detail || 'Failed to resend verification email.');
+    } finally {
+      setResendingEmail(false);
     }
   };
 
