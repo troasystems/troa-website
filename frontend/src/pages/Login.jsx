@@ -40,8 +40,8 @@ const Login = () => {
     try {
       if (isSignUp) {
         // Sign up
-        if (!formData.name || !formData.email || !formData.password) {
-          setError('Name, email and password are required');
+        if (!formData.name || !formData.email || !formData.password || !formData.villa_number) {
+          setError('All fields are required');
           setFormLoading(false);
           return;
         }
