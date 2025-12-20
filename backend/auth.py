@@ -610,7 +610,7 @@ async def register_with_email(credentials: EmailPasswordRegister, request: Reque
         raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
 @auth_router.post('/login')
-async def login_with_email(credentials: EmailPasswordLogin):
+async def login_with_email(credentials: EmailPasswordLogin, request: Request):
     """Login with email and password"""
     try:
         # Get database
@@ -635,6 +635,21 @@ async def login_with_email(credentials: EmailPasswordLogin):
             mongo_client.close()
             raise HTTPException(status_code=401, detail="Invalid email or password")
         
+        # Check email verification status
+        email_verified = user.get('email_verified', False)
+        verification_expires_at = user.get('verification_expires_at')
+        
+        # If not verified and grace period has expired, block login
+        if not email_verified and verification_expires_at:
+            expiry_date = verification_expires_at if isinstance(verification_expires_at, datetime) else datetime.fromisoformat(str(verification_expires_at).replace('Z', '+00:00'))
+            if datetime.utcnow() > expiry_date:
+                mongo_client.close()
+                raise HTTPException(
+                    status_code=403, 
+                    detail="Your email is not verified and the grace period has expired. Please verify your email to continue using TROA.",
+                    headers={"X-Email-Unverified": "true", "X-Grace-Period-Expired": "true"}
+                )
+        
         # Update last login
         await db.users.update_one(
             {'email': credentials.email},
@@ -651,14 +666,17 @@ async def login_with_email(credentials: EmailPasswordLogin):
                 {'$set': {'role': 'admin', 'is_admin': True}}
             )
         
-        # Create session
+        # Create session with verification info
         user_data = {
             'email': user['email'],
             'name': user['name'],
             'picture': user.get('picture', ''),
             'role': user_role,
             'is_admin': user_role == 'admin',
-            'villa_number': user.get('villa_number')
+            'villa_number': user.get('villa_number'),
+            'email_verified': email_verified,
+            'verification_expires_at': verification_expires_at.isoformat() if verification_expires_at else None,
+            'provider': user.get('provider', 'email')
         }
         
         session_token = await create_session(user_data)
