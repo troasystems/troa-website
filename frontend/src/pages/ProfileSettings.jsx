@@ -8,7 +8,7 @@ import { getBackendUrl } from '../utils/api';
 const getAPI = () => `${getBackendUrl()}/api`;
 
 const ProfileSettings = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [pictureLoading, setPictureLoading] = useState(false);
   
