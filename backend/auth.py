@@ -606,3 +606,104 @@ async def login_with_email(credentials: EmailPasswordLogin):
     except Exception as e:
         logger.error(f"Login failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
+
+
+# Change Password Endpoint
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+@auth_router.post('/change-password')
+async def change_password(passwords: PasswordChange, request: Request):
+    """Change user password"""
+    try:
+        # Get current user
+        user = await get_current_user(request)
+        if not user:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
+        # Get database
+        mongo_url = os.environ['MONGO_URL']
+        mongo_client = AsyncIOMotorClient(mongo_url)
+        db = mongo_client[os.environ['DB_NAME']]
+        
+        # Find user in database
+        db_user = await db.users.find_one({'email': user['email']}, {'_id': 0})
+        if not db_user:
+            mongo_client.close()
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Check if user registered with email/password
+        if db_user.get('provider') != 'email':
+            mongo_client.close()
+            raise HTTPException(status_code=400, detail="Password change only available for email/password accounts")
+        
+        # Verify current password
+        password_hash = db_user.get('password_hash', '')
+        if not password_hash or not bcrypt.checkpw(passwords.current_password.encode('utf-8'), password_hash.encode('utf-8')):
+            mongo_client.close()
+            raise HTTPException(status_code=401, detail="Current password is incorrect")
+        
+        # Validate new password
+        if len(passwords.new_password) < 6:
+            mongo_client.close()
+            raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+        
+        # Hash new password
+        new_password_hash = bcrypt.hashpw(passwords.new_password.encode('utf-8'), bcrypt.gensalt())
+        
+        # Update password
+        await db.users.update_one(
+            {'email': user['email']},
+            {'$set': {'password_hash': new_password_hash.decode('utf-8')}}
+        )
+        
+        logger.info(f"Password changed for user: {user['email']}")
+        mongo_client.close()
+        
+        return {'message': 'Password changed successfully'}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Password change failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Password change failed: {str(e)}")
+
+
+# Update Profile Picture Endpoint
+class ProfilePictureUpdate(BaseModel):
+    picture: str  # Base64 encoded image or URL
+
+@auth_router.post('/update-picture')
+async def update_profile_picture(picture_data: ProfilePictureUpdate, request: Request):
+    """Update user profile picture"""
+    try:
+        # Get current user
+        user = await get_current_user(request)
+        if not user:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
+        # Get database
+        mongo_url = os.environ['MONGO_URL']
+        mongo_client = AsyncIOMotorClient(mongo_url)
+        db = mongo_client[os.environ['DB_NAME']]
+        
+        # Update picture
+        await db.users.update_one(
+            {'email': user['email']},
+            {'$set': {'picture': picture_data.picture}}
+        )
+        
+        logger.info(f"Profile picture updated for user: {user['email']}")
+        mongo_client.close()
+        
+        return {
+            'message': 'Profile picture updated successfully',
+            'picture': picture_data.picture
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Profile picture update failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Profile picture update failed: {str(e)}")
