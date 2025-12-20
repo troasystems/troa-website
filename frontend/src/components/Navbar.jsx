@@ -150,6 +150,14 @@ const Navbar = () => {
                         <span>{isAdmin ? 'Admin Portal' : 'Manager Portal'}</span>
                       </Link>
                     )}
+                    <Link
+                      to="/profile"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 transition-colors"
+                    >
+                      <User className="w-4 h-4" />
+                      <span>Profile Settings</span>
+                    </Link>
                     <button
                       onClick={() => {
                         setProfileOpen(false);
