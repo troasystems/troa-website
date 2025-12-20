@@ -329,8 +329,33 @@ const Login = () => {
               </div>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
-                  {error}
+                <div className={`${showVerificationExpired ? 'bg-orange-50 border-orange-200' : 'bg-red-50 border-red-200'} border px-4 py-3 rounded-lg text-sm`}>
+                  <div className="flex items-start gap-2">
+                    {showVerificationExpired && <AlertTriangle className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />}
+                    <div className="flex-1">
+                      <p className={showVerificationExpired ? 'text-orange-700' : 'text-red-600'}>{error}</p>
+                      
+                      {showVerificationExpired && (
+                        <div className="mt-3 space-y-2">
+                          <button
+                            type="button"
+                            onClick={handleResendVerification}
+                            disabled={resendingEmail}
+                            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <RefreshCw className={`h-4 w-4 ${resendingEmail ? 'animate-spin' : ''}`} />
+                            {resendingEmail ? 'Sending...' : 'Resend Verification Email'}
+                          </button>
+                          
+                          {resendMessage && (
+                            <p className="text-sm text-orange-600 bg-orange-100 px-3 py-2 rounded">
+                              {resendMessage}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -356,6 +381,8 @@ const Login = () => {
                 onClick={() => {
                   setIsSignUp(!isSignUp);
                   setError('');
+                  setShowVerificationExpired(false);
+                  setResendMessage('');
                   setFormData({ email: '', password: '', name: '', villa_number: '', picture: '' });
                   setPicturePreview('');
                 }}
