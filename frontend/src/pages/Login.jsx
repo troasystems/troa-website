@@ -79,7 +79,7 @@ const Login = () => {
           setFormLoading(false);
           return;
         }
-        await registerWithEmail(formData.email, formData.password, formData.name, formData.villa_number);
+        await registerWithEmail(formData.email, formData.password, formData.name, formData.villa_number, formData.picture);
       } else {
         // Sign in
         if (!formData.email || !formData.password) {
