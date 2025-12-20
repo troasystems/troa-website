@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogIn, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { LogIn, Mail, Lock, User, Eye, EyeOff, Home } from 'lucide-react';
 
 const Login = () => {
   const { loginWithGoogle, loginWithEmail, registerWithEmail, isAuthenticated, loading } = useAuth();
@@ -12,7 +12,8 @@ const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    name: ''
+    name: '',
+    villa_number: ''
   });
   const [formLoading, setFormLoading] = useState(false);
   const [error, setError] = useState('');
