@@ -796,3 +796,248 @@ async def update_profile_picture(picture_data: ProfilePictureUpdate, request: Re
     except Exception as e:
         logger.error(f"Profile picture update failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Profile picture update failed: {str(e)}")
+
+
+# Email Verification Endpoints
+@auth_router.post('/verify-email')
+async def verify_email(verify_request: VerifyEmailRequest):
+    """Verify email address using the token from verification link"""
+    try:
+        # Get database
+        mongo_url = os.environ['MONGO_URL']
+        mongo_client = AsyncIOMotorClient(mongo_url)
+        db = mongo_client[os.environ['DB_NAME']]
+        
+        # Find user by verification token
+        query = {'verification_token': verify_request.token}
+        if verify_request.email:
+            query['email'] = verify_request.email
+        
+        user = await db.users.find_one(query, {'_id': 0})
+        
+        if not user:
+            mongo_client.close()
+            raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+        
+        # Check if already verified
+        if user.get('email_verified', False):
+            mongo_client.close()
+            return {
+                'status': 'success',
+                'message': 'Email is already verified',
+                'email': user['email']
+            }
+        
+        # Update user as verified
+        await db.users.update_one(
+            {'email': user['email']},
+            {
+                '$set': {
+                    'email_verified': True,
+                    'verification_token': None,  # Clear the token after use
+                    'verified_at': datetime.utcnow()
+                }
+            }
+        )
+        
+        logger.info(f"Email verified for user: {user['email']}")
+        mongo_client.close()
+        
+        return {
+            'status': 'success',
+            'message': 'Email verified successfully',
+            'email': user['email']
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Email verification failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Email verification failed: {str(e)}")
+
+
+@auth_router.post('/resend-verification')
+async def resend_verification(request: Request):
+    """Resend verification email to the logged in user"""
+    try:
+        # Get current user
+        user = await get_current_user(request)
+        if not user:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
+        # Get database
+        mongo_url = os.environ['MONGO_URL']
+        mongo_client = AsyncIOMotorClient(mongo_url)
+        db = mongo_client[os.environ['DB_NAME']]
+        
+        # Find user in database
+        db_user = await db.users.find_one({'email': user['email']}, {'_id': 0})
+        if not db_user:
+            mongo_client.close()
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Check if already verified
+        if db_user.get('email_verified', False):
+            mongo_client.close()
+            return {
+                'status': 'already_verified',
+                'message': 'Your email is already verified'
+            }
+        
+        # Check if user is a Google OAuth user (they don't need verification)
+        if db_user.get('provider') == 'google':
+            mongo_client.close()
+            return {
+                'status': 'not_required',
+                'message': 'Email verification is not required for Google accounts'
+            }
+        
+        # Generate new verification token
+        new_token = secrets.token_urlsafe(32)
+        new_expiry = datetime.utcnow() + timedelta(days=VERIFICATION_EXPIRY_DAYS)
+        
+        # Update user with new token
+        await db.users.update_one(
+            {'email': user['email']},
+            {
+                '$set': {
+                    'verification_token': new_token,
+                    'verification_expires_at': new_expiry
+                }
+            }
+        )
+        
+        # Determine the frontend URL for the verification link
+        origin = None
+        referer = request.headers.get('referer')
+        if referer:
+            from urllib.parse import urlparse
+            parsed = urlparse(referer)
+            if parsed.scheme and parsed.netloc:
+                origin = f"{parsed.scheme}://{parsed.netloc}"
+        
+        if not origin:
+            origin = os.getenv('REACT_APP_BACKEND_URL', 'https://villa-manager-13.preview.emergentagent.com')
+        
+        verification_link = f"{origin}/verify-email?token={new_token}&email={user['email']}"
+        
+        # Send verification email
+        email_result = await email_service.send_verification_email(
+            recipient_email=user['email'],
+            verification_link=verification_link,
+            user_name=db_user.get('name'),
+            expiry_days=VERIFICATION_EXPIRY_DAYS
+        )
+        
+        mongo_client.close()
+        
+        if email_result.get('status') == 'sent':
+            logger.info(f"Verification email resent to: {user['email']}")
+            return {
+                'status': 'sent',
+                'message': 'Verification email sent successfully',
+                'email': user['email']
+            }
+        else:
+            return {
+                'status': 'error',
+                'message': email_result.get('message', 'Failed to send verification email')
+            }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Resend verification failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to resend verification email: {str(e)}")
+
+
+@auth_router.post('/resend-verification-by-email')
+async def resend_verification_by_email(request: Request, email_data: dict):
+    """Resend verification email to a user who cannot login (grace period expired)"""
+    try:
+        email = email_data.get('email')
+        if not email:
+            raise HTTPException(status_code=400, detail="Email is required")
+        
+        # Get database
+        mongo_url = os.environ['MONGO_URL']
+        mongo_client = AsyncIOMotorClient(mongo_url)
+        db = mongo_client[os.environ['DB_NAME']]
+        
+        # Find user in database
+        db_user = await db.users.find_one({'email': email}, {'_id': 0})
+        if not db_user:
+            mongo_client.close()
+            # Don't reveal if user exists or not for security
+            return {
+                'status': 'sent',
+                'message': 'If an account with this email exists, a verification email will be sent'
+            }
+        
+        # Check if already verified
+        if db_user.get('email_verified', False):
+            mongo_client.close()
+            return {
+                'status': 'already_verified',
+                'message': 'Your email is already verified. Please try logging in.'
+            }
+        
+        # Check if user is a Google OAuth user
+        if db_user.get('provider') == 'google':
+            mongo_client.close()
+            return {
+                'status': 'not_required',
+                'message': 'This account uses Google login. Email verification is not required.'
+            }
+        
+        # Generate new verification token
+        new_token = secrets.token_urlsafe(32)
+        new_expiry = datetime.utcnow() + timedelta(days=VERIFICATION_EXPIRY_DAYS)
+        
+        # Update user with new token
+        await db.users.update_one(
+            {'email': email},
+            {
+                '$set': {
+                    'verification_token': new_token,
+                    'verification_expires_at': new_expiry
+                }
+            }
+        )
+        
+        # Determine the frontend URL for the verification link
+        origin = None
+        referer = request.headers.get('referer')
+        if referer:
+            from urllib.parse import urlparse
+            parsed = urlparse(referer)
+            if parsed.scheme and parsed.netloc:
+                origin = f"{parsed.scheme}://{parsed.netloc}"
+        
+        if not origin:
+            origin = os.getenv('REACT_APP_BACKEND_URL', 'https://villa-manager-13.preview.emergentagent.com')
+        
+        verification_link = f"{origin}/verify-email?token={new_token}&email={email}"
+        
+        # Send verification email
+        email_result = await email_service.send_verification_email(
+            recipient_email=email,
+            verification_link=verification_link,
+            user_name=db_user.get('name'),
+            expiry_days=VERIFICATION_EXPIRY_DAYS
+        )
+        
+        mongo_client.close()
+        
+        logger.info(f"Verification email resent to: {email}")
+        return {
+            'status': 'sent',
+            'message': 'Verification email sent. Please check your inbox and verify your email to login.'
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Resend verification by email failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to resend verification email: {str(e)}")
+
