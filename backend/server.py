@@ -226,6 +226,21 @@ async def create_membership_application(application: MembershipApplicationCreate
         app_obj = MembershipApplication(**app_dict)
         await db.membership_applications.insert_one(app_obj.dict())
         logger.info(f"New membership application from {app_obj.email}")
+        
+        # Send email notification to admins
+        try:
+            admin_emails = await get_admin_manager_emails()
+            await email_service.send_membership_application_notification(
+                applicant_name=app_obj.name,
+                applicant_email=app_obj.email,
+                applicant_phone=app_obj.phone,
+                villa_no=app_obj.villa_no,
+                message=app_obj.message if hasattr(app_obj, 'message') else None,
+                admin_emails=admin_emails
+            )
+        except Exception as email_error:
+            logger.error(f"Failed to send membership notification email: {email_error}")
+        
         return app_obj
     except Exception as e:
         logger.error(f"Error creating membership application: {e}")
