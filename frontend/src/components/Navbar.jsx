@@ -271,7 +271,7 @@ const Navbar = () => {
               </div>
             ) : (
               <Link
-                to="/login-info"
+                to="/login"
                 onClick={() => setIsOpen(false)}
                 className="block w-full px-3 py-2 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white rounded-lg font-medium text-sm text-center mt-2"
               >
