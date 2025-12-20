@@ -234,7 +234,7 @@ async def google_login(request: Request):
 
 @auth_router.get('/google/callback')
 async def google_callback(code: str, state: str, request: Request):
-    """Handle Google OAuth callback - Manual implementation"""
+    """Handle Google OAuth callback - Manual implementation with popup support"""
     try:
         logger.info(f"Google OAuth callback received with code: {code[:20]}...")
         
@@ -365,30 +365,76 @@ async def google_callback(code: str, state: str, request: Request):
         session_token = await create_session(user_data)
         logger.info(f"Session created for user: {user_info['email']}")
         
-        # Redirect to frontend with session token in URL
-        # Use the same origin that initiated the request
-        frontend_url = origin
-        logger.info(f"Redirecting to frontend: {frontend_url} with token: {session_token[:20]}...")
-        response = RedirectResponse(url=f'{frontend_url}/?auth_success=true&token={session_token}')
-        
-        # Set cookie with proper settings for production
-        # Note: samesite='none' requires secure=True for HTTPS
-        is_secure = frontend_url.startswith('https')
-        response.set_cookie(
-            key='session_token',
-            value=session_token,
-            httponly=False,
-            secure=is_secure,
-            max_age=7 * 24 * 60 * 60,  # 7 days
-            samesite='none' if is_secure else 'lax',
-            path='/'
-        )
-        
-        # Clear the oauth_origin cookie
-        response.delete_cookie('oauth_origin')
-        
         mongo_client.close()
-        return response
+        
+        # Return HTML that will send message to parent window (for popup)
+        # This works for both popup and redirect flows
+        frontend_url = origin
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Authentication Successful</title>
+            <style>
+                body {{
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    height: 100vh;
+                    margin: 0;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                }}
+                .container {{
+                    text-align: center;
+                    color: white;
+                }}
+                .spinner {{
+                    border: 4px solid rgba(255, 255, 255, 0.3);
+                    border-radius: 50%;
+                    border-top: 4px solid white;
+                    width: 40px;
+                    height: 40px;
+                    animation: spin 1s linear infinite;
+                    margin: 20px auto;
+                }}
+                @keyframes spin {{
+                    0% {{ transform: rotate(0deg); }}
+                    100% {{ transform: rotate(360deg); }}
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="spinner"></div>
+                <h2>Authentication Successful!</h2>
+                <p>Redirecting you back...</p>
+            </div>
+            <script>
+                // Try to send message to parent window (for popup)
+                if (window.opener) {{
+                    console.log('Sending message to parent window');
+                    window.opener.postMessage({{
+                        type: 'oauth_success',
+                        token: '{session_token}'
+                    }}, '{frontend_url}');
+                    // Close popup after sending message
+                    setTimeout(() => {{
+                        window.close();
+                    }}, 1000);
+                }} else {{
+                    // If not in popup, redirect normally
+                    console.log('Not in popup, redirecting normally');
+                    window.location.href = '{frontend_url}/?auth_success=true&token={session_token}';
+                }}
+            </script>
+        </body>
+        </html>
+        """
+        
+        from fastapi.responses import HTMLResponse
+        return HTMLResponse(content=html_content)
         
     except Exception as e:
         logger.error(f"Authentication failed: {str(e)}")
