@@ -28,6 +28,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [needsVillaNumber, setNeedsVillaNumber] = useState(false);
 
   useEffect(() => {
     // Check for token in URL (from OAuth callback)
@@ -63,9 +64,18 @@ export const AuthProvider = ({ children }) => {
       });
       console.log('[Auth] User authenticated:', response.data.email);
       setUser(response.data);
+      
+      // Check if user needs to provide villa number
+      if (response.data.needs_villa_number) {
+        console.log('[Auth] User needs to provide villa number');
+        setNeedsVillaNumber(true);
+      } else {
+        setNeedsVillaNumber(false);
+      }
     } catch (error) {
       console.log('[Auth] Auth check failed:', error.response?.status, error.response?.data);
       setUser(null);
+      setNeedsVillaNumber(false);
       // Clear invalid token
       localStorage.removeItem('session_token');
     } finally {
@@ -84,11 +94,27 @@ export const AuthProvider = ({ children }) => {
       });
       console.log('[Auth] User data refreshed');
       setUser(response.data);
+      
+      // Update villa number requirement
+      if (response.data.needs_villa_number) {
+        setNeedsVillaNumber(true);
+      } else {
+        setNeedsVillaNumber(false);
+      }
+      
       return response.data;
     } catch (error) {
       console.error('[Auth] Failed to refresh user data:', error);
       throw error;
     }
+  };
+
+  const updateVillaNumber = (villaNumber) => {
+    // Update local user state after villa number is set
+    if (user) {
+      setUser({ ...user, villa_number: villaNumber, needs_villa_number: false });
+    }
+    setNeedsVillaNumber(false);
   };
 
   const loginWithGoogle = () => {
