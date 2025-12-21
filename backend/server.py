@@ -410,6 +410,15 @@ async def update_user(user_id: str, update: UserUpdate, request: Request):
             password_hash = bcrypt.hashpw(update.new_password.encode('utf-8'), bcrypt.gensalt())
             update_data["password_hash"] = password_hash.decode('utf-8')
         
+        # Handle email_verified toggle if provided
+        if update.email_verified is not None:
+            update_data["email_verified"] = update.email_verified
+            if update.email_verified:
+                update_data["verified_at"] = datetime.utcnow()
+                update_data["verification_token"] = None  # Clear token when manually verified
+            else:
+                update_data["verified_at"] = None
+        
         result = await db.users.find_one_and_update(
             {"id": user_id},
             {"$set": update_data},
