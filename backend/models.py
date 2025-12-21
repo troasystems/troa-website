@@ -98,6 +98,7 @@ class UserUpdate(BaseModel):
     villa_number: Optional[str] = None
     picture: Optional[str] = None
     new_password: Optional[str] = None  # For password reset by admin
+    email_verified: Optional[bool] = None  # Admin can manually verify/unverify
 
 class AmenityBooking(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
