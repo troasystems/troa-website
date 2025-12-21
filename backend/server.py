@@ -358,45 +358,68 @@ async def add_user_to_whitelist(user_data: UserCreate, request: Request):
         raise HTTPException(status_code=500, detail="Failed to add user")
 
 @api_router.patch("/users/{user_id}", response_model=User)
-async def update_user_role(user_id: str, update: UserUpdate, request: Request):
-    """Update user role - admin only"""
+async def update_user(user_id: str, update: UserUpdate, request: Request):
+    """Update user details - admin only"""
     try:
         admin = await require_admin(request)
         
-        # Validate role
-        if update.role not in ['admin', 'manager', 'user']:
-            raise HTTPException(status_code=400, detail="Invalid role. Must be: admin, manager, or user")
-        
-        # Check if trying to modify super admin
+        # Check if trying to modify super admin's role
         from auth import SUPER_ADMIN_EMAIL
         user_to_update = await db.users.find_one({"id": user_id}, {"_id": 0})
-        if user_to_update and user_to_update.get('email') == SUPER_ADMIN_EMAIL:
+        
+        if not user_to_update:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        if user_to_update.get('email') == SUPER_ADMIN_EMAIL and update.role and update.role != 'admin':
             raise HTTPException(status_code=400, detail="Cannot modify the super admin's role")
         
-        from datetime import datetime
+        # Build update dict with only provided fields
+        update_data = {"updated_at": datetime.utcnow()}
+        
+        # Validate and add role if provided
+        if update.role is not None:
+            if update.role not in ['admin', 'manager', 'user']:
+                raise HTTPException(status_code=400, detail="Invalid role. Must be: admin, manager, or user")
+            update_data["role"] = update.role
+            update_data["is_admin"] = update.role == 'admin'
+        
+        # Add name if provided
+        if update.name is not None:
+            update_data["name"] = update.name
+        
+        # Validate and add villa_number if provided (must be numeric)
+        if update.villa_number is not None:
+            if update.villa_number and not update.villa_number.isdigit():
+                raise HTTPException(status_code=400, detail="Villa number must be numeric")
+            update_data["villa_number"] = update.villa_number
+        
+        # Add picture if provided
+        if update.picture is not None:
+            update_data["picture"] = update.picture
+        
+        # Handle password reset if provided
+        if update.new_password is not None:
+            if len(update.new_password) < 6:
+                raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+            import bcrypt
+            password_hash = bcrypt.hashpw(update.new_password.encode('utf-8'), bcrypt.gensalt())
+            update_data["password_hash"] = password_hash.decode('utf-8')
+        
         result = await db.users.find_one_and_update(
             {"id": user_id},
-            {
-                "$set": {
-                    "role": update.role,
-                    "is_admin": update.role == 'admin',
-                    "updated_at": datetime.utcnow()
-                }
-            },
+            {"$set": update_data},
             return_document=True
         )
         
-        if not result:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        # Remove _id for serialization
+        # Remove _id and password_hash for serialization
         result.pop('_id', None)
+        result.pop('password_hash', None)
         return User(**result)
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error updating user role: {e}")
-        raise HTTPException(status_code=500, detail="Failed to update user role")
+        logger.error(f"Error updating user: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update user")
 
 @api_router.delete("/users/{user_id}")
 async def delete_user(user_id: str, request: Request):
