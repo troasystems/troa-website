@@ -137,9 +137,6 @@ class FeedbackCreate(BaseModel):
     needs_improvement: Optional[str] = None
     feature_suggestions: Optional[str] = None
 
-class UserUpdate(BaseModel):
-    role: str  # admin, manager, user
-
 # Event Models
 class EventPreference(BaseModel):
     name: str  # e.g., "Food Preference"
