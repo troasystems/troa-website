@@ -93,7 +93,11 @@ class UserCreate(BaseModel):
     villa_number: str = ""
 
 class UserUpdate(BaseModel):
-    role: str  # admin, manager, user
+    role: Optional[str] = None  # admin, manager, user
+    name: Optional[str] = None
+    villa_number: Optional[str] = None
+    picture: Optional[str] = None
+    new_password: Optional[str] = None  # For password reset by admin
 
 class AmenityBooking(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
