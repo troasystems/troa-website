@@ -38,7 +38,9 @@ class TROAAPITester:
             'event_pricing': {'per_villa': None, 'uniform_per_person': None, 'adult_child': None, 'adult_child_registration': None, 'validation': None, 'per_villa_registration': None},
             'event_modification': {'uniform_per_person_mod': None, 'adult_child_mod': None, 'per_villa_mod': None, 'offline_payment_mod': None, 'online_payment_mod': None, 'create_modification_order': None, 'my_status': None},
             'villa_management': {'update_name': None, 'update_villa_valid': None, 'update_villa_invalid': None, 'update_password': None, 'update_photo': None, 'create_with_villa': None},
-            'villa_auth': {'update_villa_valid': None, 'update_villa_invalid': None, 'get_user_villa_flag': None, 'verify_email_idempotent': None}
+            'user_management': {'toggle_verified_true': None, 'toggle_verified_false': None, 'update_picture_base64': None},
+            'google_oauth': {'invalid_token_error': None},
+            'email_verification': {'already_verified_success': None, 'token_mismatch_error': None}
         }
         self.errors = []
         self.created_event_id = None
