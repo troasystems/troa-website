@@ -251,6 +251,7 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     loginWithGoogle,
+    loginWithGoogleToken,
     loginWithEmail,
     registerWithEmail,
     logout,
