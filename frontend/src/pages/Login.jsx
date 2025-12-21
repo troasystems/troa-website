@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import { LogIn, Mail, Lock, User, Eye, EyeOff, Home, Camera, AlertTriangle, RefreshCw, CheckCircle } from 'lucide-react';
 import axios from 'axios';
@@ -14,7 +15,7 @@ const getBackendUrl = () => {
 const API = `${getBackendUrl()}/api`;
 
 const Login = () => {
-  const { loginWithGoogle, loginWithEmail, registerWithEmail, isAuthenticated, loading } = useAuth();
+  const { loginWithGoogleToken, loginWithEmail, registerWithEmail, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -34,6 +35,7 @@ const Login = () => {
   const [showVerificationExpired, setShowVerificationExpired] = useState(false);
   const [resendingEmail, setResendingEmail] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -46,6 +48,23 @@ const Login = () => {
       window.history.replaceState({}, document.title);
     }
   }, [isAuthenticated, navigate, location.state]);
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setGoogleLoading(true);
+    setError('');
+    try {
+      await loginWithGoogleToken(credentialResponse.credential);
+      navigate('/');
+    } catch (err) {
+      setError(err.message || 'Google login failed');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Google login failed. Please try again.');
+  };
 
   const handleInputChange = (e) => {
     setFormData({
