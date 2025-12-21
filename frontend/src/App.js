@@ -6,6 +6,7 @@ import ScrollToTop from './components/ScrollToTop';
 import Navbar from './components/Navbar';
 import FeedbackBanner from './components/FeedbackBanner';
 import EmailVerificationBanner from './components/EmailVerificationBanner';
+import VillaNumberModalWrapper from './components/VillaNumberModalWrapper';
 import Footer from './components/Footer';
 import Chatbot from './components/Chatbot';
 import Home from './pages/Home';
