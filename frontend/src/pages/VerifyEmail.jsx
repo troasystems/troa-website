@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
 import axios from 'axios';
@@ -18,9 +18,14 @@ const VerifyEmail = () => {
   const [status, setStatus] = useState('loading'); // loading, success, error
   const [message, setMessage] = useState('');
   const [email, setEmail] = useState('');
+  const hasVerified = useRef(false); // Prevent duplicate requests (React StrictMode)
 
   useEffect(() => {
     const verifyEmail = async () => {
+      // Prevent duplicate verification requests
+      if (hasVerified.current) return;
+      hasVerified.current = true;
+
       const token = searchParams.get('token');
       const emailParam = searchParams.get('email');
 
