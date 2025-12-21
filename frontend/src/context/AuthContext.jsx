@@ -226,6 +226,8 @@ export const AuthProvider = ({ children }) => {
     registerWithEmail,
     logout,
     refreshUser,
+    updateVillaNumber,
+    needsVillaNumber,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     isManager: user?.role === 'manager',
