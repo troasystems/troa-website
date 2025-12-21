@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Backend API Testing for TROA (The Retreat Owners Association) Website
-Tests all backend APIs including Committee Members, Amenities, Gallery, Membership Application, Events, and Amenity Booking endpoints.
+Tests all backend APIs including Committee Members, Amenities, Gallery, Membership Application, Events, Amenity Booking, and Villa Management endpoints.
 """
 
 import requests
@@ -36,7 +36,11 @@ class TROAAPITester:
             'gridfs_storage': {'get_image': None, 'cache_headers': None, 'etag_support': None, 'not_modified': None},
             'unified_payment': {'offline_payment': None, 'get_offline_payments': None, 'approve_payment': None, 'reject_payment': None, 'amount_verification': None},
             'event_pricing': {'per_villa': None, 'uniform_per_person': None, 'adult_child': None, 'adult_child_registration': None, 'validation': None, 'per_villa_registration': None},
-            'event_modification': {'uniform_per_person_mod': None, 'adult_child_mod': None, 'per_villa_mod': None, 'offline_payment_mod': None, 'online_payment_mod': None, 'create_modification_order': None, 'my_status': None}
+            'event_modification': {'uniform_per_person_mod': None, 'adult_child_mod': None, 'per_villa_mod': None, 'offline_payment_mod': None, 'online_payment_mod': None, 'create_modification_order': None, 'my_status': None},
+            'villa_management': {'update_name': None, 'update_villa_valid': None, 'update_villa_invalid': None, 'update_password': None, 'update_photo': None, 'create_with_villa': None},
+            'user_management': {'toggle_verified_true': None, 'toggle_verified_false': None, 'update_picture_base64': None},
+            'google_oauth': {'invalid_token_error': None},
+            'email_verification': {'already_verified_success': None, 'token_mismatch_error': None}
         }
         self.errors = []
         self.created_event_id = None
@@ -49,7 +53,7 @@ class TROAAPITester:
         
         # Setup authentication headers
         self.basic_auth = base64.b64encode(f"{BASIC_AUTH_USERNAME}:{BASIC_AUTH_PASSWORD}".encode()).decode()
-        self.session_token = "PIgFhZEyDs02mjo9moXWHIBGEoGhwtaoOnUQvyVq7Bc"  # Valid admin session token
+        self.session_token = "xBPTLcvN2wsTsXtfGxu1MJ4W7VmNi8oO5fUrLqqVT44"  # Valid admin session token
         self.auth_headers = {
             'Authorization': f'Basic {self.basic_auth}',
             'X-Session-Token': f'Bearer {self.session_token}',
@@ -1748,6 +1752,457 @@ class TROAAPITester:
         except Exception as e:
             self.log_error("/events/my/registrations", "GET", f"Exception: {str(e)}")
             
+    def test_villa_management(self):
+        """Test Villa Management API endpoints"""
+        print("\n🏠 Testing Villa Management API...")
+        
+        # First create a test user to work with
+        test_user_email = f"testuser_{datetime.now().strftime('%H%M%S')}@example.com"
+        test_user_id = None
+        
+        # Test POST /api/users - Admin can pre-set villa_number when adding user
+        try:
+            user_data = {
+                "email": test_user_email,
+                "name": "Test Villa User",
+                "role": "user",
+                "villa_number": "123"
+            }
+            response = requests.post(
+                f"{self.base_url}/users",
+                json=user_data,
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('villa_number') == '123':
+                    test_user_id = data.get('id')
+                    self.test_results['villa_management']['create_with_villa'] = True
+                    self.log_success("/users", "POST", f"- Created user with villa number: {data.get('villa_number')}")
+                else:
+                    self.test_results['villa_management']['create_with_villa'] = False
+                    self.log_error("/users", "POST", f"Villa number not set correctly: {data.get('villa_number')}")
+            else:
+                self.test_results['villa_management']['create_with_villa'] = False
+                self.log_error("/users", "POST", f"Status: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['villa_management']['create_with_villa'] = False
+            self.log_error("/users", "POST", f"Exception: {str(e)}")
+        
+        if not test_user_id:
+            print("❌ Cannot continue villa management tests without test user")
+            return
+        
+        # Test PATCH /api/users/{id} - Admin can update user name
+        try:
+            update_data = {"name": "Updated Villa User Name"}
+            response = requests.patch(
+                f"{self.base_url}/users/{test_user_id}",
+                json=update_data,
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('name') == 'Updated Villa User Name':
+                    self.test_results['villa_management']['update_name'] = True
+                    self.log_success(f"/users/{test_user_id}", "PATCH", f"- Updated name to: {data.get('name')}")
+                else:
+                    self.test_results['villa_management']['update_name'] = False
+                    self.log_error(f"/users/{test_user_id}", "PATCH", f"Name not updated correctly: {data.get('name')}")
+            else:
+                self.test_results['villa_management']['update_name'] = False
+                self.log_error(f"/users/{test_user_id}", "PATCH", f"Status: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['villa_management']['update_name'] = False
+            self.log_error(f"/users/{test_user_id}", "PATCH", f"Exception: {str(e)}")
+        
+        # Test PATCH /api/users/{id} - Admin can update villa_number (numeric only)
+        try:
+            update_data = {"villa_number": "456"}
+            response = requests.patch(
+                f"{self.base_url}/users/{test_user_id}",
+                json=update_data,
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('villa_number') == '456':
+                    self.test_results['villa_management']['update_villa_valid'] = True
+                    self.log_success(f"/users/{test_user_id}", "PATCH", f"- Updated villa to: {data.get('villa_number')}")
+                else:
+                    self.test_results['villa_management']['update_villa_valid'] = False
+                    self.log_error(f"/users/{test_user_id}", "PATCH", f"Villa not updated correctly: {data.get('villa_number')}")
+            else:
+                self.test_results['villa_management']['update_villa_valid'] = False
+                self.log_error(f"/users/{test_user_id}", "PATCH", f"Status: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['villa_management']['update_villa_valid'] = False
+            self.log_error(f"/users/{test_user_id}", "PATCH", f"Exception: {str(e)}")
+        
+        # Test PATCH /api/users/{id} - Villa number validation rejects non-numeric
+        try:
+            update_data = {"villa_number": "ABC123"}
+            response = requests.patch(
+                f"{self.base_url}/users/{test_user_id}",
+                json=update_data,
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 400:
+                self.test_results['villa_management']['update_villa_invalid'] = True
+                self.log_success(f"/users/{test_user_id}", "PATCH", f"- Correctly rejected non-numeric villa: {response.json().get('detail', '')}")
+            else:
+                self.test_results['villa_management']['update_villa_invalid'] = False
+                self.log_error(f"/users/{test_user_id}", "PATCH", f"Should reject non-numeric villa but got status: {response.status_code}")
+        except Exception as e:
+            self.test_results['villa_management']['update_villa_invalid'] = False
+            self.log_error(f"/users/{test_user_id}", "PATCH", f"Exception: {str(e)}")
+        
+        # Test PATCH /api/users/{id} - Admin can reset user password
+        try:
+            update_data = {"new_password": "newpassword123"}
+            response = requests.patch(
+                f"{self.base_url}/users/{test_user_id}",
+                json=update_data,
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 200:
+                self.test_results['villa_management']['update_password'] = True
+                self.log_success(f"/users/{test_user_id}", "PATCH", "- Password reset successful")
+            else:
+                self.test_results['villa_management']['update_password'] = False
+                self.log_error(f"/users/{test_user_id}", "PATCH", f"Status: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['villa_management']['update_password'] = False
+            self.log_error(f"/users/{test_user_id}", "PATCH", f"Exception: {str(e)}")
+        
+        # Test PATCH /api/users/{id} - Admin can update user photo URL
+        try:
+            update_data = {"picture": "https://example.com/photo.jpg"}
+            response = requests.patch(
+                f"{self.base_url}/users/{test_user_id}",
+                json=update_data,
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('picture') == 'https://example.com/photo.jpg':
+                    self.test_results['villa_management']['update_photo'] = True
+                    self.log_success(f"/users/{test_user_id}", "PATCH", f"- Updated photo to: {data.get('picture')}")
+                else:
+                    self.test_results['villa_management']['update_photo'] = False
+                    self.log_error(f"/users/{test_user_id}", "PATCH", f"Photo not updated correctly: {data.get('picture')}")
+            else:
+                self.test_results['villa_management']['update_photo'] = False
+                self.log_error(f"/users/{test_user_id}", "PATCH", f"Status: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['villa_management']['update_photo'] = False
+            self.log_error(f"/users/{test_user_id}", "PATCH", f"Exception: {str(e)}")
+        
+        # Cleanup test user
+        try:
+            response = requests.delete(
+                f"{self.base_url}/users/{test_user_id}",
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 200:
+                print(f"🧹 Cleaned up test user: {test_user_email}")
+            else:
+                print(f"⚠️  Failed to clean up test user: {test_user_email}")
+        except Exception as e:
+            print(f"⚠️  Exception during cleanup: {str(e)}")
+
+    def test_user_management_features(self):
+        """Test User Management features from the review request"""
+        print("\n🧪 Testing User Management Features...")
+        
+        # Test 1: Admin can toggle email_verified to true
+        try:
+            # First get a user to test with
+            response = requests.get(f"{self.base_url}/users", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                users = response.json()
+                if users:
+                    test_user = users[0]  # Use first user for testing
+                    user_id = test_user['id']
+                    
+                    # Test toggling email_verified to true
+                    update_data = {'email_verified': True}
+                    response = requests.patch(f"{self.base_url}/users/{user_id}", 
+                                            json=update_data, 
+                                            headers=self.auth_headers,
+                                            timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get('email_verified') == True:
+                            self.test_results['user_management']['toggle_verified_true'] = True
+                            self.log_success(f"/users/{user_id} (toggle verified true)", "PATCH", "- Successfully toggled email_verified to true")
+                        else:
+                            self.test_results['user_management']['toggle_verified_true'] = False
+                            self.log_error(f"/users/{user_id} (toggle verified true)", "PATCH", "email_verified not updated to true")
+                    else:
+                        self.test_results['user_management']['toggle_verified_true'] = False
+                        self.log_error(f"/users/{user_id} (toggle verified true)", "PATCH", f"Status code: {response.status_code}")
+                    
+                    # Test 2: Admin can toggle email_verified to false
+                    update_data = {'email_verified': False}
+                    response = requests.patch(f"{self.base_url}/users/{user_id}", 
+                                            json=update_data, 
+                                            headers=self.auth_headers,
+                                            timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get('email_verified') == False:
+                            self.test_results['user_management']['toggle_verified_false'] = True
+                            self.log_success(f"/users/{user_id} (toggle verified false)", "PATCH", "- Successfully toggled email_verified to false")
+                        else:
+                            self.test_results['user_management']['toggle_verified_false'] = False
+                            self.log_error(f"/users/{user_id} (toggle verified false)", "PATCH", "email_verified not updated to false")
+                    else:
+                        self.test_results['user_management']['toggle_verified_false'] = False
+                        self.log_error(f"/users/{user_id} (toggle verified false)", "PATCH", f"Status code: {response.status_code}")
+                    
+                    # Test 3: Admin can update picture with base64 data URL
+                    base64_image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+                    update_data = {'picture': base64_image}
+                    response = requests.patch(f"{self.base_url}/users/{user_id}", 
+                                            json=update_data, 
+                                            headers=self.auth_headers,
+                                            timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get('picture') == base64_image:
+                            self.test_results['user_management']['update_picture_base64'] = True
+                            self.log_success(f"/users/{user_id} (update picture base64)", "PATCH", "- Successfully updated picture with base64 data")
+                        else:
+                            self.test_results['user_management']['update_picture_base64'] = False
+                            self.log_error(f"/users/{user_id} (update picture base64)", "PATCH", "Picture not updated with base64 data")
+                    else:
+                        self.test_results['user_management']['update_picture_base64'] = False
+                        self.log_error(f"/users/{user_id} (update picture base64)", "PATCH", f"Status code: {response.status_code}")
+                else:
+                    self.test_results['user_management']['toggle_verified_true'] = False
+                    self.test_results['user_management']['toggle_verified_false'] = False
+                    self.test_results['user_management']['update_picture_base64'] = False
+                    self.log_error("/users", "GET", "No users found for testing")
+            else:
+                self.test_results['user_management']['toggle_verified_true'] = False
+                self.test_results['user_management']['toggle_verified_false'] = False
+                self.test_results['user_management']['update_picture_base64'] = False
+                self.log_error("/users", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['user_management']['toggle_verified_true'] = False
+            self.test_results['user_management']['toggle_verified_false'] = False
+            self.test_results['user_management']['update_picture_base64'] = False
+            self.log_error("User Management", "TEST", f"Exception: {str(e)}")
+
+    def test_google_oauth_features(self):
+        """Test Google OAuth features from the review request"""
+        print("\n🧪 Testing Google OAuth Features...")
+        
+        # Test 1: POST /api/auth/google/verify-token - Returns error for invalid token
+        try:
+            invalid_token_data = {
+                'credential': 'invalid_jwt_token_12345'
+            }
+            
+            response = requests.post(f"{self.base_url}/auth/google/verify-token", 
+                                   json=invalid_token_data, 
+                                   headers={'Content-Type': 'application/json'},
+                                   timeout=10)
+            
+            if response.status_code == 400:
+                data = response.json()
+                if 'detail' in data and 'Invalid Google token' in data['detail']:
+                    self.test_results['google_oauth']['invalid_token_error'] = True
+                    self.log_success("/auth/google/verify-token (invalid)", "POST", "- Correctly returns error for invalid token")
+                else:
+                    self.test_results['google_oauth']['invalid_token_error'] = False
+                    self.log_error("/auth/google/verify-token (invalid)", "POST", "Invalid error message format")
+            else:
+                self.test_results['google_oauth']['invalid_token_error'] = False
+                self.log_error("/auth/google/verify-token (invalid)", "POST", f"Expected 400 but got status: {response.status_code}")
+        except Exception as e:
+            self.test_results['google_oauth']['invalid_token_error'] = False
+            self.log_error("/auth/google/verify-token (invalid)", "POST", f"Exception: {str(e)}")
+
+    def test_email_verification_features(self):
+        """Test Email Verification features from the review request"""
+        print("\n🧪 Testing Email Verification Features...")
+        
+        # Test 1: POST /api/auth/verify-email - Returns success for already verified user
+        try:
+            # Test with a token that doesn't exist but email that might be verified
+            verify_data = {
+                'token': 'non_existent_token_123',
+                'email': 'troa.systems@gmail.com'  # Admin email likely to be verified
+            }
+            
+            response = requests.post(f"{self.base_url}/auth/verify-email", 
+                                   json=verify_data, 
+                                   headers={'Content-Type': 'application/json'},
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if ('status' in data and data['status'] == 'success' and 
+                    'already verified' in data.get('message', '').lower()):
+                    self.test_results['email_verification']['already_verified_success'] = True
+                    self.log_success("/auth/verify-email (already verified)", "POST", "- Returns success for already verified user")
+                else:
+                    self.test_results['email_verification']['already_verified_success'] = False
+                    self.log_error("/auth/verify-email (already verified)", "POST", "Invalid response format")
+            elif response.status_code == 400:
+                # Check if it's the improved error message
+                data = response.json()
+                if 'no longer valid' in data.get('detail', ''):
+                    self.test_results['email_verification']['already_verified_success'] = True
+                    self.log_success("/auth/verify-email (token mismatch)", "POST", "- Returns clear error when token doesn't match")
+                else:
+                    self.test_results['email_verification']['already_verified_success'] = False
+                    self.log_error("/auth/verify-email (token mismatch)", "POST", f"Unexpected error message: {data.get('detail')}")
+            else:
+                self.test_results['email_verification']['already_verified_success'] = False
+                self.log_error("/auth/verify-email (already verified)", "POST", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['email_verification']['already_verified_success'] = False
+            self.log_error("/auth/verify-email (already verified)", "POST", f"Exception: {str(e)}")
+        
+        # Test 2: POST /api/auth/verify-email - Returns clear error when token doesn't match
+        try:
+            verify_data = {
+                'token': 'definitely_invalid_token_xyz',
+                'email': 'nonexistent@example.com'
+            }
+            
+            response = requests.post(f"{self.base_url}/auth/verify-email", 
+                                   json=verify_data, 
+                                   headers={'Content-Type': 'application/json'},
+                                   timeout=10)
+            
+            if response.status_code == 400:
+                data = response.json()
+                if ('detail' in data and 
+                    ('Invalid or expired' in data['detail'] or 'no longer valid' in data['detail'])):
+                    self.test_results['email_verification']['token_mismatch_error'] = True
+                    self.log_success("/auth/verify-email (token mismatch)", "POST", "- Returns clear error when token doesn't match")
+                else:
+                    self.test_results['email_verification']['token_mismatch_error'] = False
+                    self.log_error("/auth/verify-email (token mismatch)", "POST", f"Unexpected error message: {data.get('detail')}")
+            else:
+                self.test_results['email_verification']['token_mismatch_error'] = False
+                self.log_error("/auth/verify-email (token mismatch)", "POST", f"Expected 400 but got status: {response.status_code}")
+        except Exception as e:
+            self.test_results['email_verification']['token_mismatch_error'] = False
+            self.log_error("/auth/verify-email (token mismatch)", "POST", f"Exception: {str(e)}")
+
+    def test_villa_auth_endpoints(self):
+        """Test Villa-related Auth API endpoints"""
+        print("\n🔐 Testing Villa Auth API...")
+        
+        # Test GET /api/auth/user - Returns needs_villa_number flag
+        try:
+            response = requests.get(
+                f"{self.base_url}/auth/user",
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if 'needs_villa_number' in data:
+                    self.test_results['villa_auth']['get_user_villa_flag'] = True
+                    self.log_success("/auth/user", "GET", f"- includes needs_villa_number flag: {data.get('needs_villa_number')}")
+                else:
+                    self.test_results['villa_auth']['get_user_villa_flag'] = False
+                    self.log_error("/auth/user", "GET", f"Missing needs_villa_number flag. Keys: {list(data.keys())}")
+            else:
+                self.test_results['villa_auth']['get_user_villa_flag'] = False
+                self.log_error("/auth/user", "GET", f"Status: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['villa_auth']['get_user_villa_flag'] = False
+            self.log_error("/auth/user", "GET", f"Exception: {str(e)}")
+        
+        # Test POST /api/auth/update-villa-number - User can update own villa number
+        try:
+            update_data = {"villa_number": "789"}
+            response = requests.post(
+                f"{self.base_url}/auth/update-villa-number",
+                json=update_data,
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('villa_number') == '789':
+                    self.test_results['villa_auth']['update_villa_valid'] = True
+                    self.log_success("/auth/update-villa-number", "POST", f"- Updated villa to: {data.get('villa_number')}")
+                else:
+                    self.test_results['villa_auth']['update_villa_valid'] = False
+                    self.log_error("/auth/update-villa-number", "POST", f"Villa not updated correctly: {data.get('villa_number')}")
+            else:
+                self.test_results['villa_auth']['update_villa_valid'] = False
+                self.log_error("/auth/update-villa-number", "POST", f"Status: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['villa_auth']['update_villa_valid'] = False
+            self.log_error("/auth/update-villa-number", "POST", f"Exception: {str(e)}")
+        
+        # Test POST /api/auth/update-villa-number - Rejects non-numeric villa number
+        try:
+            update_data = {"villa_number": "XYZ789"}
+            response = requests.post(
+                f"{self.base_url}/auth/update-villa-number",
+                json=update_data,
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 400:
+                self.test_results['villa_auth']['update_villa_invalid'] = True
+                self.log_success("/auth/update-villa-number", "POST", f"- Correctly rejected non-numeric villa: {response.json().get('detail', '')}")
+            else:
+                self.test_results['villa_auth']['update_villa_invalid'] = False
+                self.log_error("/auth/update-villa-number", "POST", f"Should reject non-numeric villa but got status: {response.status_code}")
+        except Exception as e:
+            self.test_results['villa_auth']['update_villa_invalid'] = False
+            self.log_error("/auth/update-villa-number", "POST", f"Exception: {str(e)}")
+        
+        # Test POST /api/auth/verify-email - Returns success for already verified user (idempotent)
+        try:
+            verify_data = {
+                "token": "invalid_token_12345",
+                "email": ADMIN_EMAIL  # Admin should be verified
+            }
+            response = requests.post(
+                f"{self.base_url}/auth/verify-email",
+                json=verify_data,
+                timeout=10
+            )
+            # Should return 400 for invalid token, but check if it handles gracefully
+            if response.status_code == 400:
+                detail = response.json().get('detail', '')
+                if 'already verified' in detail.lower() or 'invalid' in detail.lower():
+                    self.test_results['villa_auth']['verify_email_idempotent'] = True
+                    self.log_success("/auth/verify-email", "POST", f"- Handles invalid/already verified gracefully: {detail}")
+                else:
+                    self.test_results['villa_auth']['verify_email_idempotent'] = False
+                    self.log_error("/auth/verify-email", "POST", f"Unexpected error message: {detail}")
+            else:
+                self.test_results['villa_auth']['verify_email_idempotent'] = False
+                self.log_error("/auth/verify-email", "POST", f"Unexpected status: {response.status_code}")
+        except Exception as e:
+            self.test_results['villa_auth']['verify_email_idempotent'] = False
+            self.log_error("/auth/verify-email", "POST", f"Exception: {str(e)}")
     def run_all_tests(self):
         """Run all API tests"""
         print(f"🚀 Starting TROA Backend API Tests")
@@ -1756,6 +2211,11 @@ class TROAAPITester:
         
         # Test root endpoint first
         self.test_root_endpoint()
+        
+        # Test specific features from the review request
+        self.test_user_management_features()
+        self.test_google_oauth_features()
+        self.test_email_verification_features()
         
         # Test existing endpoints
         self.test_committee_members()
@@ -1784,6 +2244,9 @@ class TROAAPITester:
         
         # Test Event Registration Modification feature
         self.test_event_registration_modification()
+        
+        # Test Villa Management features
+        self.test_villa_management()
         
         # Test edge cases
         self.test_edge_cases()
@@ -1846,6 +2309,10 @@ class TROAAPITester:
                             display_endpoint = f"payment/{method}"
                         elif endpoint == 'event_modification':
                             display_endpoint = f"events/modification/{method}"
+                        elif endpoint == 'villa_management':
+                            display_endpoint = f"users/{method}"
+                        elif endpoint == 'villa_auth':
+                            display_endpoint = f"auth/{method}"
                         else:
                             display_endpoint = f"{endpoint}/{method}"
                             

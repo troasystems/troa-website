@@ -28,6 +28,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [needsVillaNumber, setNeedsVillaNumber] = useState(false);
 
   useEffect(() => {
     // Check for token in URL (from OAuth callback)
@@ -63,9 +64,18 @@ export const AuthProvider = ({ children }) => {
       });
       console.log('[Auth] User authenticated:', response.data.email);
       setUser(response.data);
+      
+      // Check if user needs to provide villa number
+      if (response.data.needs_villa_number) {
+        console.log('[Auth] User needs to provide villa number');
+        setNeedsVillaNumber(true);
+      } else {
+        setNeedsVillaNumber(false);
+      }
     } catch (error) {
       console.log('[Auth] Auth check failed:', error.response?.status, error.response?.data);
       setUser(null);
+      setNeedsVillaNumber(false);
       // Clear invalid token
       localStorage.removeItem('session_token');
     } finally {
@@ -84,6 +94,14 @@ export const AuthProvider = ({ children }) => {
       });
       console.log('[Auth] User data refreshed');
       setUser(response.data);
+      
+      // Update villa number requirement
+      if (response.data.needs_villa_number) {
+        setNeedsVillaNumber(true);
+      } else {
+        setNeedsVillaNumber(false);
+      }
+      
       return response.data;
     } catch (error) {
       console.error('[Auth] Failed to refresh user data:', error);
@@ -91,6 +109,43 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateVillaNumber = (villaNumber) => {
+    // Update local user state after villa number is set
+    if (user) {
+      setUser({ ...user, villa_number: villaNumber, needs_villa_number: false });
+    }
+    setNeedsVillaNumber(false);
+  };
+
+  // New frontend-based Google login using Google Identity Services
+  const loginWithGoogleToken = async (credential) => {
+    try {
+      console.log('[Auth] Verifying Google token with backend...');
+      const response = await axios.post(`${API}/auth/google/verify-token`, {
+        credential
+      });
+
+      if (response.data.status === 'success' && response.data.token) {
+        console.log('[Auth] Google login successful');
+        localStorage.setItem('session_token', response.data.token);
+        setUser(response.data.user);
+        
+        // Check if user needs villa number
+        if (response.data.user.needs_villa_number) {
+          setNeedsVillaNumber(true);
+        }
+        
+        return response.data;
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error) {
+      console.error('[Auth] Google token verification failed:', error.response?.data);
+      throw new Error(error.response?.data?.detail || 'Google authentication failed');
+    }
+  };
+
+  // Legacy Google OAuth (keeping for backward compatibility)
   const loginWithGoogle = () => {
     // Open Google OAuth in a popup window
     const width = 500;
@@ -196,10 +251,13 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     loginWithGoogle,
+    loginWithGoogleToken,
     loginWithEmail,
     registerWithEmail,
     logout,
     refreshUser,
+    updateVillaNumber,
+    needsVillaNumber,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     isManager: user?.role === 'manager',
