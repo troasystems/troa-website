@@ -888,27 +888,35 @@ async def verify_email(verify_request: VerifyEmailRequest):
         mongo_client = AsyncIOMotorClient(mongo_url)
         db = mongo_client[os.environ['DB_NAME']]
         
-        # Find user by verification token
-        query = {'verification_token': verify_request.token}
-        if verify_request.email:
-            query['email'] = verify_request.email
-        
-        user = await db.users.find_one(query, {'_id': 0})
+        # First, try to find user by token only (most reliable)
+        user = await db.users.find_one({'verification_token': verify_request.token}, {'_id': 0})
         
         if not user:
-            # Token not found - but if email is provided, check if user is already verified
-            # This handles the case where duplicate requests come in (e.g., React StrictMode)
+            # Token not found - check if user with this email exists and is already verified
             if verify_request.email:
                 existing_user = await db.users.find_one({'email': verify_request.email}, {'_id': 0})
-                if existing_user and existing_user.get('email_verified', False):
-                    mongo_client.close()
-                    return {
-                        'status': 'success',
-                        'message': 'Email is already verified',
-                        'email': existing_user['email']
-                    }
+                if existing_user:
+                    if existing_user.get('email_verified', False):
+                        mongo_client.close()
+                        return {
+                            'status': 'success',
+                            'message': 'Email is already verified',
+                            'email': existing_user['email']
+                        }
+                    else:
+                        # User exists but token doesn't match - they may have requested a new token
+                        mongo_client.close()
+                        raise HTTPException(
+                            status_code=400, 
+                            detail="This verification link is no longer valid. Please request a new verification email from the login page."
+                        )
             mongo_client.close()
             raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+        
+        # Verify email matches if provided (additional security check)
+        if verify_request.email and user.get('email') != verify_request.email:
+            mongo_client.close()
+            raise HTTPException(status_code=400, detail="Email mismatch in verification request")
         
         # Check if already verified
         if user.get('email_verified', False):
