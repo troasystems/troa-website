@@ -66,8 +66,10 @@ const UserManagement = () => {
       role: user.role || 'user',
       villa_number: user.villa_number || '',
       picture: user.picture || '',
-      new_password: ''
+      new_password: '',
+      email_verified: user.email_verified || false
     });
+    setPicturePreview(user.picture || '');
     setShowPassword(false);
     setEditModalOpen(true);
   };
@@ -80,12 +82,51 @@ const UserManagement = () => {
       role: '',
       villa_number: '',
       picture: '',
-      new_password: ''
+      new_password: '',
+      email_verified: false
     });
+    setPicturePreview('');
+  };
+
+  const handlePictureUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file size (max 1MB)
+      if (file.size > 1 * 1024 * 1024) {
+        toast({
+          title: 'Error',
+          description: 'Image size should be less than 1MB',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: 'Error',
+          description: 'Please upload an image file',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPicturePreview(reader.result);
+        setEditForm(prev => ({ ...prev, picture: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleEditFormChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+    // Handle checkbox
+    if (type === 'checkbox') {
+      setEditForm(prev => ({ ...prev, [name]: checked }));
+      return;
+    }
     // Validate villa_number to be numeric only
     if (name === 'villa_number' && value && !/^\d*$/.test(value)) {
       return;
@@ -110,6 +151,9 @@ const UserManagement = () => {
     }
     if (editForm.picture !== (editingUser.picture || '')) {
       updateData.picture = editForm.picture;
+    }
+    if (editForm.email_verified !== (editingUser.email_verified || false)) {
+      updateData.email_verified = editForm.email_verified;
     }
     if (editForm.new_password) {
       if (editForm.new_password.length < 6) {
