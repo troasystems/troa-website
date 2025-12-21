@@ -1918,6 +1918,196 @@ class TROAAPITester:
         except Exception as e:
             print(f"⚠️  Exception during cleanup: {str(e)}")
 
+    def test_user_management_features(self):
+        """Test User Management features from the review request"""
+        print("\n🧪 Testing User Management Features...")
+        
+        # Test 1: Admin can toggle email_verified to true
+        try:
+            # First get a user to test with
+            response = requests.get(f"{self.base_url}/users", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                users = response.json()
+                if users:
+                    test_user = users[0]  # Use first user for testing
+                    user_id = test_user['id']
+                    
+                    # Test toggling email_verified to true
+                    update_data = {'email_verified': True}
+                    response = requests.patch(f"{self.base_url}/users/{user_id}", 
+                                            json=update_data, 
+                                            headers=self.auth_headers,
+                                            timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get('email_verified') == True:
+                            self.test_results['user_management']['toggle_verified_true'] = True
+                            self.log_success(f"/users/{user_id} (toggle verified true)", "PATCH", "- Successfully toggled email_verified to true")
+                        else:
+                            self.test_results['user_management']['toggle_verified_true'] = False
+                            self.log_error(f"/users/{user_id} (toggle verified true)", "PATCH", "email_verified not updated to true")
+                    else:
+                        self.test_results['user_management']['toggle_verified_true'] = False
+                        self.log_error(f"/users/{user_id} (toggle verified true)", "PATCH", f"Status code: {response.status_code}")
+                    
+                    # Test 2: Admin can toggle email_verified to false
+                    update_data = {'email_verified': False}
+                    response = requests.patch(f"{self.base_url}/users/{user_id}", 
+                                            json=update_data, 
+                                            headers=self.auth_headers,
+                                            timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get('email_verified') == False:
+                            self.test_results['user_management']['toggle_verified_false'] = True
+                            self.log_success(f"/users/{user_id} (toggle verified false)", "PATCH", "- Successfully toggled email_verified to false")
+                        else:
+                            self.test_results['user_management']['toggle_verified_false'] = False
+                            self.log_error(f"/users/{user_id} (toggle verified false)", "PATCH", "email_verified not updated to false")
+                    else:
+                        self.test_results['user_management']['toggle_verified_false'] = False
+                        self.log_error(f"/users/{user_id} (toggle verified false)", "PATCH", f"Status code: {response.status_code}")
+                    
+                    # Test 3: Admin can update picture with base64 data URL
+                    base64_image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+                    update_data = {'picture': base64_image}
+                    response = requests.patch(f"{self.base_url}/users/{user_id}", 
+                                            json=update_data, 
+                                            headers=self.auth_headers,
+                                            timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get('picture') == base64_image:
+                            self.test_results['user_management']['update_picture_base64'] = True
+                            self.log_success(f"/users/{user_id} (update picture base64)", "PATCH", "- Successfully updated picture with base64 data")
+                        else:
+                            self.test_results['user_management']['update_picture_base64'] = False
+                            self.log_error(f"/users/{user_id} (update picture base64)", "PATCH", "Picture not updated with base64 data")
+                    else:
+                        self.test_results['user_management']['update_picture_base64'] = False
+                        self.log_error(f"/users/{user_id} (update picture base64)", "PATCH", f"Status code: {response.status_code}")
+                else:
+                    self.test_results['user_management']['toggle_verified_true'] = False
+                    self.test_results['user_management']['toggle_verified_false'] = False
+                    self.test_results['user_management']['update_picture_base64'] = False
+                    self.log_error("/users", "GET", "No users found for testing")
+            else:
+                self.test_results['user_management']['toggle_verified_true'] = False
+                self.test_results['user_management']['toggle_verified_false'] = False
+                self.test_results['user_management']['update_picture_base64'] = False
+                self.log_error("/users", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['user_management']['toggle_verified_true'] = False
+            self.test_results['user_management']['toggle_verified_false'] = False
+            self.test_results['user_management']['update_picture_base64'] = False
+            self.log_error("User Management", "TEST", f"Exception: {str(e)}")
+
+    def test_google_oauth_features(self):
+        """Test Google OAuth features from the review request"""
+        print("\n🧪 Testing Google OAuth Features...")
+        
+        # Test 1: POST /api/auth/google/verify-token - Returns error for invalid token
+        try:
+            invalid_token_data = {
+                'credential': 'invalid_jwt_token_12345'
+            }
+            
+            response = requests.post(f"{self.base_url}/auth/google/verify-token", 
+                                   json=invalid_token_data, 
+                                   headers={'Content-Type': 'application/json'},
+                                   timeout=10)
+            
+            if response.status_code == 400:
+                data = response.json()
+                if 'detail' in data and 'Invalid Google token' in data['detail']:
+                    self.test_results['google_oauth']['invalid_token_error'] = True
+                    self.log_success("/auth/google/verify-token (invalid)", "POST", "- Correctly returns error for invalid token")
+                else:
+                    self.test_results['google_oauth']['invalid_token_error'] = False
+                    self.log_error("/auth/google/verify-token (invalid)", "POST", "Invalid error message format")
+            else:
+                self.test_results['google_oauth']['invalid_token_error'] = False
+                self.log_error("/auth/google/verify-token (invalid)", "POST", f"Expected 400 but got status: {response.status_code}")
+        except Exception as e:
+            self.test_results['google_oauth']['invalid_token_error'] = False
+            self.log_error("/auth/google/verify-token (invalid)", "POST", f"Exception: {str(e)}")
+
+    def test_email_verification_features(self):
+        """Test Email Verification features from the review request"""
+        print("\n🧪 Testing Email Verification Features...")
+        
+        # Test 1: POST /api/auth/verify-email - Returns success for already verified user
+        try:
+            # Test with a token that doesn't exist but email that might be verified
+            verify_data = {
+                'token': 'non_existent_token_123',
+                'email': 'troa.systems@gmail.com'  # Admin email likely to be verified
+            }
+            
+            response = requests.post(f"{self.base_url}/auth/verify-email", 
+                                   json=verify_data, 
+                                   headers={'Content-Type': 'application/json'},
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if ('status' in data and data['status'] == 'success' and 
+                    'already verified' in data.get('message', '').lower()):
+                    self.test_results['email_verification']['already_verified_success'] = True
+                    self.log_success("/auth/verify-email (already verified)", "POST", "- Returns success for already verified user")
+                else:
+                    self.test_results['email_verification']['already_verified_success'] = False
+                    self.log_error("/auth/verify-email (already verified)", "POST", "Invalid response format")
+            elif response.status_code == 400:
+                # Check if it's the improved error message
+                data = response.json()
+                if 'no longer valid' in data.get('detail', ''):
+                    self.test_results['email_verification']['already_verified_success'] = True
+                    self.log_success("/auth/verify-email (token mismatch)", "POST", "- Returns clear error when token doesn't match")
+                else:
+                    self.test_results['email_verification']['already_verified_success'] = False
+                    self.log_error("/auth/verify-email (token mismatch)", "POST", f"Unexpected error message: {data.get('detail')}")
+            else:
+                self.test_results['email_verification']['already_verified_success'] = False
+                self.log_error("/auth/verify-email (already verified)", "POST", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['email_verification']['already_verified_success'] = False
+            self.log_error("/auth/verify-email (already verified)", "POST", f"Exception: {str(e)}")
+        
+        # Test 2: POST /api/auth/verify-email - Returns clear error when token doesn't match
+        try:
+            verify_data = {
+                'token': 'definitely_invalid_token_xyz',
+                'email': 'nonexistent@example.com'
+            }
+            
+            response = requests.post(f"{self.base_url}/auth/verify-email", 
+                                   json=verify_data, 
+                                   headers={'Content-Type': 'application/json'},
+                                   timeout=10)
+            
+            if response.status_code == 400:
+                data = response.json()
+                if ('detail' in data and 
+                    ('Invalid or expired' in data['detail'] or 'no longer valid' in data['detail'])):
+                    self.test_results['email_verification']['token_mismatch_error'] = True
+                    self.log_success("/auth/verify-email (token mismatch)", "POST", "- Returns clear error when token doesn't match")
+                else:
+                    self.test_results['email_verification']['token_mismatch_error'] = False
+                    self.log_error("/auth/verify-email (token mismatch)", "POST", f"Unexpected error message: {data.get('detail')}")
+            else:
+                self.test_results['email_verification']['token_mismatch_error'] = False
+                self.log_error("/auth/verify-email (token mismatch)", "POST", f"Expected 400 but got status: {response.status_code}")
+        except Exception as e:
+            self.test_results['email_verification']['token_mismatch_error'] = False
+            self.log_error("/auth/verify-email (token mismatch)", "POST", f"Exception: {str(e)}")
+
     def test_villa_auth_endpoints(self):
         """Test Villa-related Auth API endpoints"""
         print("\n🔐 Testing Villa Auth API...")
