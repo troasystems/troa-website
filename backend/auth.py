@@ -477,7 +477,8 @@ async def google_callback(code: str, state: str, request: Request):
                 'name': user_info.get('name', ''),
                 'picture': user_info.get('picture', ''),
                 'last_login': datetime.utcnow(),
-                'email_verified': True  # Google users are always verified
+                'email_verified': True,  # Google users are always verified
+                'provider': 'google'  # Update provider if they're now using Google
             }
             
             # Only update role for super admin to ensure they always have admin access
@@ -489,7 +490,7 @@ async def google_callback(code: str, state: str, request: Request):
                 {'email': user_info['email']},
                 {'$set': update_data}
             )
-            logger.info(f"Existing user updated: {user_info['email']} with role: {user_role}")
+            logger.info(f"Existing user updated via Google: {user_info['email']} with role: {user_role}")
             
             # Check if existing user needs villa number (empty or not set)
             if not existing_user.get('villa_number'):
