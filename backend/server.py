@@ -170,7 +170,14 @@ async def delete_committee_member(member_id: str, request: Request):
 async def get_amenities():
     try:
         amenities = await db.amenities.find().to_list(100)
-        return [Amenity(**amenity) for amenity in amenities]
+        result = []
+        for amenity in amenities:
+            # Use existing 'id' field or fallback to string of MongoDB '_id'
+            if 'id' not in amenity or not amenity['id']:
+                amenity['id'] = str(amenity['_id'])
+            amenity.pop('_id', None)
+            result.append(Amenity(**amenity))
+        return result
     except Exception as e:
         logger.error(f"Error fetching amenities: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch amenities")
@@ -197,15 +204,33 @@ async def update_amenity(amenity_id: str, amenity: AmenityCreate, request: Reque
     try:
         admin = await require_admin(request)
         
+        # Try to find by 'id' field first, then by '_id' (for legacy documents)
+        from bson import ObjectId
+        query = {"id": amenity_id}
+        existing = await db.amenities.find_one(query)
+        
+        if not existing:
+            # Try finding by MongoDB _id (for documents without 'id' field)
+            try:
+                query = {"_id": ObjectId(amenity_id)}
+                existing = await db.amenities.find_one(query)
+            except:
+                pass
+        
+        if not existing:
+            raise HTTPException(status_code=404, detail="Amenity not found")
+        
+        # Update the document and ensure it has an 'id' field
+        update_data = amenity.dict()
+        update_data['id'] = amenity_id  # Persist the id field
+        
         result = await db.amenities.find_one_and_update(
-            {"id": amenity_id},
-            {"$set": amenity.dict()},
+            query,
+            {"$set": update_data},
             return_document=True
         )
         
-        if not result:
-            raise HTTPException(status_code=404, detail="Amenity not found")
-        
+        result.pop('_id', None)
         return Amenity(**result)
     except HTTPException:
         raise
@@ -219,7 +244,16 @@ async def delete_amenity(amenity_id: str, request: Request):
     try:
         admin = await require_admin(request)
         
+        # Try to delete by 'id' field first, then by '_id' (for legacy documents)
+        from bson import ObjectId
         result = await db.amenities.delete_one({"id": amenity_id})
+        
+        if result.deleted_count == 0:
+            # Try deleting by MongoDB _id
+            try:
+                result = await db.amenities.delete_one({"_id": ObjectId(amenity_id)})
+            except:
+                pass
         
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Amenity not found")
