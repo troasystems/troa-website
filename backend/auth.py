@@ -833,6 +833,17 @@ async def verify_email(verify_request: VerifyEmailRequest):
         user = await db.users.find_one(query, {'_id': 0})
         
         if not user:
+            # Token not found - but if email is provided, check if user is already verified
+            # This handles the case where duplicate requests come in (e.g., React StrictMode)
+            if verify_request.email:
+                existing_user = await db.users.find_one({'email': verify_request.email}, {'_id': 0})
+                if existing_user and existing_user.get('email_verified', False):
+                    mongo_client.close()
+                    return {
+                        'status': 'success',
+                        'message': 'Email is already verified',
+                        'email': existing_user['email']
+                    }
             mongo_client.close()
             raise HTTPException(status_code=400, detail="Invalid or expired verification token")
         
