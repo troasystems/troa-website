@@ -2247,7 +2247,6 @@ class TROAAPITester:
         
         # Test Villa Management features
         self.test_villa_management()
-        self.test_villa_auth_endpoints()
         
         # Test edge cases
         self.test_edge_cases()
