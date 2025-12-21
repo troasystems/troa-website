@@ -449,7 +449,9 @@ async def google_callback(code: str, state: str, request: Request):
             'name': user_info.get('name', ''),
             'picture': user_info.get('picture', ''),
             'role': user_role,
-            'is_admin': user_role == 'admin'  # Legacy support
+            'is_admin': user_role == 'admin',  # Legacy support
+            'provider': 'google',
+            'email_verified': True  # Google users are always verified
         }
         
         needs_villa_number = False
