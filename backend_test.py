@@ -2113,6 +2113,10 @@ class TROAAPITester:
                             display_endpoint = f"payment/{method}"
                         elif endpoint == 'event_modification':
                             display_endpoint = f"events/modification/{method}"
+                        elif endpoint == 'villa_management':
+                            display_endpoint = f"users/{method}"
+                        elif endpoint == 'villa_auth':
+                            display_endpoint = f"auth/{method}"
                         else:
                             display_endpoint = f"{endpoint}/{method}"
                             
