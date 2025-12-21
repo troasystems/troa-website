@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
 const getBackendUrl = () => {
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
@@ -15,9 +16,11 @@ const API = `${getBackendUrl()}/api`;
 const VerifyEmail = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { isAuthenticated, refreshUser } = useAuth();
   const [status, setStatus] = useState('loading'); // loading, success, error
   const [message, setMessage] = useState('');
   const [email, setEmail] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const hasVerified = useRef(false); // Prevent duplicate requests (React StrictMode)
 
   useEffect(() => {
@@ -36,6 +39,10 @@ const VerifyEmail = () => {
       }
 
       try {
+        // Check if user has a session token (is logged in)
+        const sessionToken = localStorage.getItem('session_token');
+        setIsLoggedIn(!!sessionToken);
+
         const response = await axios.post(`${API}/auth/verify-email`, {
           token,
           email: emailParam
@@ -46,9 +53,24 @@ const VerifyEmail = () => {
           setEmail(response.data.email || emailParam);
           setMessage('Your email has been verified successfully!');
           
-          // Redirect to home after 3 seconds
+          // If user is logged in, refresh their user data to update email_verified status
+          if (sessionToken) {
+            try {
+              await refreshUser();
+            } catch (e) {
+              console.log('Could not refresh user data');
+            }
+          }
+          
+          // Redirect after 3 seconds
           setTimeout(() => {
-            navigate('/');
+            if (sessionToken) {
+              // User is logged in, go to homepage
+              navigate('/');
+            } else {
+              // User opened link in new tab/browser, go to login
+              navigate('/login', { state: { message: 'Email verified! Please log in to continue.' } });
+            }
           }, 3000);
         } else {
           setStatus('error');
@@ -64,7 +86,7 @@ const VerifyEmail = () => {
     };
 
     verifyEmail();
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, refreshUser]);
 
   return (
     <div className="min-h-screen pt-20 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 flex items-center justify-center px-4">
