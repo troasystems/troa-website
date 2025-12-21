@@ -117,6 +117,35 @@ export const AuthProvider = ({ children }) => {
     setNeedsVillaNumber(false);
   };
 
+  // New frontend-based Google login using Google Identity Services
+  const loginWithGoogleToken = async (credential) => {
+    try {
+      console.log('[Auth] Verifying Google token with backend...');
+      const response = await axios.post(`${API}/auth/google/verify-token`, {
+        credential
+      });
+
+      if (response.data.status === 'success' && response.data.token) {
+        console.log('[Auth] Google login successful');
+        localStorage.setItem('session_token', response.data.token);
+        setUser(response.data.user);
+        
+        // Check if user needs villa number
+        if (response.data.user.needs_villa_number) {
+          setNeedsVillaNumber(true);
+        }
+        
+        return response.data;
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error) {
+      console.error('[Auth] Google token verification failed:', error.response?.data);
+      throw new Error(error.response?.data?.detail || 'Google authentication failed');
+    }
+  };
+
+  // Legacy Google OAuth (keeping for backward compatibility)
   const loginWithGoogle = () => {
     // Open Google OAuth in a popup window
     const width = 500;
