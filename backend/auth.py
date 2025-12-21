@@ -330,6 +330,8 @@ async def google_callback(code: str, state: str, request: Request):
             'is_admin': user_role == 'admin'  # Legacy support
         }
         
+        needs_villa_number = False
+        
         if not existing_user:
             # Create new user with default 'user' role (admin can promote later)
             user_obj = User(
@@ -338,16 +340,20 @@ async def google_callback(code: str, state: str, request: Request):
                 picture=user_info.get('picture', ''),
                 provider='google',
                 role=user_role,
-                is_admin=user_role == 'admin'
+                is_admin=user_role == 'admin',
+                villa_number='',  # Empty - will need to be filled
+                email_verified=True  # Google users are pre-verified
             )
             await db.users.insert_one(user_obj.dict())
             logger.info(f"New user created: {user_info['email']} with role: {user_role}")
+            needs_villa_number = True  # New user needs to provide villa number
         else:
-            # Update existing user - preserve role from database
+            # Update existing user - preserve role and villa_number from database
             update_data = {
                 'name': user_info.get('name', ''),
                 'picture': user_info.get('picture', ''),
-                'last_login': datetime.utcnow()
+                'last_login': datetime.utcnow(),
+                'email_verified': True  # Google users are always verified
             }
             
             # Only update role for super admin to ensure they always have admin access
@@ -360,10 +366,18 @@ async def google_callback(code: str, state: str, request: Request):
                 {'$set': update_data}
             )
             logger.info(f"Existing user updated: {user_info['email']} with role: {user_role}")
+            
+            # Check if existing user needs villa number (empty or not set)
+            if not existing_user.get('villa_number'):
+                needs_villa_number = True
+        
+        # Add villa number requirement flag to user data
+        user_data['needs_villa_number'] = needs_villa_number
+        user_data['villa_number'] = existing_user.get('villa_number', '') if existing_user else ''
         
         # Create session
         session_token = await create_session(user_data)
-        logger.info(f"Session created for user: {user_info['email']}")
+        logger.info(f"Session created for user: {user_info['email']}, needs_villa: {needs_villa_number}")
         
         mongo_client.close()
         
