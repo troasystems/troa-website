@@ -470,30 +470,98 @@ const UserManagement = () => {
                 <p className="text-xs text-gray-500 mt-1">Numbers only</p>
               </div>
 
-              {/* Picture URL */}
+              {/* Picture Upload/URL */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   <Camera className="w-4 h-4 inline mr-1" />
-                  Picture URL
+                  Profile Picture
                 </label>
-                <input
-                  type="text"
-                  name="picture"
-                  value={editForm.picture}
-                  onChange={handleEditFormChange}
-                  placeholder="Enter picture URL"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                />
-                {editForm.picture && (
-                  <div className="mt-2">
-                    <img 
-                      src={editForm.picture} 
-                      alt="Preview" 
-                      className="w-16 h-16 rounded-full object-cover"
-                      onError={(e) => e.target.style.display = 'none'}
+                <div className="space-y-2">
+                  {/* Upload button */}
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*"
+                      onChange={handlePictureUpload}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center space-x-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Upload Image</span>
+                    </button>
+                    <span className="text-xs text-gray-500">Max 1MB</span>
+                  </div>
+                  {/* Or URL input */}
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-gray-400">OR</span>
+                    <input
+                      type="text"
+                      name="picture"
+                      value={editForm.picture.startsWith('data:') ? '' : editForm.picture}
+                      onChange={(e) => {
+                        setEditForm(prev => ({ ...prev, picture: e.target.value }));
+                        setPicturePreview(e.target.value);
+                      }}
+                      placeholder="Enter picture URL"
+                      className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                     />
                   </div>
-                )}
+                  {/* Preview */}
+                  {picturePreview && (
+                    <div className="flex items-center space-x-2 mt-2">
+                      <img 
+                        src={picturePreview} 
+                        alt="Preview" 
+                        className="w-16 h-16 rounded-full object-cover border-2 border-purple-200"
+                        onError={(e) => e.target.style.display = 'none'}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPicturePreview('');
+                          setEditForm(prev => ({ ...prev, picture: '' }));
+                        }}
+                        className="text-xs text-red-600 hover:text-red-800"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Email Verified Toggle */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    {editForm.email_verified ? (
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-red-500" />
+                    )}
+                    <span className="text-sm font-medium text-gray-700">Email Verified</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="email_verified"
+                      checked={editForm.email_verified}
+                      onChange={handleEditFormChange}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {editForm.email_verified 
+                    ? 'User can access all features' 
+                    : 'User will see verification banner'}
+                </p>
               </div>
 
               {/* Password Reset (only for email users) */}
