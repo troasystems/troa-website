@@ -169,6 +169,125 @@ async def require_manager_or_admin(request: Request):
         raise HTTPException(status_code=403, detail="Manager or Admin access required")
     return user
 
+
+# Google OAuth - Frontend Token Verification
+class GoogleTokenRequest(BaseModel):
+    credential: str  # The JWT credential from Google Identity Services
+
+@auth_router.post('/google/verify-token')
+async def verify_google_token(token_request: GoogleTokenRequest, request: Request):
+    """Verify Google ID token from frontend and create session"""
+    try:
+        from google.oauth2 import id_token
+        from google.auth.transport import requests as google_requests
+        
+        # Verify the token
+        try:
+            idinfo = id_token.verify_oauth2_token(
+                token_request.credential, 
+                google_requests.Request(), 
+                GOOGLE_CLIENT_ID
+            )
+        except ValueError as e:
+            logger.error(f"Invalid Google token: {e}")
+            raise HTTPException(status_code=400, detail="Invalid Google token")
+        
+        # Get user info from the verified token
+        email = idinfo.get('email')
+        name = idinfo.get('name', '')
+        picture = idinfo.get('picture', '')
+        
+        if not email:
+            raise HTTPException(status_code=400, detail="Email not found in token")
+        
+        logger.info(f"Google token verified for: {email}")
+        
+        # Get database
+        mongo_url = os.environ['MONGO_URL']
+        mongo_client = AsyncIOMotorClient(mongo_url)
+        db = mongo_client[os.environ['DB_NAME']]
+        
+        # Check if user exists
+        existing_user = await db.users.find_one({'email': email}, {'_id': 0})
+        
+        # Determine user role
+        if email == SUPER_ADMIN_EMAIL:
+            user_role = 'admin'
+        elif existing_user and 'role' in existing_user:
+            user_role = existing_user['role']
+        else:
+            user_role = 'user'
+        
+        needs_villa_number = False
+        
+        if not existing_user:
+            # Create new user
+            user_obj = User(
+                email=email,
+                name=name,
+                picture=picture,
+                provider='google',
+                role=user_role,
+                is_admin=user_role == 'admin',
+                villa_number='',
+                email_verified=True  # Google users are pre-verified
+            )
+            await db.users.insert_one(user_obj.dict())
+            logger.info(f"New Google user created: {email} with role: {user_role}")
+            needs_villa_number = True
+        else:
+            # Update existing user
+            update_data = {
+                'name': name,
+                'picture': picture,
+                'last_login': datetime.utcnow(),
+                'email_verified': True,
+                'provider': 'google'  # Update provider if they're now using Google
+            }
+            
+            if email == SUPER_ADMIN_EMAIL and existing_user.get('role') != 'admin':
+                update_data['role'] = 'admin'
+                update_data['is_admin'] = True
+            
+            await db.users.update_one(
+                {'email': email},
+                {'$set': update_data}
+            )
+            logger.info(f"Existing user updated via Google: {email}")
+            
+            if not existing_user.get('villa_number'):
+                needs_villa_number = True
+        
+        # Create session
+        user_data = {
+            'email': email,
+            'name': name,
+            'picture': picture,
+            'role': user_role,
+            'is_admin': user_role == 'admin',
+            'needs_villa_number': needs_villa_number,
+            'villa_number': existing_user.get('villa_number', '') if existing_user else ''
+        }
+        
+        session_token = await create_session(user_data)
+        mongo_client.close()
+        
+        logger.info(f"Session created for Google user: {email}")
+        
+        return {
+            'status': 'success',
+            'token': session_token,
+            'user': user_data
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Google token verification failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Authentication failed: {str(e)}")
+
+
+# Legacy Google OAuth endpoints (keeping for backward compatibility)
 @auth_router.get('/google/login')
 async def google_login(request: Request):
     """Initiate Google OAuth login"""
