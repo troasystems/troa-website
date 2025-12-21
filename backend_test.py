@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Backend API Testing for TROA (The Retreat Owners Association) Website
-Tests all backend APIs including Committee Members, Amenities, Gallery, Membership Application, Events, and Amenity Booking endpoints.
+Tests all backend APIs including Committee Members, Amenities, Gallery, Membership Application, Events, Amenity Booking, and Villa Management endpoints.
 """
 
 import requests
