@@ -55,6 +55,7 @@ function App() {
           </div>
           <Footer />
           <Chatbot />
+          <VillaNumberModalWrapper />
         </AuthProvider>
       </BrowserRouter>
     </div>
