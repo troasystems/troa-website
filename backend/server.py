@@ -69,8 +69,15 @@ async def root():
 @api_router.get("/committee", response_model=List[CommitteeMember])
 async def get_committee_members():
     try:
-        members = await db.committee_members.find({}, {"_id": 0}).to_list(100)
-        return [CommitteeMember(**member) for member in members]
+        members = await db.committee_members.find().to_list(100)
+        result = []
+        for member in members:
+            # Use existing 'id' field or fallback to string of MongoDB '_id'
+            if 'id' not in member or not member['id']:
+                member['id'] = str(member['_id'])
+            member.pop('_id', None)
+            result.append(CommitteeMember(**member))
+        return result
     except Exception as e:
         logger.error(f"Error fetching committee members: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch committee members")
@@ -97,15 +104,33 @@ async def update_committee_member(member_id: str, member: CommitteeMemberCreate,
     try:
         admin = await require_admin(request)
         
+        # Try to find by 'id' field first, then by '_id' (for legacy documents)
+        from bson import ObjectId
+        query = {"id": member_id}
+        existing = await db.committee_members.find_one(query)
+        
+        if not existing:
+            # Try finding by MongoDB _id (for documents without 'id' field)
+            try:
+                query = {"_id": ObjectId(member_id)}
+                existing = await db.committee_members.find_one(query)
+            except:
+                pass
+        
+        if not existing:
+            raise HTTPException(status_code=404, detail="Committee member not found")
+        
+        # Update the document and ensure it has an 'id' field
+        update_data = member.dict()
+        update_data['id'] = member_id  # Persist the id field
+        
         result = await db.committee_members.find_one_and_update(
-            {"id": member_id},
-            {"$set": member.dict()},
+            query,
+            {"$set": update_data},
             return_document=True
         )
         
-        if not result:
-            raise HTTPException(status_code=404, detail="Committee member not found")
-        
+        result.pop('_id', None)
         return CommitteeMember(**result)
     except HTTPException:
         raise
@@ -119,7 +144,16 @@ async def delete_committee_member(member_id: str, request: Request):
     try:
         admin = await require_admin(request)
         
+        # Try to delete by 'id' field first, then by '_id' (for legacy documents)
+        from bson import ObjectId
         result = await db.committee_members.delete_one({"id": member_id})
+        
+        if result.deleted_count == 0:
+            # Try deleting by MongoDB _id
+            try:
+                result = await db.committee_members.delete_one({"_id": ObjectId(member_id)})
+            except:
+                pass
         
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Committee member not found")
