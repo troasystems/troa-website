@@ -2212,6 +2212,11 @@ class TROAAPITester:
         # Test root endpoint first
         self.test_root_endpoint()
         
+        # Test specific features from the review request
+        self.test_user_management_features()
+        self.test_google_oauth_features()
+        self.test_email_verification_features()
+        
         # Test existing endpoints
         self.test_committee_members()
         self.test_amenities()
