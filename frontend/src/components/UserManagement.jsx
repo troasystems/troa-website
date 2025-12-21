@@ -355,7 +355,14 @@ const UserManagement = () => {
           </div>
         )}
         <div>
-          <p className="font-semibold text-gray-900">{user.name || 'No name'}</p>
+          <div className="flex items-center space-x-2">
+            <p className="font-semibold text-gray-900">{user.name || 'No name'}</p>
+            {user.email_verified ? (
+              <CheckCircle className="w-4 h-4 text-green-500" title="Email verified" />
+            ) : (
+              <XCircle className="w-4 h-4 text-red-400" title="Email not verified" />
+            )}
+          </div>
           <p className="text-sm text-gray-600">{user.email}</p>
           {user.villa_number && (
             <p className="text-xs text-purple-600 mt-1">
