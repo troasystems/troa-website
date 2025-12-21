@@ -829,6 +829,50 @@ async def update_profile_picture(picture_data: ProfilePictureUpdate, request: Re
         raise HTTPException(status_code=500, detail=f"Profile picture update failed: {str(e)}")
 
 
+# Villa Number Update Endpoint (for Google OAuth first-time login)
+class VillaNumberUpdate(BaseModel):
+    villa_number: str
+
+@auth_router.post('/update-villa-number')
+async def update_villa_number(villa_data: VillaNumberUpdate, request: Request):
+    """Update villa number for authenticated user"""
+    try:
+        # Get current user
+        user = await get_current_user(request)
+        if not user:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
+        # Validate villa number (must be numeric)
+        if not villa_data.villa_number or not villa_data.villa_number.isdigit():
+            raise HTTPException(status_code=400, detail="Villa number must be numeric")
+        
+        # Get database
+        mongo_url = os.environ['MONGO_URL']
+        mongo_client = AsyncIOMotorClient(mongo_url)
+        db = mongo_client[os.environ['DB_NAME']]
+        
+        # Update villa number
+        await db.users.update_one(
+            {'email': user['email']},
+            {'$set': {'villa_number': villa_data.villa_number}}
+        )
+        
+        logger.info(f"Villa number updated for user: {user['email']} to {villa_data.villa_number}")
+        mongo_client.close()
+        
+        return {
+            'status': 'success',
+            'message': 'Villa number updated successfully',
+            'villa_number': villa_data.villa_number
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Villa number update failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Villa number update failed: {str(e)}")
+
+
 # Email Verification Endpoints
 @auth_router.post('/verify-email')
 async def verify_email(verify_request: VerifyEmailRequest):
