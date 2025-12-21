@@ -93,7 +93,12 @@ class UserCreate(BaseModel):
     villa_number: str = ""
 
 class UserUpdate(BaseModel):
-    role: str  # admin, manager, user
+    role: Optional[str] = None  # admin, manager, user
+    name: Optional[str] = None
+    villa_number: Optional[str] = None
+    picture: Optional[str] = None
+    new_password: Optional[str] = None  # For password reset by admin
+    email_verified: Optional[bool] = None  # Admin can manually verify/unverify
 
 class AmenityBooking(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -136,9 +141,6 @@ class FeedbackCreate(BaseModel):
     works_well: Optional[str] = None
     needs_improvement: Optional[str] = None
     feature_suggestions: Optional[str] = None
-
-class UserUpdate(BaseModel):
-    role: str  # admin, manager, user
 
 # Event Models
 class EventPreference(BaseModel):
