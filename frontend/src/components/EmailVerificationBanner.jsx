@@ -58,10 +58,19 @@ const EmailVerificationBanner = () => {
   // - User logged in via Google (auto-verified)
   // - Banner is dismissed
   // - On certain pages
+  
+  // Debug log to help troubleshoot verification banner issues
+  console.log('[VerificationBanner] User data:', {
+    email: user?.email,
+    provider: user?.provider,
+    email_verified: user?.email_verified,
+    isAuthenticated
+  });
+  
   if (
     !isVisible ||
     !isAuthenticated ||
-    user?.email_verified ||
+    user?.email_verified === true ||
     user?.provider === 'google' ||
     location.pathname === '/login' ||
     location.pathname === '/verify-email'
