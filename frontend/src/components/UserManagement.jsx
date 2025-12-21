@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Users, Shield, UserCog, User as UserIcon, Trash2, Edit2, Save, X, UserPlus, Mail, AtSign, Home, Lock, Camera, Eye, EyeOff } from 'lucide-react';
+import { Users, Shield, UserCog, User as UserIcon, Trash2, Edit2, Save, X, UserPlus, Mail, AtSign, Home, Lock, Camera, Eye, EyeOff, CheckCircle, XCircle, Upload } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 
 import { getBackendUrl } from '../utils/api';
@@ -24,10 +24,13 @@ const UserManagement = () => {
     role: '',
     villa_number: '',
     picture: '',
-    new_password: ''
+    new_password: '',
+    email_verified: false
   });
   const [showPassword, setShowPassword] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
+  const [picturePreview, setPicturePreview] = useState('');
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchUsers();
