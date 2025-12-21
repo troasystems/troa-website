@@ -26,7 +26,7 @@ class EmailService:
         self.region = os.getenv('AWS_SES_REGION', 'ap-south-2')
         self.sender_email = os.getenv('AWS_SES_SENDER_EMAIL', 'noreply@troa.in')
         self.reply_to_email = os.getenv('AWS_SES_REPLY_TO_EMAIL', 'troa.systems@gmail.com')
-        self.frontend_url = os.getenv('REACT_APP_BACKEND_URL', 'https://villa-manager-13.preview.emergentagent.com')
+        self.frontend_url = os.getenv('REACT_APP_BACKEND_URL', 'https://emailbuzz.preview.emergentagent.com')
         
         if not self.access_key or not self.secret_key:
             logger.warning("AWS credentials not configured. Email sending will be disabled.")

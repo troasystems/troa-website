@@ -751,7 +751,7 @@ app.add_middleware(
 default_cors_origins = [
     "https://troa.in",
     "http://troa.in",
-    "https://villa-manager-13.preview.emergentagent.com",
+    "https://emailbuzz.preview.emergentagent.com",
     "https://tenant-assist-6.emergent.host",
     "http://localhost:3000",
     "http://127.0.0.1:3000",

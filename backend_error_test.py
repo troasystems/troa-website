@@ -9,7 +9,7 @@ import json
 import os
 
 # Get backend URL from environment
-BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://villa-manager-13.preview.emergentagent.com')
+BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://emailbuzz.preview.emergentagent.com')
 API_BASE_URL = f"{BACKEND_URL}/api"
 
 class TROAErrorTester:
