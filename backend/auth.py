@@ -476,6 +476,10 @@ async def get_user(request: Request):
             if verification_expires_at and isinstance(verification_expires_at, datetime):
                 verification_expires_at = verification_expires_at.isoformat()
             
+            # Check if user needs to provide villa number (Google users without villa)
+            villa_number = db_user.get('villa_number', '')
+            needs_villa_number = db_user.get('provider') == 'google' and not villa_number
+            
             # Return fresh data from database with session role info
             return {
                 'email': db_user.get('email'),
@@ -483,10 +487,11 @@ async def get_user(request: Request):
                 'picture': db_user.get('picture', ''),
                 'role': user.get('role', 'user'),  # Keep role from session for consistency
                 'is_admin': user.get('role') == 'admin',
-                'villa_number': db_user.get('villa_number'),
+                'villa_number': villa_number,
                 'email_verified': db_user.get('email_verified', False),
                 'verification_expires_at': verification_expires_at,
-                'provider': db_user.get('provider', 'email')
+                'provider': db_user.get('provider', 'email'),
+                'needs_villa_number': needs_villa_number
             }
         
         return user
