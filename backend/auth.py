@@ -267,7 +267,9 @@ async def verify_google_token(token_request: GoogleTokenRequest, request: Reques
             'role': user_role,
             'is_admin': user_role == 'admin',
             'needs_villa_number': needs_villa_number,
-            'villa_number': existing_user.get('villa_number', '') if existing_user else ''
+            'villa_number': existing_user.get('villa_number', '') if existing_user else '',
+            'provider': 'google',
+            'email_verified': True  # Google users are always verified
         }
         
         session_token = await create_session(user_data)
