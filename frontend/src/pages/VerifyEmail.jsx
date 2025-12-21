@@ -116,14 +116,16 @@ const VerifyEmail = () => {
             )}
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
               <p className="text-green-700 text-sm">
-                Redirecting you to the homepage in a few seconds...
+                {isLoggedIn 
+                  ? 'Redirecting you to the homepage in a few seconds...'
+                  : 'Redirecting you to login in a few seconds...'}
               </p>
             </div>
             <Link
-              to="/"
+              to={isLoggedIn ? "/" : "/login"}
               className="inline-block px-6 py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white font-semibold rounded-lg hover:opacity-90 transition-opacity"
             >
-              Go to Homepage
+              {isLoggedIn ? 'Go to Homepage' : 'Go to Login'}
             </Link>
           </>
         )}
