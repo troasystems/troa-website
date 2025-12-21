@@ -1,6 +1,7 @@
 import React from 'react';
 import './App.css';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 import Navbar from './components/Navbar';
@@ -25,39 +26,43 @@ import MyEvents from './pages/MyEvents';
 import ProfileSettings from './pages/ProfileSettings';
 import VerifyEmail from './pages/VerifyEmail';
 
+const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+
 function App() {
   return (
     <div className="App">
-      <BrowserRouter>
-        <AuthProvider>
-          <ScrollToTop />
-          <Navbar />
-          <FeedbackBanner />
-          <EmailVerificationBanner />
-          <div className="pt-12">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/committee" element={<Committee />} />
-              <Route path="/amenities" element={<Amenities />} />
-              <Route path="/gallery" element={<Gallery />} />
-              <Route path="/help-desk" element={<HelpDesk />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/feedback" element={<Feedback />} />
-              <Route path="/my-bookings" element={<MyBookings />} />
-              <Route path="/events" element={<Events />} />
-              <Route path="/my-events" element={<MyEvents />} />
-              <Route path="/profile" element={<ProfileSettings />} />
-              <Route path="/admin" element={<AdminPortal />} />
-              <Route path="/verify-email" element={<VerifyEmail />} />
-            </Routes>
-          </div>
-          <Footer />
-          <Chatbot />
-          <VillaNumberModalWrapper />
-        </AuthProvider>
-      </BrowserRouter>
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <BrowserRouter>
+          <AuthProvider>
+            <ScrollToTop />
+            <Navbar />
+            <FeedbackBanner />
+            <EmailVerificationBanner />
+            <div className="pt-12">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/committee" element={<Committee />} />
+                <Route path="/amenities" element={<Amenities />} />
+                <Route path="/gallery" element={<Gallery />} />
+                <Route path="/help-desk" element={<HelpDesk />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/feedback" element={<Feedback />} />
+                <Route path="/my-bookings" element={<MyBookings />} />
+                <Route path="/events" element={<Events />} />
+                <Route path="/my-events" element={<MyEvents />} />
+                <Route path="/profile" element={<ProfileSettings />} />
+                <Route path="/admin" element={<AdminPortal />} />
+                <Route path="/verify-email" element={<VerifyEmail />} />
+              </Routes>
+            </div>
+            <Footer />
+            <Chatbot />
+            <VillaNumberModalWrapper />
+          </AuthProvider>
+        </BrowserRouter>
+      </GoogleOAuthProvider>
     </div>
   );
 }
