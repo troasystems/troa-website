@@ -633,7 +633,6 @@ async def logout(request: Request):
 
 
 # Email/Password Authentication Routes
-from pydantic import BaseModel, EmailStr
 import bcrypt
 from email_service import email_service
 
