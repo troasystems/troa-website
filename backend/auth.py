@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse
 from authlib.integrations.starlette_client import OAuth
 from starlette.config import Config
 from starlette.middleware.sessions import SessionMiddleware
+from pydantic import BaseModel, EmailStr
 import os
 import logging
 from typing import Optional
