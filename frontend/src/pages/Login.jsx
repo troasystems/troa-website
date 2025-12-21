@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogIn, Mail, Lock, User, Eye, EyeOff, Home, Camera, AlertTriangle, RefreshCw } from 'lucide-react';
+import { LogIn, Mail, Lock, User, Eye, EyeOff, Home, Camera, AlertTriangle, RefreshCw, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 
 const getBackendUrl = () => {
@@ -16,6 +16,7 @@ const API = `${getBackendUrl()}/api`;
 const Login = () => {
   const { loginWithGoogle, loginWithEmail, registerWithEmail, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -29,6 +30,7 @@ const Login = () => {
   const [picturePreview, setPicturePreview] = useState('');
   const [formLoading, setFormLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [showVerificationExpired, setShowVerificationExpired] = useState(false);
   const [resendingEmail, setResendingEmail] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
@@ -37,7 +39,13 @@ const Login = () => {
     if (isAuthenticated) {
       navigate('/');
     }
-  }, [isAuthenticated, navigate]);
+    // Check for success message from email verification redirect
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      // Clear the state so message doesn't persist on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [isAuthenticated, navigate, location.state]);
 
   const handleInputChange = (e) => {
     setFormData({
