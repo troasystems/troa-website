@@ -2048,6 +2048,10 @@ class TROAAPITester:
         # Test Event Registration Modification feature
         self.test_event_registration_modification()
         
+        # Test Villa Management features
+        self.test_villa_management()
+        self.test_villa_auth_endpoints()
+        
         # Test edge cases
         self.test_edge_cases()
         
