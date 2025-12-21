@@ -112,3 +112,11 @@ android-sdk/ -e
 *.env.*
 =======
 >>>>>>> upstream/main
+-e 
+# Environment files
+*.env
+*.env.*
+-e 
+# Environment files
+*.env
+*.env.*
