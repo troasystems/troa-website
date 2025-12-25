@@ -2635,6 +2635,9 @@ class TROAAPITester:
         # Test Community Chat features
         self.test_community_chat()
         
+        # Test Push Notifications
+        self.test_push_notifications()
+        
         # Test edge cases
         self.test_edge_cases()
         
