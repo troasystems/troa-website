@@ -40,7 +40,8 @@ class TROAAPITester:
             'villa_management': {'update_name': None, 'update_villa_valid': None, 'update_villa_invalid': None, 'update_password': None, 'update_photo': None, 'create_with_villa': None},
             'user_management': {'toggle_verified_true': None, 'toggle_verified_false': None, 'update_picture_base64': None},
             'google_oauth': {'invalid_token_error': None},
-            'email_verification': {'already_verified_success': None, 'token_mismatch_error': None}
+            'email_verification': {'already_verified_success': None, 'token_mismatch_error': None},
+            'community_chat': {'get_groups': None, 'create_group': None, 'join_group': None, 'leave_group': None, 'get_messages': None, 'send_message': None, 'mc_group_exists': None}
         }
         self.errors = []
         self.created_event_id = None
