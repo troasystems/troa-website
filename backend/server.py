@@ -25,6 +25,7 @@ from payment import payment_router
 from chatbot import chatbot_router
 from events import events_router
 from email_service import email_service, get_admin_manager_emails
+from push_notifications import send_notification_to_user, send_notification_to_admins
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
