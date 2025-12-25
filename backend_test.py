@@ -2881,6 +2881,7 @@ class TROAAPITester:
             'Event Registration Modification': ['event_modification'],
             'Amenity Booking': ['amenity_booking'],
             'Community Chat': ['community_chat'],
+            'Push Notifications': ['push_notifications'],
             'PWA Features': ['pwa']
         }
         
