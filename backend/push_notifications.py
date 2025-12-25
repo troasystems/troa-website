@@ -118,7 +118,7 @@ async def send_push_notification(payload: PushNotificationPayload, request: Requ
         await require_admin(request)
         
         # Get VAPID keys from environment
-        vapid_private_key = os.environ.get('VAPID_PRIVATE_KEY')
+        vapid_private_key = os.environ.get('VAPID_PRIVATE_KEY', '').replace('\\n', '\n')
         vapid_public_key = os.environ.get('VAPID_PUBLIC_KEY')
         vapid_email = os.environ.get('VAPID_EMAIL', 'mailto:troa.systems@gmail.com')
         
