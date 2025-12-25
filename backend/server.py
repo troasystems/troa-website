@@ -310,6 +310,16 @@ async def create_membership_application(application: MembershipApplicationCreate
         except Exception as email_error:
             logger.error(f"Failed to send membership notification email: {email_error}")
         
+        # Send push notification to admins
+        try:
+            await send_notification_to_admins(
+                title="New Membership Application",
+                body=f"{app_obj.name} (Villa {app_obj.villa_no}) applied for membership",
+                url="/admin"
+            )
+        except Exception as push_error:
+            logger.error(f"Failed to send membership push notification: {push_error}")
+        
         return app_obj
     except Exception as e:
         logger.error(f"Error creating membership application: {e}")
