@@ -850,6 +850,16 @@ async def cancel_booking(booking_id: str, request: Request):
         except Exception as email_error:
             logger.error(f"Failed to send admin cancellation notification: {email_error}")
         
+        # Send push notification to admins about cancellation
+        try:
+            await send_notification_to_admins(
+                title="Booking Cancelled",
+                body=f"{user['name']} cancelled {booking['amenity_name']} booking on {booking['booking_date']}",
+                url="/admin"
+            )
+        except Exception as push_error:
+            logger.error(f"Failed to send admin push notification: {push_error}")
+        
         return {"message": "Booking cancelled successfully"}
     except HTTPException:
         raise
