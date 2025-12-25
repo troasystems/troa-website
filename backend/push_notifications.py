@@ -179,7 +179,7 @@ async def send_push_notification(payload: PushNotificationPayload, request: Requ
                     failed_count += 1
             
             return {
-                "message": f"Push notifications sent",
+                "message": "Push notifications sent",
                 "sent": sent_count,
                 "failed": failed_count
             }
