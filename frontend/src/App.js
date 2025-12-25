@@ -5,6 +5,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 import Navbar from './components/Navbar';
+import BottomNavigation from './components/BottomNavigation';
 import FeedbackBanner from './components/FeedbackBanner';
 import EmailVerificationBanner from './components/EmailVerificationBanner';
 import VillaNumberModalWrapper from './components/VillaNumberModalWrapper';
@@ -41,7 +42,8 @@ function App() {
             <Navbar />
             <FeedbackBanner />
             <EmailVerificationBanner />
-            <div className="pt-12">
+            {/* Mobile: pt-14 for mobile header, Desktop: pt-20 for full navbar */}
+            <div className="pt-14 md:pt-20 pb-16 md:pb-0">
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/about" element={<About />} />
@@ -60,8 +62,16 @@ function App() {
                 <Route path="/verify-email" element={<VerifyEmail />} />
               </Routes>
             </div>
-            <Footer />
-            <Chatbot />
+            {/* Footer - hidden on mobile, visible on desktop */}
+            <div className="hidden md:block">
+              <Footer />
+            </div>
+            {/* Bottom Navigation - visible on mobile only */}
+            <BottomNavigation />
+            {/* Chatbot - adjust position for mobile */}
+            <div className="md:mb-0 mb-16">
+              <Chatbot />
+            </div>
             <VillaNumberModalWrapper />
             {/* PWA Components */}
             <InstallPWA />
