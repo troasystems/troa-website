@@ -284,6 +284,20 @@ async def send_message(group_id: str, message_data: ChatMessage, request: Reques
         
         await db.chat_messages.insert_one(message)
         
+        # Send push notification to group members (except sender)
+        try:
+            # Truncate message for notification
+            preview = message_data.content[:50] + "..." if len(message_data.content) > 50 else message_data.content
+            await send_notification_to_group_members(
+                group_id=group_id,
+                title=f"{user['name']} in {group['name']}",
+                body=preview,
+                exclude_email=user['email'],
+                url="/chat"
+            )
+        except Exception as push_error:
+            logger.error(f"Failed to send chat push notifications: {push_error}")
+        
         return Message(**message)
     except HTTPException:
         raise
