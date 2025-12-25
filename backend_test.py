@@ -2476,6 +2476,7 @@ class TROAAPITester:
             'Event Pricing Options': ['event_pricing'],
             'Event Registration Modification': ['event_modification'],
             'Amenity Booking': ['amenity_booking'],
+            'Community Chat': ['community_chat'],
             'PWA Features': ['pwa']
         }
         
