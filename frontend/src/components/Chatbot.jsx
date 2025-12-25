@@ -75,25 +75,25 @@ const Chatbot = () => {
 
   return (
     <>
-      {/* Chat Toggle Button */}
+      {/* Chat Toggle Button - positioned above bottom nav on mobile */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group"
+        className="fixed bottom-24 md:bottom-6 right-4 md:right-6 z-50 w-12 h-12 md:w-14 md:h-14 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group"
         aria-label="Toggle chat"
       >
         {isOpen ? (
-          <X className="w-6 h-6 text-white" />
+          <X className="w-5 h-5 md:w-6 md:h-6 text-white" />
         ) : (
-          <MessageCircle className="w-6 h-6 text-white" />
+          <MessageCircle className="w-5 h-5 md:w-6 md:h-6 text-white" />
         )}
         {!isOpen && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></span>
+          <span className="absolute -top-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-green-500 rounded-full border-2 border-white"></span>
         )}
       </button>
 
-      {/* Chat Window */}
+      {/* Chat Window - full screen on mobile, floating on desktop */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-96 max-w-[calc(100vw-3rem)] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ height: '500px', maxHeight: 'calc(100vh - 150px)' }}>
+        <div className="fixed inset-0 md:inset-auto md:bottom-24 md:right-6 z-50 md:w-96 md:max-w-[calc(100vw-3rem)] bg-white md:rounded-2xl shadow-2xl overflow-hidden flex flex-col md:h-[500px] md:max-h-[calc(100vh-150px)]">
           {/* Header */}
           <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white p-4">
             <div className="flex items-center space-x-3">
