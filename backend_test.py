@@ -2703,6 +2703,8 @@ class TROAAPITester:
                             display_endpoint = f"auth/{method}"
                         elif endpoint == 'pwa':
                             display_endpoint = f"pwa/{method}"
+                        elif endpoint == 'community_chat':
+                            display_endpoint = f"chat/{method}"
                         else:
                             display_endpoint = f"{endpoint}/{method}"
                             
