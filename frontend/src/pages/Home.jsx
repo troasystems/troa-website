@@ -101,8 +101,8 @@ const Home = () => {
           </div>
         </div>
         
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+        {/* Scroll Indicator - hide on mobile */}
+        <div className="absolute bottom-24 md:bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce hidden md:block">
           <div className="w-8 h-12 border-2 border-white/50 rounded-full flex items-start justify-center p-2">
             <div className="w-1 h-3 bg-white rounded-full"></div>
           </div>
