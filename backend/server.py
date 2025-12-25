@@ -849,6 +849,10 @@ app.include_router(events_router, prefix="/api")
 from push_notifications import push_router
 app.include_router(push_router, prefix="/api")
 
+# Community Chat router
+from community_chat import chat_router, init_mc_group
+app.include_router(chat_router, prefix="/api")
+
 # Add session middleware
 app.add_middleware(
     SessionMiddleware,
