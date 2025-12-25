@@ -8,10 +8,17 @@ html, body {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Safe area utilities */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 /* Safe area insets for notched devices */
 .App {
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
 }
