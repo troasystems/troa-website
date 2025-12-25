@@ -6,8 +6,21 @@ import axios from 'axios';
 
 const getAPI = () => `${getBackendUrl()}/api`;
 
-// VAPID public key - this should match the one in backend
-const VAPID_PUBLIC_KEY = process.env.REACT_APP_VAPID_PUBLIC_KEY || '';
+// VAPID public key - fetched from backend or environment
+const getVapidPublicKey = async () => {
+  // First try environment variable
+  const envKey = process.env.REACT_APP_VAPID_PUBLIC_KEY;
+  if (envKey) return envKey;
+  
+  // Fallback to fetching from backend
+  try {
+    const response = await axios.get(`${getAPI()}/push/vapid-public-key`);
+    return response.data.publicKey;
+  } catch (error) {
+    console.error('Failed to fetch VAPID public key:', error);
+    return null;
+  }
+};
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
