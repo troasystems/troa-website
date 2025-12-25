@@ -84,7 +84,7 @@ const InstallPWA = () => {
                 <Smartphone className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="text-white font-bold text-lg">Install TROA App</h3>
+                <h3 className="text-white font-bold text-lg">Install The Retreat</h3>
                 <p className="text-white/80 text-sm">Get the full experience</p>
               </div>
             </div>
