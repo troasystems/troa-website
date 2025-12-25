@@ -8,6 +8,7 @@ from typing import Optional, List
 import os
 import logging
 import json
+import tempfile
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,23 @@ push_router = APIRouter(prefix="/push", tags=["Push Notifications"])
 # Store subscriptions in memory (in production, use database)
 # This will be migrated to MongoDB
 push_subscriptions = {}
+
+# Create a temporary file for VAPID private key (pywebpush needs file path)
+_vapid_key_file = None
+
+def get_vapid_key_file():
+    """Get or create temporary file containing VAPID private key"""
+    global _vapid_key_file
+    if _vapid_key_file is None:
+        vapid_private_key = os.environ.get('VAPID_PRIVATE_KEY', '').replace('\\n', '\n')
+        if vapid_private_key:
+            # Create a temporary file that persists
+            fd, path = tempfile.mkstemp(suffix='.pem', prefix='vapid_')
+            with os.fdopen(fd, 'w') as f:
+                f.write(vapid_private_key)
+            _vapid_key_file = path
+            logger.info(f"VAPID key file created at {path}")
+    return _vapid_key_file
 
 class PushSubscription(BaseModel):
     subscription: dict
