@@ -243,11 +243,11 @@ async def get_push_status(request: Request):
 async def send_notification_to_user(user_email: str, title: str, body: str, url: str = "/"):
     """Helper function to send push notification to a specific user"""
     try:
-        vapid_private_key = os.environ.get('VAPID_PRIVATE_KEY', '').replace('\\n', '\n')
+        vapid_key_file = get_vapid_key_file()
         vapid_public_key = os.environ.get('VAPID_PUBLIC_KEY')
         vapid_email = os.environ.get('VAPID_EMAIL', 'mailto:troa.systems@gmail.com')
         
-        if not vapid_private_key or not vapid_public_key:
+        if not vapid_key_file or not vapid_public_key:
             logger.debug("VAPID keys not configured")
             return False
         
@@ -279,9 +279,10 @@ async def send_notification_to_user(user_email: str, title: str, body: str, url:
             webpush(
                 subscription_info=subscription['subscription'],
                 data=notification_payload,
-                vapid_private_key=vapid_private_key,
+                vapid_private_key=vapid_key_file,
                 vapid_claims={"sub": vapid_email}
             )
+            logger.info(f"Push notification sent to {user_email}")
             return True
         except ImportError:
             logger.debug("pywebpush not installed")
