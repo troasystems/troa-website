@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -10,6 +10,9 @@ import EmailVerificationBanner from './components/EmailVerificationBanner';
 import VillaNumberModalWrapper from './components/VillaNumberModalWrapper';
 import Footer from './components/Footer';
 import Chatbot from './components/Chatbot';
+import InstallPWA from './components/InstallPWA';
+import PushNotifications from './components/PushNotifications';
+import UpdateNotification from './components/UpdateNotification';
 import Home from './pages/Home';
 import About from './pages/About';
 import Committee from './pages/Committee';
