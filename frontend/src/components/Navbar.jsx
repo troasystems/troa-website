@@ -55,9 +55,43 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className="fixed top-0 w-full bg-white/95 backdrop-blur-sm shadow-md z-50">
+    <nav className="fixed top-0 w-full bg-white/95 backdrop-blur-sm shadow-md z-50 pt-safe">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
+        {/* Mobile Header - Simplified */}
+        <div className="md:hidden flex justify-between items-center h-14">
+          <Link to="/" className="flex items-center space-x-2">
+            <img 
+              src="https://customer-assets.emergentagent.com/job_troaresidents/artifacts/ig305kse_821366b6-decf-46dc-8c80-2dade0f65395.jpeg" 
+              alt="The Retreat Logo" 
+              className="h-10 w-auto"
+            />
+            <div>
+              <h1 className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 bg-clip-text text-transparent">TROA</h1>
+            </div>
+          </Link>
+          {/* Show user avatar or login on mobile header */}
+          {isAuthenticated ? (
+            <Link to="/profile" className="flex items-center space-x-2">
+              {user?.picture ? (
+                <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full border-2 border-purple-200" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+              )}
+            </Link>
+          ) : (
+            <Link
+              to="/login"
+              className="px-4 py-1.5 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white rounded-full text-sm font-medium"
+            >
+              Login
+            </Link>
+          )}
+        </div>
+
+        {/* Desktop Header */}
+        <div className="hidden md:flex justify-between items-center h-20">
           <Link to="/" className="flex items-center space-x-3">
             <img 
               src="https://customer-assets.emergentagent.com/job_troaresidents/artifacts/ig305kse_821366b6-decf-46dc-8c80-2dade0f65395.jpeg" 
