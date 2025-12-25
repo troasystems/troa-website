@@ -2108,6 +2108,200 @@ class TROAAPITester:
             self.test_results['email_verification']['token_mismatch_error'] = False
             self.log_error("/auth/verify-email (token mismatch)", "POST", f"Exception: {str(e)}")
 
+    def test_pwa_features(self):
+        """Test PWA (Progressive Web App) features"""
+        print("\n🧪 Testing PWA Features...")
+        
+        # Initialize PWA test results
+        if 'pwa' not in self.test_results:
+            self.test_results['pwa'] = {
+                'health_endpoint': None,
+                'push_subscribe': None,
+                'push_status': None,
+                'push_unsubscribe': None,
+                'manifest_served': None,
+                'service_worker_served': None,
+                'pwa_icons_served': None,
+                'offline_page_served': None
+            }
+        
+        # Test 1: Health endpoint
+        try:
+            response = requests.get(f"{self.base_url}/health", timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                if 'status' in data and data['status'] == 'healthy':
+                    self.test_results['pwa']['health_endpoint'] = True
+                    self.log_success("/health", "GET", "- Health endpoint working")
+                else:
+                    self.test_results['pwa']['health_endpoint'] = False
+                    self.log_error("/health", "GET", "Invalid response structure")
+            else:
+                self.test_results['pwa']['health_endpoint'] = False
+                self.log_error("/health", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['pwa']['health_endpoint'] = False
+            self.log_error("/health", "GET", f"Exception: {str(e)}")
+
+        # Test 2: Push notification subscribe endpoint (requires auth)
+        try:
+            subscribe_data = {
+                "subscription": {
+                    "endpoint": "https://fcm.googleapis.com/fcm/send/test-endpoint",
+                    "keys": {
+                        "p256dh": "test-p256dh-key",
+                        "auth": "test-auth-key"
+                    }
+                },
+                "user_email": "troa.systems@gmail.com"
+            }
+            
+            response = requests.post(f"{self.base_url}/push/subscribe", 
+                                   json=subscribe_data, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'message' in data and 'subscribed' in data['message'].lower():
+                    self.test_results['pwa']['push_subscribe'] = True
+                    self.log_success("/push/subscribe", "POST", "- Push notification subscription working")
+                else:
+                    self.test_results['pwa']['push_subscribe'] = False
+                    self.log_error("/push/subscribe", "POST", "Invalid response structure")
+            else:
+                self.test_results['pwa']['push_subscribe'] = False
+                self.log_error("/push/subscribe", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['pwa']['push_subscribe'] = False
+            self.log_error("/push/subscribe", "POST", f"Exception: {str(e)}")
+
+        # Test 3: Push notification status endpoint (requires auth)
+        try:
+            response = requests.get(f"{self.base_url}/push/status", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'subscribed' in data and 'vapid_configured' in data:
+                    self.test_results['pwa']['push_status'] = True
+                    self.log_success("/push/status", "GET", f"- Push status endpoint working (subscribed: {data['subscribed']})")
+                else:
+                    self.test_results['pwa']['push_status'] = False
+                    self.log_error("/push/status", "GET", "Invalid response structure")
+            else:
+                self.test_results['pwa']['push_status'] = False
+                self.log_error("/push/status", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['pwa']['push_status'] = False
+            self.log_error("/push/status", "GET", f"Exception: {str(e)}")
+
+        # Test 4: Push notification unsubscribe endpoint (requires auth)
+        try:
+            unsubscribe_data = {
+                "user_email": "troa.systems@gmail.com"
+            }
+            
+            response = requests.post(f"{self.base_url}/push/unsubscribe", 
+                                   json=unsubscribe_data, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'message' in data and 'unsubscribed' in data['message'].lower():
+                    self.test_results['pwa']['push_unsubscribe'] = True
+                    self.log_success("/push/unsubscribe", "POST", "- Push notification unsubscribe working")
+                else:
+                    self.test_results['pwa']['push_unsubscribe'] = False
+                    self.log_error("/push/unsubscribe", "POST", "Invalid response structure")
+            else:
+                self.test_results['pwa']['push_unsubscribe'] = False
+                self.log_error("/push/unsubscribe", "POST", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['pwa']['push_unsubscribe'] = False
+            self.log_error("/push/unsubscribe", "POST", f"Exception: {str(e)}")
+
+    def test_pwa_static_assets(self):
+        """Test PWA static assets served from frontend"""
+        print("\n🧪 Testing PWA Static Assets...")
+        
+        # Test manifest.json
+        try:
+            response = requests.get(f"{BACKEND_URL}/manifest.json", timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                if ('name' in data and 'short_name' in data and 'icons' in data and 
+                    'start_url' in data and 'display' in data):
+                    self.test_results['pwa']['manifest_served'] = True
+                    self.log_success("/manifest.json", "GET", f"- Manifest served correctly (name: {data.get('name', 'N/A')})")
+                else:
+                    self.test_results['pwa']['manifest_served'] = False
+                    self.log_error("/manifest.json", "GET", "Invalid manifest structure")
+            else:
+                self.test_results['pwa']['manifest_served'] = False
+                self.log_error("/manifest.json", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['pwa']['manifest_served'] = False
+            self.log_error("/manifest.json", "GET", f"Exception: {str(e)}")
+
+        # Test service-worker.js
+        try:
+            response = requests.get(f"{BACKEND_URL}/service-worker.js", timeout=10)
+            if response.status_code == 200:
+                content = response.text
+                if ('addEventListener' in content and 'install' in content and 
+                    'fetch' in content and 'push' in content):
+                    self.test_results['pwa']['service_worker_served'] = True
+                    self.log_success("/service-worker.js", "GET", "- Service worker served correctly")
+                else:
+                    self.test_results['pwa']['service_worker_served'] = False
+                    self.log_error("/service-worker.js", "GET", "Invalid service worker content")
+            else:
+                self.test_results['pwa']['service_worker_served'] = False
+                self.log_error("/service-worker.js", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['pwa']['service_worker_served'] = False
+            self.log_error("/service-worker.js", "GET", f"Exception: {str(e)}")
+
+        # Test PWA icons
+        try:
+            icon_response = requests.get(f"{BACKEND_URL}/icons/icon-192x192.png", timeout=10)
+            if icon_response.status_code == 200:
+                content_type = icon_response.headers.get('content-type', '')
+                if content_type.startswith('image/'):
+                    self.test_results['pwa']['pwa_icons_served'] = True
+                    self.log_success("/icons/icon-192x192.png", "GET", f"- PWA icon served correctly (Content-Type: {content_type})")
+                else:
+                    self.test_results['pwa']['pwa_icons_served'] = False
+                    self.log_error("/icons/icon-192x192.png", "GET", f"Invalid content type: {content_type}")
+            else:
+                self.test_results['pwa']['pwa_icons_served'] = False
+                self.log_error("/icons/icon-192x192.png", "GET", f"Status code: {icon_response.status_code}")
+        except Exception as e:
+            self.test_results['pwa']['pwa_icons_served'] = False
+            self.log_error("/icons/icon-192x192.png", "GET", f"Exception: {str(e)}")
+
+        # Test offline.html
+        try:
+            response = requests.get(f"{BACKEND_URL}/offline.html", timeout=10)
+            if response.status_code == 200:
+                content = response.text
+                if ('offline' in content.lower() and 'html' in content.lower() and 
+                    'troa' in content.lower()):
+                    self.test_results['pwa']['offline_page_served'] = True
+                    self.log_success("/offline.html", "GET", "- Offline page served correctly")
+                else:
+                    self.test_results['pwa']['offline_page_served'] = False
+                    self.log_error("/offline.html", "GET", "Invalid offline page content")
+            else:
+                self.test_results['pwa']['offline_page_served'] = False
+                self.log_error("/offline.html", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['pwa']['offline_page_served'] = False
+            self.log_error("/offline.html", "GET", f"Exception: {str(e)}")
+
     def test_villa_auth_endpoints(self):
         """Test Villa-related Auth API endpoints"""
         print("\n🔐 Testing Villa Auth API...")
