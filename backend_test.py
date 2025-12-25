@@ -2925,6 +2925,8 @@ class TROAAPITester:
                             display_endpoint = f"pwa/{method}"
                         elif endpoint == 'community_chat':
                             display_endpoint = f"chat/{method}"
+                        elif endpoint == 'push_notifications':
+                            display_endpoint = f"push/{method}"
                         else:
                             display_endpoint = f"{endpoint}/{method}"
                             
