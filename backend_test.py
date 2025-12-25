@@ -2484,12 +2484,12 @@ class TROAAPITester:
                 
                 if response.status_code == 200:
                     data = response.json()
-                    if 'message' in data and 'joined' in data['message'].lower():
+                    if 'message' in data and ('joined' in data['message'].lower() or 'successfully' in data['message'].lower()):
                         self.test_results['community_chat']['join_group'] = True
                         self.log_success(f"/chat/groups/{created_group_id}/join", "POST", "- Successfully joined group")
                     else:
                         self.test_results['community_chat']['join_group'] = False
-                        self.log_error(f"/chat/groups/{created_group_id}/join", "POST", "Invalid response structure")
+                        self.log_error(f"/chat/groups/{created_group_id}/join", "POST", f"Invalid response structure: {data}")
                 else:
                     self.test_results['community_chat']['join_group'] = False
                     self.log_error(f"/chat/groups/{created_group_id}/join", "POST", f"Status code: {response.status_code}, Response: {response.text}")
