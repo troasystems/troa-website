@@ -78,7 +78,7 @@ const Chatbot = () => {
       {/* Chat Toggle Button - positioned above bottom nav on mobile */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-24 md:bottom-6 right-4 md:right-6 z-50 w-12 h-12 md:w-14 md:h-14 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group"
+        className="fixed bottom-24 md:bottom-6 right-4 md:right-6 z-[100] w-12 h-12 md:w-14 md:h-14 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group"
         aria-label="Toggle chat"
       >
         {isOpen ? (
@@ -91,19 +91,27 @@ const Chatbot = () => {
         )}
       </button>
 
-      {/* Chat Window - full screen on mobile, floating on desktop */}
+      {/* Chat Window - NOT full screen on mobile, floating panel */}
       {isOpen && (
-        <div className="fixed inset-0 md:inset-auto md:bottom-24 md:right-6 z-50 md:w-96 md:max-w-[calc(100vw-3rem)] bg-white md:rounded-2xl shadow-2xl overflow-hidden flex flex-col md:h-[500px] md:max-h-[calc(100vh-150px)]">
-          {/* Header */}
+        <div className="fixed bottom-40 md:bottom-24 right-4 md:right-6 left-4 md:left-auto z-[99] md:w-96 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[60vh] md:h-[500px] max-h-[500px]">
+          {/* Header with close button */}
           <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white p-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                <Bot className="w-6 h-6" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <Bot className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold">TROA Assistant</h3>
+                  <p className="text-xs text-white/80">Here to help you</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-bold">TROA Assistant</h3>
-                <p className="text-xs text-white/80">Here to help you</p>
-              </div>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
           </div>
 
