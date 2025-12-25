@@ -256,10 +256,18 @@ export const NotificationSettings = () => {
   };
 
   const subscribe = async () => {
-    if (!isSupported || !VAPID_PUBLIC_KEY) return;
+    if (!isSupported) return;
 
     setLoading(true);
     try {
+      // Get VAPID public key
+      const vapidKey = await getVapidPublicKey();
+      if (!vapidKey) {
+        console.log('Push notifications not configured');
+        setLoading(false);
+        return;
+      }
+
       const result = await Notification.requestPermission();
       setPermission(result);
 
@@ -271,7 +279,7 @@ export const NotificationSettings = () => {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        applicationServerKey: urlBase64ToUint8Array(vapidKey)
       });
 
       await axios.post(
