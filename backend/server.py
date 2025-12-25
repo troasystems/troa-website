@@ -734,6 +734,27 @@ async def create_booking(booking: AmenityBookingCreate, request: Request):
         except Exception as email_error:
             logger.error(f"Failed to send admin booking notification: {email_error}")
         
+        # Send push notification to user
+        try:
+            await send_notification_to_user(
+                user_email=user['email'],
+                title="Booking Confirmed 🎉",
+                body=f"Your {booking.amenity_name} booking on {booking.booking_date} at {booking.start_time} is confirmed!",
+                url="/my-bookings"
+            )
+        except Exception as push_error:
+            logger.error(f"Failed to send booking push notification: {push_error}")
+        
+        # Send push notification to admins
+        try:
+            await send_notification_to_admins(
+                title="New Booking",
+                body=f"{user['name']} booked {booking.amenity_name} on {booking.booking_date}",
+                url="/admin"
+            )
+        except Exception as push_error:
+            logger.error(f"Failed to send admin push notification: {push_error}")
+        
         return booking_obj
     except HTTPException:
         raise
