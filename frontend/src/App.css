@@ -2,6 +2,42 @@
   min-height: 100vh;
 }
 
+/* PWA Mobile Optimizations */
+html, body {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safe area insets for notched devices */
+.App {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* iOS Standalone Mode Styles */
+.ios-standalone .App {
+  padding-top: 44px; /* Account for status bar */
+}
+
+/* Prevent text selection on touch devices for interactive elements */
+button, a, .no-select {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+/* Allow text selection for content */
+p, span, h1, h2, h3, h4, h5, h6, .selectable {
+  user-select: text;
+}
+
+/* Touch-friendly tap targets */
+button, a, input, select, textarea {
+  min-height: 44px;
+}
+
 /* Smooth Animations */
 @keyframes fade-in {
   from {
@@ -18,25 +54,106 @@
   animation: fade-in 1s ease-out;
 }
 
+/* Slide animations for PWA components */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-down {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out;
+}
+
+.animate-slide-down {
+  animation: slide-down 0.5s ease-out;
+}
+
 /* Smooth Scrolling */
 html {
   scroll-behavior: smooth;
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 10px;
+/* Custom Scrollbar - hide on mobile */
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, #9333ea, #ec4899, #f97316);
+    border-radius: 5px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to bottom, #7c3aed, #db2777, #ea580c);
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
+/* Hide scrollbar on mobile for cleaner look */
+@media (max-width: 767px) {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  
+  * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #9333ea, #ec4899, #f97316);
-  border-radius: 5px;
+/* Mobile-first responsive utilities */
+@media (max-width: 640px) {
+  /* Reduce padding on mobile */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Stack buttons vertically on small screens */
+  .button-group {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  /* Full-width modals on mobile */
+  .modal-content {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 1rem 1rem 0 0;
+  }
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #7c3aed, #db2777, #ea580c);
+/* Standalone PWA mode adjustments */
+@media (display-mode: standalone) {
+  /* Hide browser-specific elements */
+  .browser-only {
+    display: none;
+  }
+  
+  /* Adjust fixed elements for standalone mode */
+  .fixed-bottom {
+    bottom: calc(env(safe-area-inset-bottom) + 20px);
+  }
 }
