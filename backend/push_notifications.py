@@ -225,7 +225,7 @@ async def get_push_status(request: Request):
 async def send_notification_to_user(user_email: str, title: str, body: str, url: str = "/"):
     """Helper function to send push notification to a specific user"""
     try:
-        vapid_private_key = os.environ.get('VAPID_PRIVATE_KEY')
+        vapid_private_key = os.environ.get('VAPID_PRIVATE_KEY', '').replace('\\n', '\n')
         vapid_public_key = os.environ.get('VAPID_PUBLIC_KEY')
         vapid_email = os.environ.get('VAPID_EMAIL', 'mailto:troa.systems@gmail.com')
         
