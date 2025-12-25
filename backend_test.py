@@ -2472,7 +2472,8 @@ class TROAAPITester:
             'Unified Payment System': ['unified_payment'],
             'Event Pricing Options': ['event_pricing'],
             'Event Registration Modification': ['event_modification'],
-            'Amenity Booking': ['amenity_booking']
+            'Amenity Booking': ['amenity_booking'],
+            'PWA Features': ['pwa']
         }
         
         for category, endpoints in categories.items():
