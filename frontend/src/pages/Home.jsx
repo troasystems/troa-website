@@ -45,10 +45,10 @@ const Home = () => {
   ];
 
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
+    <div className="min-h-screen -mt-14 md:-mt-20">
+      {/* Hero Section - Full viewport height minus bottom nav on mobile */}
       <section
-        className="relative h-screen flex items-center justify-center overflow-hidden"
+        className="relative h-screen md:h-screen flex items-center justify-center overflow-hidden"
         style={{
           backgroundImage: `url('https://images.unsplash.com/photo-1761158497393-53ac42b57bb8?w=1920&q=80')`,
           backgroundSize: 'cover',
