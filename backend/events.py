@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from models import Event, EventCreate, EventRegistration, EventRegistrationCreate
 from auth import require_admin, require_auth, require_manager_or_admin
 from email_service import email_service, get_admin_manager_emails
+from push_notifications import send_notification_to_user, send_notification_to_admins
 
 load_dotenv()
 
