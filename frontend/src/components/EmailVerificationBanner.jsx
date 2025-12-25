@@ -114,7 +114,7 @@ const EmailVerificationBanner = () => {
   const isUrgent = timeRemaining && !isExpired && (timeRemaining.includes('hour') || timeRemaining.includes('minute'));
 
   return (
-    <div className={`fixed top-20 w-full ${isExpired ? 'bg-red-600' : isUrgent ? 'bg-orange-500' : 'bg-amber-500'} text-white py-2 md:py-3 px-3 md:px-4 shadow-lg z-40`}>
+    <div className={`fixed top-14 md:top-20 w-full ${isExpired ? 'bg-red-600' : isUrgent ? 'bg-orange-500' : 'bg-amber-500'} text-white py-2 md:py-3 px-3 md:px-4 shadow-lg z-40`}>
       <div className="max-w-7xl mx-auto">
         {/* Desktop Layout */}
         <div className="hidden md:flex items-center justify-between">
