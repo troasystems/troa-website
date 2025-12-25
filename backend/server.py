@@ -845,6 +845,10 @@ app.include_router(payment_router, prefix="/api")
 app.include_router(chatbot_router, prefix="/api")
 app.include_router(events_router, prefix="/api")
 
+# Push notifications router for PWA
+from push_notifications import push_router
+app.include_router(push_router, prefix="/api")
+
 # Add session middleware
 app.add_middleware(
     SessionMiddleware,
