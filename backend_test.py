@@ -41,7 +41,8 @@ class TROAAPITester:
             'user_management': {'toggle_verified_true': None, 'toggle_verified_false': None, 'update_picture_base64': None},
             'google_oauth': {'invalid_token_error': None},
             'email_verification': {'already_verified_success': None, 'token_mismatch_error': None},
-            'community_chat': {'get_groups': None, 'create_group': None, 'join_group': None, 'leave_group': None, 'get_messages': None, 'send_message': None, 'mc_group_exists': None}
+            'community_chat': {'get_groups': None, 'create_group': None, 'join_group': None, 'leave_group': None, 'get_messages': None, 'send_message': None, 'mc_group_exists': None},
+            'push_notifications': {'vapid_public_key': None, 'subscribe': None, 'unsubscribe': None, 'status': None, 'send_admin_only': None, 'send_notification_to_user': None, 'send_notification_to_admins': None}
         }
         self.errors = []
         self.created_event_id = None
