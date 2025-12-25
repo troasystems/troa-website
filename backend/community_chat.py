@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 
 chat_router = APIRouter(prefix="/chat", tags=["Community Chat"])
 
+# Import push notification helper
+from push_notifications import send_notification_to_group_members
+
 # Pydantic Models
 class ChatGroupCreate(BaseModel):
     name: str
