@@ -2446,6 +2446,9 @@ class TROAAPITester:
         self.test_pwa_features()
         self.test_pwa_static_assets()
         
+        # Test Community Chat features
+        self.test_community_chat()
+        
         # Test edge cases
         self.test_edge_cases()
         
