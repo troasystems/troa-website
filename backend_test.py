@@ -2248,6 +2248,10 @@ class TROAAPITester:
         # Test Villa Management features
         self.test_villa_management()
         
+        # Test PWA features
+        self.test_pwa_features()
+        self.test_pwa_static_assets()
+        
         # Test edge cases
         self.test_edge_cases()
         
