@@ -14,7 +14,7 @@ const FeedbackBanner = () => {
   }
 
   return (
-    <div className="fixed top-20 w-full bg-gradient-to-r from-pink-500 via-pink-600 to-purple-600 text-white py-2 md:py-3 px-3 md:px-4 shadow-lg z-40">
+    <div className="fixed top-14 md:top-20 w-full bg-gradient-to-r from-pink-500 via-pink-600 to-purple-600 text-white py-2 md:py-3 px-3 md:px-4 shadow-lg z-40">
       <div className="max-w-7xl mx-auto">
         {/* Desktop Layout */}
         <div className="hidden md:flex items-center justify-between">
