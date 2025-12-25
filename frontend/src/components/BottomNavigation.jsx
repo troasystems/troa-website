@@ -15,7 +15,7 @@ const BottomNavigation = () => {
     { name: 'Home', path: '/', icon: Home },
     { name: 'Amenities', path: '/amenities', icon: Calendar },
     { name: 'Events', path: '/events', icon: PartyPopper },
-    { name: 'Gallery', path: '/gallery', icon: Image },
+    { name: 'Chat', path: '/chat', icon: MessageSquare },
   ];
 
   // More menu items
