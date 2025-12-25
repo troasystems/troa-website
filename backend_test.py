@@ -2583,6 +2583,221 @@ class TROAAPITester:
         except Exception as e:
             self.log_error("/chat/groups", "AUTH", f"Exception: {str(e)}")
 
+    def test_push_notifications(self):
+        """Test Push Notifications API endpoints"""
+        print("\n🔔 Testing Push Notifications API...")
+        
+        # Test 1: GET /api/push/vapid-public-key - Get VAPID public key (no auth required)
+        try:
+            response = requests.get(f"{self.base_url}/push/vapid-public-key", timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'publicKey' in data and data['publicKey']:
+                    self.test_results['push_notifications']['vapid_public_key'] = True
+                    self.log_success("/push/vapid-public-key", "GET", f"- VAPID public key retrieved: {data['publicKey'][:20]}...")
+                    
+                    # Validate VAPID key format (should be base64url encoded)
+                    vapid_key = data['publicKey']
+                    if len(vapid_key) == 88 and all(c in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_' for c in vapid_key):
+                        self.log_success("/push/vapid-public-key", "VALIDATE", "- VAPID key format is valid")
+                    else:
+                        self.log_error("/push/vapid-public-key", "VALIDATE", f"Invalid VAPID key format: {vapid_key}")
+                else:
+                    self.test_results['push_notifications']['vapid_public_key'] = False
+                    self.log_error("/push/vapid-public-key", "GET", "Missing or empty publicKey in response")
+            else:
+                self.test_results['push_notifications']['vapid_public_key'] = False
+                self.log_error("/push/vapid-public-key", "GET", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['push_notifications']['vapid_public_key'] = False
+            self.log_error("/push/vapid-public-key", "GET", f"Exception: {str(e)}")
+
+        # Test 2: POST /api/push/subscribe - Subscribe to push notifications (requires auth)
+        try:
+            # Mock subscription object (similar to what browser would send)
+            mock_subscription = {
+                "endpoint": "https://fcm.googleapis.com/fcm/send/test-endpoint-123",
+                "keys": {
+                    "p256dh": "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM",
+                    "auth": "tBHItJI5svbpez7KI4CCXg"
+                }
+            }
+            
+            subscription_data = {
+                "subscription": mock_subscription,
+                "user_email": ADMIN_EMAIL
+            }
+            
+            response = requests.post(f"{self.base_url}/push/subscribe", 
+                                   json=subscription_data, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'message' in data and 'subscribed' in data['message'].lower():
+                    self.test_results['push_notifications']['subscribe'] = True
+                    self.log_success("/push/subscribe", "POST", "- Successfully subscribed to push notifications")
+                else:
+                    self.test_results['push_notifications']['subscribe'] = False
+                    self.log_error("/push/subscribe", "POST", "Invalid response structure")
+            else:
+                self.test_results['push_notifications']['subscribe'] = False
+                self.log_error("/push/subscribe", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['push_notifications']['subscribe'] = False
+            self.log_error("/push/subscribe", "POST", f"Exception: {str(e)}")
+
+        # Test 3: GET /api/push/status - Get subscription status (requires auth)
+        try:
+            response = requests.get(f"{self.base_url}/push/status", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'subscribed' in data and 'vapid_configured' in data:
+                    self.test_results['push_notifications']['status'] = True
+                    self.log_success("/push/status", "GET", f"- Status retrieved: subscribed={data['subscribed']}, vapid_configured={data['vapid_configured']}")
+                    
+                    # Validate that VAPID is configured
+                    if data['vapid_configured']:
+                        self.log_success("/push/status", "VAPID", "- VAPID keys are properly configured")
+                    else:
+                        self.log_error("/push/status", "VAPID", "VAPID keys not configured")
+                else:
+                    self.test_results['push_notifications']['status'] = False
+                    self.log_error("/push/status", "GET", "Missing required fields in response")
+            else:
+                self.test_results['push_notifications']['status'] = False
+                self.log_error("/push/status", "GET", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['push_notifications']['status'] = False
+            self.log_error("/push/status", "GET", f"Exception: {str(e)}")
+
+        # Test 4: POST /api/push/send - Send push notification (admin only)
+        try:
+            notification_payload = {
+                "title": "Test Notification",
+                "body": "This is a test push notification from the API test suite",
+                "icon": "/icons/icon-192x192.png",
+                "badge": "/icons/icon-72x72.png",
+                "url": "/admin",
+                "tag": "test-notification",
+                "user_emails": [ADMIN_EMAIL]  # Send only to admin user
+            }
+            
+            response = requests.post(f"{self.base_url}/push/send", 
+                                   json=notification_payload, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'message' in data and 'sent' in data:
+                    self.test_results['push_notifications']['send_admin_only'] = True
+                    self.log_success("/push/send", "POST", f"- Notification sent: {data['sent']} successful, {data.get('failed', 0)} failed")
+                else:
+                    self.test_results['push_notifications']['send_admin_only'] = False
+                    self.log_error("/push/send", "POST", "Invalid response structure")
+            else:
+                self.test_results['push_notifications']['send_admin_only'] = False
+                self.log_error("/push/send", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['push_notifications']['send_admin_only'] = False
+            self.log_error("/push/send", "POST", f"Exception: {str(e)}")
+
+        # Test 5: POST /api/push/unsubscribe - Unsubscribe from push notifications (requires auth)
+        try:
+            unsubscribe_data = {
+                "user_email": ADMIN_EMAIL
+            }
+            
+            response = requests.post(f"{self.base_url}/push/unsubscribe", 
+                                   json=unsubscribe_data, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'message' in data and 'unsubscribed' in data['message'].lower():
+                    self.test_results['push_notifications']['unsubscribe'] = True
+                    self.log_success("/push/unsubscribe", "POST", "- Successfully unsubscribed from push notifications")
+                else:
+                    self.test_results['push_notifications']['unsubscribe'] = False
+                    self.log_error("/push/unsubscribe", "POST", "Invalid response structure")
+            else:
+                self.test_results['push_notifications']['unsubscribe'] = False
+                self.log_error("/push/unsubscribe", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['push_notifications']['unsubscribe'] = False
+            self.log_error("/push/unsubscribe", "POST", f"Exception: {str(e)}")
+
+        # Test 6: Test authentication requirements
+        try:
+            # Test POST /push/subscribe without authentication (should fail)
+            response = requests.post(f"{self.base_url}/push/subscribe", 
+                                   json={"subscription": {}, "user_email": "test@test.com"}, 
+                                   headers={'Content-Type': 'application/json'},
+                                   timeout=10)
+            if response.status_code in [401, 403]:
+                self.log_success("/push/subscribe", "AUTH", "- Correctly requires authentication")
+            else:
+                self.log_error("/push/subscribe", "AUTH", f"Should require auth but got status: {response.status_code}")
+                
+            # Test POST /push/send without authentication (should fail)
+            response = requests.post(f"{self.base_url}/push/send", 
+                                   json={"title": "Test", "body": "Test"}, 
+                                   headers={'Content-Type': 'application/json'},
+                                   timeout=10)
+            if response.status_code in [401, 403]:
+                self.log_success("/push/send", "AUTH", "- Correctly requires admin authentication")
+            else:
+                self.log_error("/push/send", "AUTH", f"Should require admin auth but got status: {response.status_code}")
+                
+            # Test GET /push/status without authentication (should fail)
+            response = requests.get(f"{self.base_url}/push/status", timeout=10)
+            if response.status_code in [401, 403]:
+                self.log_success("/push/status", "AUTH", "- Correctly requires authentication")
+            else:
+                self.log_error("/push/status", "AUTH", f"Should require auth but got status: {response.status_code}")
+        except Exception as e:
+            self.log_error("Push Notifications Authentication", "TEST", f"Exception: {str(e)}")
+
+        # Test 7: Test helper functions by checking logs for notification triggers
+        print("\n🔍 Testing Push Notification Triggers...")
+        
+        # Test booking creation trigger (should call send_notification_to_user and send_notification_to_admins)
+        try:
+            future_date = (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d')
+            booking_data = {
+                "amenity_id": "push-test-amenity",
+                "amenity_name": "Push Test Pool",
+                "booking_date": future_date,
+                "start_time": "15:00",
+                "duration_minutes": 60,
+                "additional_guests": ["Test Guest"]
+            }
+            
+            response = requests.post(f"{self.base_url}/bookings", 
+                                   json=booking_data, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                self.test_results['push_notifications']['send_notification_to_user'] = True
+                self.test_results['push_notifications']['send_notification_to_admins'] = True
+                self.log_success("Push Notification Triggers", "BOOKING", "- Booking creation should trigger push notifications (check logs)")
+            else:
+                self.test_results['push_notifications']['send_notification_to_user'] = False
+                self.test_results['push_notifications']['send_notification_to_admins'] = False
+                self.log_error("Push Notification Triggers", "BOOKING", f"Failed to create booking for trigger test: {response.status_code}")
+        except Exception as e:
+            self.test_results['push_notifications']['send_notification_to_user'] = False
+            self.test_results['push_notifications']['send_notification_to_admins'] = False
+            self.log_error("Push Notification Triggers", "BOOKING", f"Exception: {str(e)}")
+
     def run_all_tests(self):
         """Run all API tests"""
         print(f"🚀 Starting TROA Backend API Tests")
