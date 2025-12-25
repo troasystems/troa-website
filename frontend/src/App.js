@@ -63,6 +63,10 @@ function App() {
             <Footer />
             <Chatbot />
             <VillaNumberModalWrapper />
+            {/* PWA Components */}
+            <InstallPWA />
+            <PushNotifications />
+            <UpdateNotification />
           </AuthProvider>
         </BrowserRouter>
       </GoogleOAuthProvider>
