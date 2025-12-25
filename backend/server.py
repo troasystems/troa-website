@@ -580,6 +580,16 @@ async def submit_feedback(feedback: FeedbackCreate, request: Request):
         except Exception as email_error:
             logger.error(f"Failed to send feedback notification email: {email_error}")
         
+        # Send push notification to admins
+        try:
+            await send_notification_to_admins(
+                title="New Feedback Received",
+                body=f"{user['name']} submitted feedback with {feedback.rating}⭐ rating",
+                url="/admin"
+            )
+        except Exception as push_error:
+            logger.error(f"Failed to send feedback push notification: {push_error}")
+        
         return feedback_obj
     except HTTPException:
         raise
