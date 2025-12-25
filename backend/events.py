@@ -335,6 +335,17 @@ async def complete_registration_payment(registration_id: str, payment_id: str, r
         except Exception as email_error:
             logger.error(f"Failed to send payment completion email: {email_error}")
         
+        # Send push notification to user
+        try:
+            await send_notification_to_user(
+                user_email=user['email'],
+                title="Payment Successful! 🎉",
+                body=f"Your payment for {registration.get('event_name', 'Event')} is confirmed!",
+                url="/my-events"
+            )
+        except Exception as push_error:
+            logger.error(f"Failed to send payment completion push notification: {push_error}")
+        
         return {"message": "Payment completed successfully", "registration_id": registration_id}
     except HTTPException:
         raise
