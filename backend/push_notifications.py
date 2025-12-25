@@ -85,7 +85,7 @@ async def unsubscribe_from_push(data: UnsubscribeRequest, request: Request):
     """Unsubscribe a user from push notifications"""
     try:
         from auth import require_auth
-        user = await require_auth(request)
+        await require_auth(request)  # Verify authentication
         
         # Remove from memory
         if data.user_email in push_subscriptions:
