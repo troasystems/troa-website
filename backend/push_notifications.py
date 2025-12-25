@@ -267,16 +267,16 @@ async def send_notification_to_user(user_email: str, title: str, body: str, url:
 
 
 async def send_notification_to_admins(title: str, body: str, url: str = "/admin"):
-    """Helper function to send push notification to all admins"""
+    """Helper function to send push notification to all admins (admin role only, not managers)"""
     try:
         from motor.motor_asyncio import AsyncIOMotorClient
         mongo_url = os.environ['MONGO_URL']
         client = AsyncIOMotorClient(mongo_url)
         db = client[os.environ['DB_NAME']]
         
-        # Get admin emails
+        # Get admin emails only (not managers)
         admins = await db.users.find(
-            {"role": {"$in": ["admin", "manager"]}},
+            {"role": "admin"},
             {"email": 1, "_id": 0}
         ).to_list(100)
         
@@ -286,3 +286,27 @@ async def send_notification_to_admins(title: str, body: str, url: str = "/admin"
             await send_notification_to_user(email, title, body, url)
     except Exception as e:
         logger.error(f"Error sending notifications to admins: {e}")
+
+
+async def send_notification_to_group_members(group_id: str, title: str, body: str, exclude_email: str = None, url: str = "/chat"):
+    """Helper function to send push notification to all members of a chat group"""
+    try:
+        from motor.motor_asyncio import AsyncIOMotorClient
+        mongo_url = os.environ['MONGO_URL']
+        client = AsyncIOMotorClient(mongo_url)
+        db = client[os.environ['DB_NAME']]
+        
+        # Get group members
+        group = await db.chat_groups.find_one({"id": group_id}, {"_id": 0, "members": 1})
+        if not group:
+            return
+        
+        member_emails = group.get('members', [])
+        
+        for email in member_emails:
+            # Skip the sender
+            if email == exclude_email:
+                continue
+            await send_notification_to_user(email, title, body, url)
+    except Exception as e:
+        logger.error(f"Error sending notifications to group members: {e}")
