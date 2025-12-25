@@ -135,12 +135,12 @@ async def send_push_notification(payload: PushNotificationPayload, request: Requ
         from auth import require_admin
         await require_admin(request)
         
-        # Get VAPID keys from environment
-        vapid_private_key = os.environ.get('VAPID_PRIVATE_KEY', '').replace('\\n', '\n')
+        # Get VAPID keys
+        vapid_key_file = get_vapid_key_file()
         vapid_public_key = os.environ.get('VAPID_PUBLIC_KEY')
         vapid_email = os.environ.get('VAPID_EMAIL', 'mailto:troa.systems@gmail.com')
         
-        if not vapid_private_key or not vapid_public_key:
+        if not vapid_key_file or not vapid_public_key:
             logger.warning("VAPID keys not configured, push notifications disabled")
             return {"message": "Push notifications not configured", "sent": 0}
         
@@ -180,7 +180,7 @@ async def send_push_notification(payload: PushNotificationPayload, request: Requ
                     webpush(
                         subscription_info=sub['subscription'],
                         data=notification_payload,
-                        vapid_private_key=vapid_private_key,
+                        vapid_private_key=vapid_key_file,
                         vapid_claims={
                             "sub": vapid_email
                         }
