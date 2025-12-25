@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Lock, Camera, Save, X } from 'lucide-react';
+import { User, Lock, Camera, Save, X, Bell } from 'lucide-react';
 import axios from 'axios';
 import { toast } from '../hooks/use-toast';
 import { getBackendUrl } from '../utils/api';
+import { NotificationSettings } from '../components/PushNotifications';
 
 const getAPI = () => `${getBackendUrl()}/api`;
 
