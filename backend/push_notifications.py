@@ -33,6 +33,16 @@ class PushNotificationPayload(BaseModel):
     tag: Optional[str] = "troa-notification"
     user_emails: Optional[List[str]] = None  # If None, send to all
 
+
+@push_router.get("/vapid-public-key")
+async def get_vapid_public_key():
+    """Get VAPID public key for push notification subscription"""
+    vapid_public_key = os.environ.get('VAPID_PUBLIC_KEY', '')
+    if not vapid_public_key:
+        raise HTTPException(status_code=500, detail="VAPID keys not configured")
+    return {"publicKey": vapid_public_key}
+
+
 @push_router.post("/subscribe")
 async def subscribe_to_push(data: PushSubscription, request: Request):
     """Subscribe a user to push notifications"""
