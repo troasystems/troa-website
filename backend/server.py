@@ -888,3 +888,11 @@ app.add_middleware(
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+@app.on_event("startup")
+async def startup_event():
+    # Initialize MC Group
+    try:
+        await init_mc_group()
+    except Exception as e:
+        logging.error(f"Error initializing MC Group: {e}")
