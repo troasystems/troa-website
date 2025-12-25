@@ -74,7 +74,7 @@ const InstallPWA = () => {
   }
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-6 md:max-w-sm z-50 animate-slide-up">
+    <div className="fixed bottom-28 md:bottom-20 left-4 right-4 md:left-auto md:right-6 md:max-w-sm z-50 animate-slide-up">
       <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 p-4">
