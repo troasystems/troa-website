@@ -21,7 +21,6 @@ const BottomNavigation = () => {
   // More menu items
   const moreItems = [
     { name: 'Committee', path: '/committee', icon: Info },
-    { name: 'Gallery', path: '/gallery', icon: Image },
     { name: 'Resources', path: '/help-desk', icon: HelpCircle },
     { name: 'About', path: '/about', icon: Info },
     { name: 'Contact', path: '/contact', icon: Phone },
