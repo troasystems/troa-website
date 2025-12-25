@@ -79,13 +79,21 @@ const PushNotifications = () => {
   };
 
   const subscribeToNotifications = async () => {
-    if (!isSupported || !VAPID_PUBLIC_KEY) {
-      console.log('Push notifications not configured');
+    if (!isSupported) {
+      console.log('Push notifications not supported');
       return;
     }
 
     setLoading(true);
     try {
+      // Get VAPID public key
+      const vapidKey = await getVapidPublicKey();
+      if (!vapidKey) {
+        console.log('Push notifications not configured - no VAPID key');
+        setLoading(false);
+        return;
+      }
+
       // Request permission
       const result = await Notification.requestPermission();
       setPermission(result);
@@ -102,7 +110,7 @@ const PushNotifications = () => {
       // Subscribe to push
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        applicationServerKey: urlBase64ToUint8Array(vapidKey)
       });
 
       // Send subscription to backend
