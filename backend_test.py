@@ -2512,6 +2512,8 @@ class TROAAPITester:
                             display_endpoint = f"users/{method}"
                         elif endpoint == 'villa_auth':
                             display_endpoint = f"auth/{method}"
+                        elif endpoint == 'pwa':
+                            display_endpoint = f"pwa/{method}"
                         else:
                             display_endpoint = f"{endpoint}/{method}"
                             
