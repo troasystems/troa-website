@@ -504,6 +504,16 @@ async def withdraw_from_event(registration_id: str, request: Request):
         except Exception as email_error:
             logger.error(f"Failed to send admin withdrawal notification: {email_error}")
         
+        # Send push notification to admins
+        try:
+            await send_notification_to_admins(
+                title="Event Withdrawal",
+                body=f"{user['name']} withdrew from {registration.get('event_name', 'Event')}",
+                url="/admin"
+            )
+        except Exception as push_error:
+            logger.error(f"Failed to send withdrawal push notification: {push_error}")
+        
         return {
             "message": "Successfully withdrawn from event",
             "refund_instructions": "For refund requests, please email: troa.systems@gmail.com, troa.treasurer@gmail.com, troa.secretary@gmail.com, and president.troa@gmail.com"
