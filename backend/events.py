@@ -255,6 +255,28 @@ async def register_for_event(event_id: str, registration_data: EventRegistration
         except Exception as email_error:
             logger.error(f"Failed to send admin event notification: {email_error}")
         
+        # Send push notification to user
+        try:
+            status_text = "pending approval" if payment_method == "offline" else "pending payment"
+            await send_notification_to_user(
+                user_email=user['email'],
+                title=f"Event Registration - {status_text.title()}",
+                body=f"Your registration for {event['name']} on {event['event_date']} is {status_text}.",
+                url="/my-events"
+            )
+        except Exception as push_error:
+            logger.error(f"Failed to send event registration push notification: {push_error}")
+        
+        # Send push notification to admins
+        try:
+            await send_notification_to_admins(
+                title="New Event Registration",
+                body=f"{user['name']} registered for {event['name']} ({len(registrants)} people)",
+                url="/admin"
+            )
+        except Exception as push_error:
+            logger.error(f"Failed to send admin push notification: {push_error}")
+        
         return registration.dict()
     finally:
         client.close()
