@@ -29,6 +29,7 @@ import Events from './pages/Events';
 import MyEvents from './pages/MyEvents';
 import ProfileSettings from './pages/ProfileSettings';
 import VerifyEmail from './pages/VerifyEmail';
+import CommunityChat from './pages/CommunityChat';
 
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
@@ -60,6 +61,7 @@ function App() {
                 <Route path="/profile" element={<ProfileSettings />} />
                 <Route path="/admin" element={<AdminPortal />} />
                 <Route path="/verify-email" element={<VerifyEmail />} />
+                <Route path="/chat" element={<CommunityChat />} />
               </Routes>
             </div>
             {/* Footer - hidden on mobile, visible on desktop */}
