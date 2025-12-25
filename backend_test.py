@@ -2398,6 +2398,190 @@ class TROAAPITester:
         except Exception as e:
             self.test_results['villa_auth']['verify_email_idempotent'] = False
             self.log_error("/auth/verify-email", "POST", f"Exception: {str(e)}")
+
+    def test_community_chat(self):
+        """Test Community Chat API endpoints"""
+        print("\n💬 Testing Community Chat API...")
+        
+        # Test 1: GET /api/chat/groups - Fetch chat groups (requires auth)
+        try:
+            response = requests.get(f"{self.base_url}/chat/groups", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list):
+                    self.test_results['community_chat']['get_groups'] = True
+                    self.log_success("/chat/groups", "GET", f"- Found {len(data)} chat groups")
+                    
+                    # Check if MC Group exists (should be auto-created)
+                    mc_group_found = any(group.get('is_mc_only') for group in data)
+                    if mc_group_found:
+                        self.test_results['community_chat']['mc_group_exists'] = True
+                        self.log_success("/chat/groups", "GET", "- MC Group auto-created and found")
+                    else:
+                        self.test_results['community_chat']['mc_group_exists'] = False
+                        self.log_error("/chat/groups", "GET", "MC Group not found - should be auto-created")
+                        
+                    # Validate structure if groups exist
+                    if data:
+                        group = data[0]
+                        required_fields = ['id', 'name', 'description', 'created_by', 'created_at', 'is_mc_only', 'members', 'member_count']
+                        missing_fields = [field for field in required_fields if field not in group]
+                        if missing_fields:
+                            self.log_error("/chat/groups", "GET", f"Missing required fields: {missing_fields}")
+                        else:
+                            self.log_success("/chat/groups", "GET", "- Group structure validated")
+                else:
+                    self.test_results['community_chat']['get_groups'] = False
+                    self.log_error("/chat/groups", "GET", "Response is not a list")
+            else:
+                self.test_results['community_chat']['get_groups'] = False
+                self.log_error("/chat/groups", "GET", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['community_chat']['get_groups'] = False
+            self.log_error("/chat/groups", "GET", f"Exception: {str(e)}")
+
+        # Test 2: POST /api/chat/groups - Create new group (manager/admin only)
+        created_group_id = None
+        try:
+            test_group = {
+                "name": "Test Community Group",
+                "description": "A test group for community discussions",
+                "is_mc_only": False
+            }
+            
+            response = requests.post(f"{self.base_url}/chat/groups", 
+                                   json=test_group, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if ('id' in data and 
+                    data['name'] == test_group['name'] and 
+                    data['is_mc_only'] == test_group['is_mc_only']):
+                    self.test_results['community_chat']['create_group'] = True
+                    created_group_id = data['id']
+                    self.log_success("/chat/groups", "POST", f"- Created group with ID: {data['id']}")
+                else:
+                    self.test_results['community_chat']['create_group'] = False
+                    self.log_error("/chat/groups", "POST", "Invalid response structure")
+            else:
+                self.test_results['community_chat']['create_group'] = False
+                self.log_error("/chat/groups", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['community_chat']['create_group'] = False
+            self.log_error("/chat/groups", "POST", f"Exception: {str(e)}")
+
+        # Test 3: POST /api/chat/groups/{group_id}/join - Join a group
+        if created_group_id:
+            try:
+                response = requests.post(f"{self.base_url}/chat/groups/{created_group_id}/join", 
+                                       headers=self.auth_headers,
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if 'message' in data and 'joined' in data['message'].lower():
+                        self.test_results['community_chat']['join_group'] = True
+                        self.log_success(f"/chat/groups/{created_group_id}/join", "POST", "- Successfully joined group")
+                    else:
+                        self.test_results['community_chat']['join_group'] = False
+                        self.log_error(f"/chat/groups/{created_group_id}/join", "POST", "Invalid response structure")
+                else:
+                    self.test_results['community_chat']['join_group'] = False
+                    self.log_error(f"/chat/groups/{created_group_id}/join", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+            except Exception as e:
+                self.test_results['community_chat']['join_group'] = False
+                self.log_error(f"/chat/groups/{created_group_id}/join", "POST", f"Exception: {str(e)}")
+
+        # Test 4: GET /api/chat/groups/{group_id}/messages - Get messages from a group
+        if created_group_id:
+            try:
+                response = requests.get(f"{self.base_url}/chat/groups/{created_group_id}/messages", 
+                                      headers=self.auth_headers,
+                                      timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if isinstance(data, list):
+                        self.test_results['community_chat']['get_messages'] = True
+                        self.log_success(f"/chat/groups/{created_group_id}/messages", "GET", f"- Found {len(data)} messages")
+                    else:
+                        self.test_results['community_chat']['get_messages'] = False
+                        self.log_error(f"/chat/groups/{created_group_id}/messages", "GET", "Response is not a list")
+                else:
+                    self.test_results['community_chat']['get_messages'] = False
+                    self.log_error(f"/chat/groups/{created_group_id}/messages", "GET", f"Status code: {response.status_code}, Response: {response.text}")
+            except Exception as e:
+                self.test_results['community_chat']['get_messages'] = False
+                self.log_error(f"/chat/groups/{created_group_id}/messages", "GET", f"Exception: {str(e)}")
+
+        # Test 5: POST /api/chat/groups/{group_id}/messages - Send message to a group
+        if created_group_id:
+            try:
+                test_message = {
+                    "content": "Hello! This is a test message from the API testing suite.",
+                    "group_id": created_group_id
+                }
+                
+                response = requests.post(f"{self.base_url}/chat/groups/{created_group_id}/messages", 
+                                       json=test_message, 
+                                       headers=self.auth_headers,
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if ('id' in data and 
+                        data['content'] == test_message['content'] and 
+                        data['group_id'] == created_group_id):
+                        self.test_results['community_chat']['send_message'] = True
+                        self.log_success(f"/chat/groups/{created_group_id}/messages", "POST", f"- Sent message with ID: {data['id']}")
+                    else:
+                        self.test_results['community_chat']['send_message'] = False
+                        self.log_error(f"/chat/groups/{created_group_id}/messages", "POST", "Invalid response structure")
+                else:
+                    self.test_results['community_chat']['send_message'] = False
+                    self.log_error(f"/chat/groups/{created_group_id}/messages", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+            except Exception as e:
+                self.test_results['community_chat']['send_message'] = False
+                self.log_error(f"/chat/groups/{created_group_id}/messages", "POST", f"Exception: {str(e)}")
+
+        # Test 6: POST /api/chat/groups/{group_id}/leave - Leave a group
+        if created_group_id:
+            try:
+                response = requests.post(f"{self.base_url}/chat/groups/{created_group_id}/leave", 
+                                       headers=self.auth_headers,
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if 'message' in data and 'left' in data['message'].lower():
+                        self.test_results['community_chat']['leave_group'] = True
+                        self.log_success(f"/chat/groups/{created_group_id}/leave", "POST", "- Successfully left group")
+                    else:
+                        self.test_results['community_chat']['leave_group'] = False
+                        self.log_error(f"/chat/groups/{created_group_id}/leave", "POST", "Invalid response structure")
+                else:
+                    self.test_results['community_chat']['leave_group'] = False
+                    self.log_error(f"/chat/groups/{created_group_id}/leave", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+            except Exception as e:
+                self.test_results['community_chat']['leave_group'] = False
+                self.log_error(f"/chat/groups/{created_group_id}/leave", "POST", f"Exception: {str(e)}")
+
+        # Test authentication requirements
+        try:
+            # Test GET /chat/groups without authentication (should fail)
+            response = requests.get(f"{self.base_url}/chat/groups", timeout=10)
+            if response.status_code in [401, 403]:
+                self.log_success("/chat/groups", "AUTH", "- Correctly requires authentication")
+            else:
+                self.log_error("/chat/groups", "AUTH", f"Should require auth but got status: {response.status_code}")
+        except Exception as e:
+            self.log_error("/chat/groups", "AUTH", f"Exception: {str(e)}")
+
     def run_all_tests(self):
         """Run all API tests"""
         print(f"🚀 Starting TROA Backend API Tests")
