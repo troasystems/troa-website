@@ -48,7 +48,7 @@ async def subscribe_to_push(data: PushSubscription, request: Request):
     """Subscribe a user to push notifications"""
     try:
         from auth import require_auth
-        user = await require_auth(request)
+        await require_auth(request)  # Verify authentication
         
         # Store subscription
         push_subscriptions[data.user_email] = data.subscription
