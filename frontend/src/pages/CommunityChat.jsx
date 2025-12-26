@@ -861,12 +861,14 @@ const CommunityChat = () => {
             </div>
           )}
           
-          {!messagesLoading && messages.length === 0 ? (
+          {!messagesLoading && messages.length === 0 && (
             <div className="text-center text-gray-500 py-10">
               <MessageSquare className="w-12 h-12 mx-auto mb-3 text-gray-300" />
               <p>No messages yet. Start the conversation!</p>
             </div>
-          ) : (
+          )}
+          
+          {!messagesLoading && messages.length > 0 && (
             messages.map((message) => {
               const isOwnMessage = message.sender_email === user?.email;
               const messageStatus = getMessageStatus(message, selectedGroup.members);
