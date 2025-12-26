@@ -603,15 +603,22 @@ async def send_message_with_files(
                 "is_image": attachment["is_image"]
             })
         
+        # Get sender's picture
+        sender_data = await db.users.find_one({"email": user['email']}, {"_id": 0, "picture": 1})
+        sender_picture = sender_data.get('picture') if sender_data else None
+        
         # Create message
         message = {
             "id": str(uuid4()),
             "group_id": group_id,
             "sender_email": user['email'],
             "sender_name": user['name'],
+            "sender_picture": sender_picture,
             "content": content,
             "created_at": datetime.now(timezone.utc).isoformat(),
-            "attachments": attachments
+            "attachments": attachments,
+            "status": "sent",
+            "read_by": []
         }
         
         await db.chat_messages.insert_one(message)
