@@ -94,24 +94,26 @@ function App() {
                   ? 'pt-[100px] md:pt-[132px]' 
                   : 'pt-[144px] md:pt-[184px]'
             }`}>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/committee" element={<Committee />} />
-                <Route path="/amenities" element={<Amenities />} />
-                <Route path="/gallery" element={<Gallery />} />
-                <Route path="/help-desk" element={<HelpDesk />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/feedback" element={<Feedback />} />
-                <Route path="/my-bookings" element={<MyBookings />} />
-                <Route path="/events" element={<Events />} />
-                <Route path="/my-events" element={<MyEvents />} />
-                <Route path="/profile" element={<ProfileSettings />} />
-                <Route path="/admin" element={<AdminPortal />} />
-                <Route path="/verify-email" element={<VerifyEmail />} />
-                <Route path="/chat" element={<CommunityChat />} />
-              </Routes>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/committee" element={<Committee />} />
+                  <Route path="/amenities" element={<Amenities />} />
+                  <Route path="/gallery" element={<Gallery />} />
+                  <Route path="/help-desk" element={<HelpDesk />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/feedback" element={<Feedback />} />
+                  <Route path="/my-bookings" element={<MyBookings />} />
+                  <Route path="/events" element={<Events />} />
+                  <Route path="/my-events" element={<MyEvents />} />
+                  <Route path="/profile" element={<ProfileSettings />} />
+                  <Route path="/admin" element={<AdminPortal />} />
+                  <Route path="/verify-email" element={<VerifyEmail />} />
+                  <Route path="/chat" element={<CommunityChat />} />
+                </Routes>
+              </Suspense>
             </div>
             {/* Footer - hidden on mobile, visible on desktop */}
             <div className="hidden md:block">
