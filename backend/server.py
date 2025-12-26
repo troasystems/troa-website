@@ -39,6 +39,59 @@ db = client[os.environ['DB_NAME']]
 # redirect_slashes=False prevents 307 redirects when trailing slash is missing
 app = FastAPI(redirect_slashes=False)
 
+# Add cache headers middleware for static-like API responses
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
+
+class CacheControlMiddleware(BaseHTTPMiddleware):
+    """Add cache control headers to responses based on endpoint type"""
+    
+    # Endpoints that can be cached (public, read-only data)
+    CACHEABLE_ENDPOINTS = [
+        '/api/amenities',
+        '/api/committee',
+        '/api/gallery',
+        '/api/events',
+    ]
+    
+    # Endpoints that should never be cached
+    NO_CACHE_ENDPOINTS = [
+        '/api/auth',
+        '/api/bookings',
+        '/api/payment',
+        '/api/chat',
+        '/api/feedback',
+        '/api/membership',
+        '/api/push',
+        '/api/users',
+    ]
+    
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        
+        # Only add cache headers for GET requests
+        if request.method != 'GET':
+            return response
+        
+        path = request.url.path
+        
+        # Check if endpoint should be cached
+        if any(path.startswith(ep) for ep in self.CACHEABLE_ENDPOINTS):
+            # Cache for 5 minutes, allow stale for 1 hour while revalidating
+            response.headers['Cache-Control'] = 'public, max-age=300, stale-while-revalidate=3600'
+            response.headers['Vary'] = 'Accept-Encoding'
+        elif any(path.startswith(ep) for ep in self.NO_CACHE_ENDPOINTS):
+            # Never cache sensitive endpoints
+            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
+            response.headers['Pragma'] = 'no-cache'
+        else:
+            # Default: short cache for other endpoints
+            response.headers['Cache-Control'] = 'private, max-age=60'
+        
+        return response
+
+app.add_middleware(CacheControlMiddleware)
+
 # Health check endpoint at root level (no /api prefix) for Kubernetes
 @app.get("/health")
 async def health_check():
