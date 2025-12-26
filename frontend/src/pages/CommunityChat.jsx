@@ -86,6 +86,79 @@ const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, confirmText
   );
 };
 
+// Image Thumbnail Component - Shows small preview with click to expand
+const ImageThumbnail = ({ attachment, isOwnMessage, onPreview }) => {
+  const [thumbnailData, setThumbnailData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    // For temp attachments (during sending), don't load
+    if (attachment.id.startsWith('temp')) {
+      setLoading(false);
+      return;
+    }
+    
+    // Load thumbnail data
+    const loadThumbnail = async () => {
+      try {
+        const response = await axios.get(`${getAPI()}/chat/attachments/${attachment.id}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        if (response.data && response.data.data) {
+          setThumbnailData(response.data);
+        }
+      } catch (error) {
+        console.error('Error loading thumbnail:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadThumbnail();
+  }, [attachment.id]);
+  
+  if (loading) {
+    return (
+      <div className={`w-[150px] h-[100px] rounded-lg flex items-center justify-center ${isOwnMessage ? 'bg-white/20' : 'bg-gray-100'}`}>
+        <Loader2 className={`w-5 h-5 animate-spin ${isOwnMessage ? 'text-white/60' : 'text-gray-400'}`} />
+      </div>
+    );
+  }
+  
+  if (!thumbnailData) {
+    return (
+      <div 
+        className={`p-2 rounded-lg flex items-center space-x-2 cursor-pointer ${isOwnMessage ? 'bg-white/20' : 'bg-gray-100'}`}
+        onClick={onPreview}
+      >
+        <Image className={`w-5 h-5 ${isOwnMessage ? 'text-white/80' : 'text-gray-500'}`} />
+        <span className={`text-sm ${isOwnMessage ? 'text-white/90' : 'text-gray-700'}`}>
+          {attachment.filename}
+        </span>
+        <Eye className={`w-4 h-4 ${isOwnMessage ? 'text-white/60' : 'text-gray-400'}`} />
+      </div>
+    );
+  }
+  
+  return (
+    <div 
+      className="cursor-pointer rounded-lg overflow-hidden relative group"
+      onClick={onPreview}
+      style={{ maxWidth: '150px' }}
+    >
+      <img 
+        src={`data:${thumbnailData.content_type};base64,${thumbnailData.data}`}
+        alt={attachment.filename}
+        className="w-full h-auto max-h-[100px] object-cover rounded-lg"
+      />
+      {/* Hover overlay */}
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+        <Eye className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+      </div>
+    </div>
+  );
+};
+
 const CommunityChat = () => {
   const { isAuthenticated, user, token, isAdmin, isManager } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
