@@ -630,7 +630,7 @@ async def send_message_with_files(
             attachment["data"] = base64.b64encode(file_content).decode('utf-8')
             
             # Store attachment in separate collection
-            await db.chat_attachments.insert_one({**attachment, "_id": None})
+            await db.chat_attachments.insert_one(attachment)
             
             # Add to message attachments (without the full data for message storage)
             attachments.append({
