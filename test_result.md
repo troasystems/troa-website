@@ -1,24 +1,21 @@
 # Test Results
 
 ## Testing Protocol
-- Testing PWA Push Notifications implementation
-- VAPID keys generated and configured
-- Backend endpoints for push notifications in place
-- Frontend PushNotifications component updated
+- Testing banner visibility fix
+- Testing file/image upload in chat
+- Testing group member management
 
 ## Features to Test
-1. VAPID public key endpoint returns correct key
-2. Push subscription subscribe/unsubscribe endpoints
-3. Push notification triggers for:
-   - Booking confirmations
-   - Booking cancellations
-   - Event registrations
-   - Event payment completions
-   - Event withdrawals
-   - Feedback submissions
-   - Membership applications
-   - Community chat messages (group notifications)
+1. Banner visibility - Feedback and Email Verification banners should be visible below navbar
+2. Chat file upload - Users can upload files (images, documents) up to 5MB
+3. Chat multiple files - Users can upload multiple files in a single message
+4. Chat image preview - Images can be previewed in chat
+5. Chat file download - Documents can be downloaded
+6. Group member management - Admins/managers can add/remove members
+7. Group creation with members - Can add members during group creation
+8. User search for adding members - Search users by name or email
 
 ## Incorporate User Feedback
-- Admin notifications should only go to users with 'admin' role (not managers)
-- All notification types should trigger push notifications
+- Max file size: 5MB
+- Multiple files per message: Yes
+- Admins/managers can remove anyone, normal users can add but not remove
