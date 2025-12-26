@@ -341,8 +341,9 @@ const UserManagement = () => {
   };
 
   const renderUserCard = (user, colorClass = 'purple') => (
-    <div key={user.id} className="bg-white rounded-lg p-3 sm:p-4 shadow-sm flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
-      <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
+    <div key={user.id} className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        {/* Avatar */}
         {user.picture ? (
           <img 
             src={user.picture} 
@@ -354,47 +355,51 @@ const UserManagement = () => {
             <UserIcon className={`w-5 h-5 text-${colorClass}-600`} />
           </div>
         )}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center space-x-2">
-            <p className="font-semibold text-gray-900 text-sm sm:text-base truncate">{user.name || 'No name'}</p>
+        
+        {/* User Info - takes remaining space */}
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="font-semibold text-gray-900 text-sm truncate max-w-[120px] sm:max-w-none">{user.name || 'No name'}</p>
             {user.email_verified ? (
-              <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" title="Email verified" />
+              <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" title="Email verified" />
             ) : (
-              <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" title="Email not verified" />
+              <XCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" title="Email not verified" />
             )}
           </div>
-          <p className="text-xs sm:text-sm text-gray-600 truncate">{user.email}</p>
-          {user.villa_number && (
-            <p className="text-xs text-purple-600 mt-0.5 sm:mt-1">
-              🏠 Villa: {user.villa_number}
-            </p>
-          )}
-          <p className="text-xs text-gray-400 mt-0.5 sm:mt-1">
-            {user.provider === 'google' ? '🔵 Google' : '📧 Email'}
-          </p>
+          <p className="text-xs text-gray-600 truncate">{user.email}</p>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
+            {user.villa_number && (
+              <span className="text-xs text-purple-600">🏠 {user.villa_number}</span>
+            )}
+            <span className="text-xs text-gray-400">
+              {user.provider === 'google' ? '🔵 Google' : '📧 Email'}
+            </span>
+          </div>
         </div>
-      </div>
-      <div className="flex items-center justify-between sm:justify-end space-x-2 pl-12 sm:pl-0">
-        <span className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-semibold border ${getRoleBadgeClass(user.role)}`}>
-          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-        </span>
-        <div className="flex items-center space-x-1">
-          <button
-            onClick={() => openEditModal(user)}
-            className={`p-1.5 sm:p-2 text-gray-600 hover:text-${colorClass}-600 hover:bg-${colorClass}-50 rounded-lg`}
-            title="Edit user"
-          >
-            <Edit2 className="w-4 h-4" />
-          </button>
-          {user.role !== 'admin' && (
+        
+        {/* Actions - stacked on mobile */}
+        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap ${getRoleBadgeClass(user.role)}`}>
+            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+          </span>
+          <div className="flex items-center gap-1">
             <button
-              onClick={() => handleDeleteUser(user.id, user.email)}
-              className="p-1.5 sm:p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg"
-              title="Delete user"
+              onClick={() => openEditModal(user)}
+              className={`p-1.5 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors`}
+              title="Edit user"
             >
-              <Trash2 className="w-4 h-4" />
+              <Edit2 className="w-4 h-4" />
             </button>
-          )}
+            {user.role !== 'admin' && (
+              <button
+                onClick={() => handleDeleteUser(user.id, user.email)}
+                className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Delete user"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
