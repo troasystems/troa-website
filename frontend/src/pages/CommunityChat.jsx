@@ -443,6 +443,10 @@ const CommunityChat = () => {
       
       // Fetch actual messages to replace optimistic one
       fetchMessages(selectedGroup.id);
+      // Scroll to bottom after sending
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     } catch (error) {
       // Remove optimistic message on error
       setMessages(prev => prev.filter(m => m.id !== tempId));
@@ -456,6 +460,41 @@ const CommunityChat = () => {
     } finally {
       setSendingMessage(false);
     }
+  };
+
+  const deleteMessage = async (messageId) => {
+    setDeletingMessage(messageId);
+    try {
+      await axios.delete(`${getAPI()}/chat/messages/${messageId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Update the message locally to show as deleted
+      setMessages(prev => prev.map(m => 
+        m.id === messageId 
+          ? { ...m, is_deleted: true, content: '', attachments: [] }
+          : m
+      ));
+      toast({ title: 'Success', description: 'Message deleted' });
+    } catch (error) {
+      toast({ 
+        title: 'Error', 
+        description: error.response?.data?.detail || 'Failed to delete message', 
+        variant: 'destructive' 
+      });
+    } finally {
+      setDeletingMessage(null);
+    }
+  };
+
+  const handleDeleteMessage = (messageId) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Message',
+      message: 'Are you sure you want to delete this message? This action cannot be undone.',
+      confirmText: 'Delete',
+      confirmColor: 'red',
+      onConfirm: () => deleteMessage(messageId)
+    });
   };
 
   const deleteGroup = async (groupId) => {
