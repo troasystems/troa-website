@@ -336,7 +336,7 @@ const CommunityChat = () => {
             confirmColor: 'green',
             onConfirm: () => {
               joinGroup(groupIdFromUrl).then(() => {
-                fetchGroups().then(() => {
+                fetchGroups(true).then(() => {
                   const updatedGroup = groups.find(g => g.id === groupIdFromUrl);
                   if (updatedGroup) {
                     setSelectedGroup({...updatedGroup, members: [...(updatedGroup.members || []), user?.email]});
@@ -352,29 +352,90 @@ const CommunityChat = () => {
     }
   }, [groupIdFromUrl, groups, selectedGroup]);
 
-  const fetchGroups = async () => {
+  // Fetch groups with caching
+  const fetchGroups = useCallback(async (forceRefresh = false) => {
     if (!token) return;
+    
+    try {
+      // Check cache first if not forcing refresh
+      if (!forceRefresh) {
+        const cachedGroups = await getCachedGroups();
+        if (cachedGroups && cachedGroups.length > 0) {
+          // Filter for current user
+          const filteredGroups = cachedGroups.filter(group => {
+            if (isAdmin || isManager) return true;
+            return !group.is_mc_only;
+          });
+          setGroups(filteredGroups);
+          setLoading(false);
+          
+          // Background refresh if cache is getting stale
+          if (!isGroupsCacheValid()) {
+            fetchGroupsFromServer();
+          }
+          return filteredGroups;
+        }
+      }
+      
+      return await fetchGroupsFromServer();
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+      setLoading(false);
+    }
+  }, [token, isAdmin, isManager]);
+  
+  // Fetch groups from server and cache
+  const fetchGroupsFromServer = async () => {
     try {
       const response = await axios.get(`${getAPI()}/chat/groups`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
+      // Cache all groups
+      await cacheGroups(response.data);
+      
       // Filter out MC-only groups for normal users
       const filteredGroups = response.data.filter(group => {
-        // Show all groups to admins and managers
         if (isAdmin || isManager) return true;
-        // Hide MC-only groups from normal users
         return !group.is_mc_only;
       });
       setGroups(filteredGroups);
       return filteredGroups;
     } catch (error) {
-      console.error('Error fetching groups:', error);
+      console.error('Error fetching groups from server:', error);
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchMessages = async (groupId, silent = false) => {
+  // Fetch messages with caching
+  const fetchMessages = useCallback(async (groupId, silent = false) => {
+    try {
+      // Check cache first for non-silent loads
+      if (!silent) {
+        const cachedMsgs = await getCachedMessages(groupId);
+        if (cachedMsgs && cachedMsgs.length > 0) {
+          setMessages(cachedMsgs);
+          setMessagesLoading(false);
+          
+          // Background refresh
+          fetchMessagesFromServer(groupId, true);
+          return;
+        }
+      }
+      
+      await fetchMessagesFromServer(groupId, silent);
+    } catch (error) {
+      if (!silent) {
+        console.error('Error fetching messages:', error);
+        setMessagesLoading(false);
+      }
+    }
+  }, [token, messages]);
+  
+  // Fetch messages from server
+  const fetchMessagesFromServer = async (groupId, silent = false) => {
     try {
       const sessionToken = localStorage.getItem('session_token');
       const response = await axios.get(`${getAPI()}/chat/groups/${groupId}/messages?limit=10`, {
@@ -383,6 +444,9 @@ const CommunityChat = () => {
           ...(sessionToken ? { 'X-Session-Token': `Bearer ${sessionToken}` } : {})
         }
       });
+      
+      // Cache messages
+      await cacheMessages(groupId, response.data);
       
       // On silent poll, only update if there are new messages at the end
       if (silent && messages.length > 0) {
@@ -412,7 +476,7 @@ const CommunityChat = () => {
       }
     } catch (error) {
       if (!silent) {
-        console.error('Error fetching messages:', error);
+        console.error('Error fetching messages from server:', error);
         setMessagesLoading(false);
       }
     }
