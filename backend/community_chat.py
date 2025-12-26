@@ -76,6 +76,8 @@ class Message(BaseModel):
     attachments: Optional[List[dict]] = []
     status: str = "sent"  # "sending", "sent", "delivered", "read"
     read_by: Optional[List[str]] = []  # List of emails who have read this message
+    is_deleted: bool = False  # Soft delete flag
+    deleted_at: Optional[str] = None  # When the message was deleted
 
 class AddMemberRequest(BaseModel):
     email: str
