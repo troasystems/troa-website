@@ -40,15 +40,22 @@ const CACHEABLE_API_PATTERNS = [
 ];
 
 // API endpoints that should NEVER be cached
+// API endpoints that should NEVER be cached by service worker
+// (Chat is cached via IndexedDB in chatCache.js for better control)
 const NO_CACHE_API_PATTERNS = [
   '/api/auth/login',
   '/api/auth/register',
   '/api/auth/logout',
   '/api/payment',
   '/api/bookings',
+  '/api/push'
+];
+
+// Chat endpoints use short cache for offline support
+const CHAT_CACHE_PATTERNS = [
   '/api/chat/groups',
   '/api/chat/messages',
-  '/api/push'
+  '/api/chat/attachments'
 ];
 
 // External image domains to cache
