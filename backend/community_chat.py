@@ -162,7 +162,8 @@ async def create_chat_group(group_data: ChatGroupCreate, request: Request):
             "created_by_name": user['name'],
             "created_at": datetime.now(timezone.utc).isoformat(),
             "is_mc_only": group_data.is_mc_only,
-            "members": members
+            "members": members,
+            "icon": group_data.icon
         }
         
         await db.chat_groups.insert_one(group)
