@@ -247,10 +247,31 @@ const CommunityChat = () => {
 
   const fetchMessages = async (groupId, silent = false) => {
     try {
-      const response = await axios.get(`${getAPI()}/chat/groups/${groupId}/messages`, {
+      const response = await axios.get(`${getAPI()}/chat/groups/${groupId}/messages?limit=10`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setMessages(response.data);
+      // On silent poll, only update if there are new messages at the end
+      if (silent && messages.length > 0) {
+        const lastExistingId = messages[messages.length - 1]?.id;
+        const newMessages = response.data;
+        const lastNewId = newMessages[newMessages.length - 1]?.id;
+        if (lastExistingId !== lastNewId) {
+          // New messages arrived, append them
+          const existingIds = new Set(messages.map(m => m.id));
+          const trulyNew = newMessages.filter(m => !existingIds.has(m.id));
+          if (trulyNew.length > 0) {
+            setMessages(prev => [...prev, ...trulyNew]);
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }
+          // Also update existing messages (for status changes, deletions)
+          setMessages(prev => {
+            const updatedMap = new Map(newMessages.map(m => [m.id, m]));
+            return prev.map(m => updatedMap.get(m.id) || m);
+          });
+        }
+      } else {
+        setMessages(response.data);
+      }
     } catch (error) {
       if (!silent) {
         console.error('Error fetching messages:', error);
