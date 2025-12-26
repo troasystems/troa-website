@@ -100,7 +100,7 @@ const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, confirmText
   );
 };
 
-// Image Thumbnail Component - Shows small preview with click to expand
+// Image Thumbnail Component - Shows small preview with click to expand (with caching)
 const ImageThumbnail = ({ attachment, isOwnMessage, onPreview, token }) => {
   const [thumbnailData, setThumbnailData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -113,9 +113,18 @@ const ImageThumbnail = ({ attachment, isOwnMessage, onPreview, token }) => {
       return;
     }
     
-    // Load thumbnail data
+    // Load thumbnail data with caching
     const loadThumbnail = async () => {
       try {
+        // Check cache first
+        const cachedData = await getCachedAttachment(attachment.id);
+        if (cachedData && cachedData.data) {
+          setThumbnailData(cachedData);
+          setLoading(false);
+          return;
+        }
+        
+        // Fetch from server
         const sessionToken = localStorage.getItem('session_token');
         const response = await axios.get(`${getAPI()}/chat/attachments/${attachment.id}`, {
           headers: { 
@@ -125,6 +134,8 @@ const ImageThumbnail = ({ attachment, isOwnMessage, onPreview, token }) => {
         });
         if (response.data && response.data.data) {
           setThumbnailData(response.data);
+          // Cache the attachment for future use
+          await cacheAttachment(attachment.id, response.data);
         } else {
           setError(true);
         }
