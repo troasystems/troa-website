@@ -52,6 +52,8 @@ class TROAAPITester:
         self.uniform_event_id = None
         self.adult_child_event_id = None
         self.adult_child_registration_id = None
+        self.test_group_id = None
+        self.test_message_ids = []
         
         # Setup authentication headers
         self.basic_auth = base64.b64encode(f"{BASIC_AUTH_USERNAME}:{BASIC_AUTH_PASSWORD}".encode()).decode()
