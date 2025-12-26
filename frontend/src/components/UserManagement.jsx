@@ -655,47 +655,47 @@ const UserManagement = () => {
 
       {/* Add New User Form */}
       {isAddingUser && (
-        <div className="bg-gradient-to-r from-green-50 to-teal-50 rounded-lg p-6 border-2 border-green-200 shadow-md">
+        <div className="bg-gradient-to-r from-green-50 to-teal-50 rounded-lg p-4 sm:p-6 border-2 border-green-200 shadow-md">
           <div className="flex items-center space-x-2 mb-4">
-            <UserPlus className="w-6 h-6 text-green-600" />
-            <h3 className="text-xl font-semibold text-gray-900">Add New User to Whitelist</h3>
+            <UserPlus className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 flex-shrink-0" />
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Add New User</h3>
           </div>
-          <p className="text-gray-600 mb-4 text-sm">
-            Pre-authorize users by adding their email before they log in. When they sign in with Google using this email, they&apos;ll automatically have the assigned role and villa number.
+          <p className="text-gray-600 mb-4 text-xs sm:text-sm">
+            Pre-authorize users by adding their email before they log in.
           </p>
           <form onSubmit={handleAddNewUser} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <Mail className="w-4 h-4 inline mr-1" />
-                  Email Address *
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                  <Mail className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
+                  Email *
                 </label>
                 <input
                   type="email"
                   value={newUserEmail}
                   onChange={(e) => setNewUserEmail(e.target.value)}
                   placeholder="user@example.com"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <AtSign className="w-4 h-4 inline mr-1" />
-                  Name (Optional)
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                  <AtSign className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
+                  Name
                 </label>
                 <input
                   type="text"
                   value={newUserName}
                   onChange={(e) => setNewUserName(e.target.value)}
                   placeholder="John Doe"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <Home className="w-4 h-4 inline mr-1" />
-                  Villa Number
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                  <Home className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
+                  Villa No.
                 </label>
                 <input
                   type="text"
@@ -705,19 +705,19 @@ const UserManagement = () => {
                       setNewUserVilla(e.target.value);
                     }
                   }}
-                  placeholder="e.g., 42"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  placeholder="42"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <Shield className="w-4 h-4 inline mr-1" />
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                  <Shield className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
                   Role
                 </label>
                 <select
                   value={newUserRole}
                   onChange={(e) => setNewUserRole(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 >
                   <option value="user">User</option>
                   <option value="manager">Manager</option>
@@ -725,11 +725,11 @@ const UserManagement = () => {
                 </select>
               </div>
             </div>
-            <div className="flex items-center space-x-3 pt-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 pt-2">
               <button
                 type="submit"
                 disabled={addingUserLoading}
-                className="flex items-center space-x-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
                 {addingUserLoading ? (
                   <>
@@ -752,7 +752,7 @@ const UserManagement = () => {
                   setNewUserRole('user');
                   setNewUserVilla('');
                 }}
-                className="flex items-center space-x-2 px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
               >
                 <X className="w-4 h-4" />
                 <span>Cancel</span>
