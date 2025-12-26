@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import './App.css';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -34,17 +34,45 @@ import CommunityChat from './pages/CommunityChat';
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
 function App() {
+  const [feedbackBannerVisible, setFeedbackBannerVisible] = useState(false);
+  const [emailBannerVisible, setEmailBannerVisible] = useState(false);
+
+  const handleFeedbackVisibility = useCallback((visible) => {
+    setFeedbackBannerVisible(visible);
+  }, []);
+
+  const handleEmailVisibility = useCallback((visible) => {
+    setEmailBannerVisible(visible);
+  }, []);
+
+  // Calculate total banner count for padding adjustment
+  const bannerCount = (feedbackBannerVisible ? 1 : 0) + (emailBannerVisible ? 1 : 0);
+
   return (
     <div className="App">
       <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
         <BrowserRouter>
           <AuthProvider>
             <ScrollToTop />
+            {/* Fixed Navbar */}
             <Navbar />
-            <FeedbackBanner />
-            <EmailVerificationBanner />
-            {/* Mobile: pt-14 for mobile header, Desktop: pt-20 for full navbar */}
-            <div className="pt-14 md:pt-20 pb-16 md:pb-0">
+            
+            {/* Banner Container - fixed below navbar */}
+            <div className="fixed top-14 md:top-20 left-0 right-0 z-40">
+              <FeedbackBanner onVisibilityChange={handleFeedbackVisibility} />
+              <EmailVerificationBanner onVisibilityChange={handleEmailVisibility} />
+            </div>
+            
+            {/* Main Content - with dynamic padding based on visible banners */}
+            {/* Base: pt-14 md:pt-20 for navbar */}
+            {/* Each banner adds ~44px mobile / ~52px desktop */}
+            <div className={`pb-16 md:pb-0 ${
+              bannerCount === 0 
+                ? 'pt-14 md:pt-20' 
+                : bannerCount === 1 
+                  ? 'pt-[100px] md:pt-[132px]' 
+                  : 'pt-[144px] md:pt-[184px]'
+            }`}>
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/about" element={<About />} />
