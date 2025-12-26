@@ -227,6 +227,53 @@ async function handleApiRequest(request, url) {
   });
 }
 
+// Network-First with short cache for chat endpoints
+async function handleChatApiRequest(request, url, cacheKey) {
+  const cache = await caches.open(API_CACHE);
+  
+  // Chat attachments can be cached longer
+  const isAttachment = url.pathname.includes('/attachments/');
+  const maxAge = isAttachment ? 24 * 60 * 60 * 1000 : 60 * 1000; // 24h for attachments, 1min for messages/groups
+  
+  try {
+    // Try network first
+    const response = await fetch(request);
+    
+    if (response.ok) {
+      // Cache the response
+      const responseToCache = response.clone();
+      const headers = new Headers(responseToCache.headers);
+      headers.set('sw-cache-time', Date.now().toString());
+      
+      cache.put(cacheKey, new Response(responseToCache.body, {
+        status: responseToCache.status,
+        statusText: responseToCache.statusText,
+        headers: headers
+      }));
+    }
+    return response;
+  } catch (error) {
+    // Network failed, try cache
+    const cachedResponse = await cache.match(cacheKey);
+    if (cachedResponse) {
+      const cacheTime = parseInt(cachedResponse.headers.get('sw-cache-time') || '0');
+      const age = Date.now() - cacheTime;
+      
+      // Return cached response if within acceptable age
+      if (age < maxAge) {
+        console.log('[SW] Returning cached chat response');
+        return cachedResponse;
+      }
+    }
+    
+    // No valid cache, return error
+    return new Response(JSON.stringify({ error: 'Offline - chat unavailable' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+}
+
 // Cache-First with long expiry for images
 async function handleImageRequest(request, url) {
   const cache = await caches.open(IMAGE_CACHE);
