@@ -696,7 +696,25 @@ const CommunityChat = () => {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div 
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto p-4 space-y-3"
+          onScroll={handleScroll}
+        >
+          {/* Loading more indicator */}
+          {loadingMore && (
+            <div className="text-center py-2">
+              <Loader2 className="w-5 h-5 animate-spin text-purple-500 mx-auto" />
+              <p className="text-xs text-gray-500 mt-1">Loading older messages...</p>
+            </div>
+          )}
+          
+          {!hasMoreMessages && messages.length > 0 && (
+            <div className="text-center py-2">
+              <p className="text-xs text-gray-400">Beginning of conversation</p>
+            </div>
+          )}
+          
           {messages.length === 0 ? (
             <div className="text-center text-gray-500 py-10">
               <MessageSquare className="w-12 h-12 mx-auto mb-3 text-gray-300" />
@@ -706,10 +724,12 @@ const CommunityChat = () => {
             messages.map((message) => {
               const isOwnMessage = message.sender_email === user?.email;
               const messageStatus = getMessageStatus(message, selectedGroup.members);
+              const isDeleted = message.is_deleted;
+              
               return (
                 <div
                   key={message.id}
-                  className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} group`}
                 >
                   {/* Sender Avatar for other's messages */}
                   {!isOwnMessage && (
@@ -728,26 +748,56 @@ const CommunityChat = () => {
                     </div>
                   )}
                   
-                  <div className={`max-w-[75%]`}>
+                  <div className={`max-w-[75%] relative`}>
                     {!isOwnMessage && (
                       <p className="text-xs text-gray-500 mb-1 ml-1">{message.sender_name}</p>
                     )}
+                    
+                    {/* Delete button for own messages */}
+                    {isOwnMessage && !isDeleted && (
+                      <button
+                        onClick={() => handleDeleteMessage(message.id)}
+                        disabled={deletingMessage === message.id}
+                        className="absolute -left-8 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-gray-100 hover:bg-red-100 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Delete message"
+                      >
+                        {deletingMessage === message.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    )}
+                    
                     <div
                       className={`px-4 py-2 rounded-2xl ${
-                        isOwnMessage
-                          ? 'bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-br-md'
-                          : 'bg-white shadow-sm rounded-bl-md'
+                        isDeleted
+                          ? 'bg-gray-100 border border-gray-200 rounded-lg'
+                          : isOwnMessage
+                            ? 'bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-br-md'
+                            : 'bg-white shadow-sm rounded-bl-md'
                       }`}
                     >
-                      {/* Attachments */}
-                      {message.attachments && message.attachments.length > 0 && (
-                        <div className="space-y-2 mb-2">
-                          {message.attachments.map((attachment) => (
-                            <div key={attachment.id}>
-                              {attachment.is_image ? (
-                                <div 
-                                  className="cursor-pointer rounded-lg overflow-hidden"
-                                  onClick={() => !attachment.id.startsWith('temp') && handleImagePreview(attachment)}
+                      {/* Deleted message indicator */}
+                      {isDeleted ? (
+                        <p className="text-sm text-gray-400 italic flex items-center space-x-1">
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>This message was deleted</span>
+                        </p>
+                      ) : (
+                        <>
+                          {/* Attachments */}
+                          {message.attachments && message.attachments.length > 0 && (
+                            <div className="space-y-2 mb-2">
+                              {message.attachments.map((attachment) => (
+                                <div key={attachment.id}>
+                                  {attachment.is_image ? (
+                                    <ImageThumbnail 
+                                      attachment={attachment}
+                                      isOwnMessage={isOwnMessage}
+                                      onPreview={() => !attachment.id.startsWith('temp') && handleImagePreview(attachment)}
+                                    />
+                                  ) : (
                                 >
                                   <div className={`p-2 rounded-lg flex items-center space-x-2 ${isOwnMessage ? 'bg-white/20' : 'bg-gray-100'}`}>
                                     <Image className={`w-5 h-5 ${isOwnMessage ? 'text-white/80' : 'text-gray-500'}`} />
