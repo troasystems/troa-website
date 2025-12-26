@@ -203,9 +203,9 @@ const CommunityChat = () => {
   // Chat view when group is selected
   if (selectedGroup) {
     return (
-      <div className="flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-6rem)] bg-gray-50">
-        {/* Chat Header */}
-        <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
+      <div className="flex flex-col h-screen bg-gray-50 pt-14 md:pt-20 pb-16 md:pb-0">
+        {/* Chat Header - sticky below navbar */}
+        <div className="sticky top-14 md:top-20 z-30 bg-white border-b px-4 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setSelectedGroup(null)}
