@@ -942,6 +942,7 @@ const CommunityChat = () => {
                                       attachment={attachment}
                                       isOwnMessage={isOwnMessage}
                                       onPreview={() => !attachment.id.startsWith('temp') && handleImagePreview(attachment)}
+                                      token={token}
                                     />
                                   ) : (
                                     <div 
@@ -949,7 +950,7 @@ const CommunityChat = () => {
                                       onClick={() => !attachment.id.startsWith('temp') && handleDownload(attachment)}
                                     >
                                       <div className={`p-2 rounded-lg flex items-center space-x-2 ${isOwnMessage ? 'bg-white/20' : 'bg-gray-100'}`}>
-                                        <FileText className={`w-5 h-5 ${isOwnMessage ? 'text-white/80' : 'text-gray-500'}`} />
+                                        <FileText className={`w-5 h-5 flex-shrink-0 ${isOwnMessage ? 'text-white/80' : 'text-gray-500'}`} />
                                         <div className="flex-1 min-w-0">
                                           <p className={`text-sm truncate ${isOwnMessage ? 'text-white/90' : 'text-gray-700'}`}>
                                             {attachment.filename}
@@ -958,7 +959,7 @@ const CommunityChat = () => {
                                             {formatFileSize(attachment.size)}
                                           </p>
                                         </div>
-                                        <Download className={`w-4 h-4 ${isOwnMessage ? 'text-white/60' : 'text-gray-400'}`} />
+                                        <Download className={`w-4 h-4 flex-shrink-0 ${isOwnMessage ? 'text-white/60' : 'text-gray-400'}`} />
                                       </div>
                                     </div>
                                   )}
