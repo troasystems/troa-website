@@ -918,34 +918,49 @@ const CommunityChat = () => {
           </div>
         )}
 
-        {/* Image Preview Modal */}
+        {/* Image Preview Modal - Medium Popup (max 600x600px) */}
         {previewImage && (
           <div 
-            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90"
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70"
             onClick={() => setPreviewImage(null)}
           >
-            <button 
-              className="absolute top-4 right-4 p-2 text-white hover:bg-white/20 rounded-full"
-              onClick={() => setPreviewImage(null)}
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <img 
-              src={`data:${previewImage.content_type};base64,${previewImage.data}`}
-              alt={previewImage.filename}
-              className="max-w-full max-h-full object-contain rounded-lg"
+            <div 
+              className="relative bg-white rounded-2xl shadow-2xl overflow-hidden max-w-[600px] max-h-[600px]"
               onClick={(e) => e.stopPropagation()}
-            />
-            <button
-              className="absolute bottom-4 right-4 px-4 py-2 bg-white text-gray-900 rounded-lg flex items-center space-x-2"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDownload(previewImage);
-              }}
             >
-              <Download className="w-4 h-4" />
-              <span>Download</span>
-            </button>
+              {/* Header */}
+              <div className="flex items-center justify-between p-3 border-b bg-gray-50">
+                <p className="text-sm font-medium text-gray-700 truncate max-w-[400px]">
+                  {previewImage.filename}
+                </p>
+                <button 
+                  className="p-1.5 text-gray-500 hover:bg-gray-200 rounded-full"
+                  onClick={() => setPreviewImage(null)}
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              {/* Image */}
+              <div className="flex items-center justify-center bg-gray-100 p-2" style={{ maxHeight: '480px' }}>
+                <img 
+                  src={`data:${previewImage.content_type};base64,${previewImage.data}`}
+                  alt={previewImage.filename}
+                  className="max-w-full max-h-[460px] object-contain rounded"
+                />
+              </div>
+              
+              {/* Footer with download */}
+              <div className="flex items-center justify-end p-3 border-t bg-gray-50">
+                <button
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-lg flex items-center space-x-2 hover:from-purple-700 hover:to-pink-600 transition-colors"
+                  onClick={() => handleDownload(previewImage)}
+                >
+                  <Download className="w-4 h-4" />
+                  <span className="text-sm font-medium">Download</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
