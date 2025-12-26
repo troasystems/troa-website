@@ -122,9 +122,11 @@ function App() {
             {/* Bottom Navigation - visible on mobile only */}
             <BottomNavigation />
             {/* Chatbot - adjust position for mobile */}
-            <div className="md:mb-0 mb-16">
-              <Chatbot />
-            </div>
+            <Suspense fallback={null}>
+              <div className="md:mb-0 mb-16">
+                <Chatbot />
+              </div>
+            </Suspense>
             <VillaNumberModalWrapper />
             {/* PWA Components */}
             <InstallPWA />
