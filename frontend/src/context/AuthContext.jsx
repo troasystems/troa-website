@@ -247,9 +247,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Get the token from localStorage
+  const getToken = () => localStorage.getItem('session_token');
+
   const value = {
     user,
     loading,
+    token: getToken(), // Expose token
     loginWithGoogle,
     loginWithGoogleToken,
     loginWithEmail,
