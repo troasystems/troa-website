@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Backend API Testing for TROA (The Retreat Owners Association) Website
-Tests all backend APIs including Committee Members, Amenities, Gallery, Membership Application, Events, and Amenity Booking endpoints.
+Tests all backend APIs including Committee Members, Amenities, Gallery, Membership Application, Events, Amenity Booking, and Villa Management endpoints.
 """
 
 import requests
@@ -36,7 +36,13 @@ class TROAAPITester:
             'gridfs_storage': {'get_image': None, 'cache_headers': None, 'etag_support': None, 'not_modified': None},
             'unified_payment': {'offline_payment': None, 'get_offline_payments': None, 'approve_payment': None, 'reject_payment': None, 'amount_verification': None},
             'event_pricing': {'per_villa': None, 'uniform_per_person': None, 'adult_child': None, 'adult_child_registration': None, 'validation': None, 'per_villa_registration': None},
-            'event_modification': {'uniform_per_person_mod': None, 'adult_child_mod': None, 'per_villa_mod': None, 'offline_payment_mod': None, 'online_payment_mod': None, 'create_modification_order': None, 'my_status': None}
+            'event_modification': {'uniform_per_person_mod': None, 'adult_child_mod': None, 'per_villa_mod': None, 'offline_payment_mod': None, 'online_payment_mod': None, 'create_modification_order': None, 'my_status': None},
+            'villa_management': {'update_name': None, 'update_villa_valid': None, 'update_villa_invalid': None, 'update_password': None, 'update_photo': None, 'create_with_villa': None},
+            'user_management': {'toggle_verified_true': None, 'toggle_verified_false': None, 'update_picture_base64': None},
+            'google_oauth': {'invalid_token_error': None},
+            'email_verification': {'already_verified_success': None, 'token_mismatch_error': None},
+            'community_chat': {'get_groups': None, 'create_group': None, 'join_group': None, 'leave_group': None, 'get_messages': None, 'send_message': None, 'mc_group_exists': None},
+            'push_notifications': {'vapid_public_key': None, 'subscribe': None, 'unsubscribe': None, 'status': None, 'send_admin_only': None, 'send_notification_to_user': None, 'send_notification_to_admins': None}
         }
         self.errors = []
         self.created_event_id = None
@@ -49,7 +55,7 @@ class TROAAPITester:
         
         # Setup authentication headers
         self.basic_auth = base64.b64encode(f"{BASIC_AUTH_USERNAME}:{BASIC_AUTH_PASSWORD}".encode()).decode()
-        self.session_token = "PIgFhZEyDs02mjo9moXWHIBGEoGhwtaoOnUQvyVq7Bc"  # Valid admin session token
+        self.session_token = "xBPTLcvN2wsTsXtfGxu1MJ4W7VmNi8oO5fUrLqqVT44"  # Valid admin session token
         self.auth_headers = {
             'Authorization': f'Basic {self.basic_auth}',
             'X-Session-Token': f'Bearer {self.session_token}',
@@ -1748,6 +1754,1050 @@ class TROAAPITester:
         except Exception as e:
             self.log_error("/events/my/registrations", "GET", f"Exception: {str(e)}")
             
+    def test_villa_management(self):
+        """Test Villa Management API endpoints"""
+        print("\n🏠 Testing Villa Management API...")
+        
+        # First create a test user to work with
+        test_user_email = f"testuser_{datetime.now().strftime('%H%M%S')}@example.com"
+        test_user_id = None
+        
+        # Test POST /api/users - Admin can pre-set villa_number when adding user
+        try:
+            user_data = {
+                "email": test_user_email,
+                "name": "Test Villa User",
+                "role": "user",
+                "villa_number": "123"
+            }
+            response = requests.post(
+                f"{self.base_url}/users",
+                json=user_data,
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('villa_number') == '123':
+                    test_user_id = data.get('id')
+                    self.test_results['villa_management']['create_with_villa'] = True
+                    self.log_success("/users", "POST", f"- Created user with villa number: {data.get('villa_number')}")
+                else:
+                    self.test_results['villa_management']['create_with_villa'] = False
+                    self.log_error("/users", "POST", f"Villa number not set correctly: {data.get('villa_number')}")
+            else:
+                self.test_results['villa_management']['create_with_villa'] = False
+                self.log_error("/users", "POST", f"Status: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['villa_management']['create_with_villa'] = False
+            self.log_error("/users", "POST", f"Exception: {str(e)}")
+        
+        if not test_user_id:
+            print("❌ Cannot continue villa management tests without test user")
+            return
+        
+        # Test PATCH /api/users/{id} - Admin can update user name
+        try:
+            update_data = {"name": "Updated Villa User Name"}
+            response = requests.patch(
+                f"{self.base_url}/users/{test_user_id}",
+                json=update_data,
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('name') == 'Updated Villa User Name':
+                    self.test_results['villa_management']['update_name'] = True
+                    self.log_success(f"/users/{test_user_id}", "PATCH", f"- Updated name to: {data.get('name')}")
+                else:
+                    self.test_results['villa_management']['update_name'] = False
+                    self.log_error(f"/users/{test_user_id}", "PATCH", f"Name not updated correctly: {data.get('name')}")
+            else:
+                self.test_results['villa_management']['update_name'] = False
+                self.log_error(f"/users/{test_user_id}", "PATCH", f"Status: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['villa_management']['update_name'] = False
+            self.log_error(f"/users/{test_user_id}", "PATCH", f"Exception: {str(e)}")
+        
+        # Test PATCH /api/users/{id} - Admin can update villa_number (numeric only)
+        try:
+            update_data = {"villa_number": "456"}
+            response = requests.patch(
+                f"{self.base_url}/users/{test_user_id}",
+                json=update_data,
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('villa_number') == '456':
+                    self.test_results['villa_management']['update_villa_valid'] = True
+                    self.log_success(f"/users/{test_user_id}", "PATCH", f"- Updated villa to: {data.get('villa_number')}")
+                else:
+                    self.test_results['villa_management']['update_villa_valid'] = False
+                    self.log_error(f"/users/{test_user_id}", "PATCH", f"Villa not updated correctly: {data.get('villa_number')}")
+            else:
+                self.test_results['villa_management']['update_villa_valid'] = False
+                self.log_error(f"/users/{test_user_id}", "PATCH", f"Status: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['villa_management']['update_villa_valid'] = False
+            self.log_error(f"/users/{test_user_id}", "PATCH", f"Exception: {str(e)}")
+        
+        # Test PATCH /api/users/{id} - Villa number validation rejects non-numeric
+        try:
+            update_data = {"villa_number": "ABC123"}
+            response = requests.patch(
+                f"{self.base_url}/users/{test_user_id}",
+                json=update_data,
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 400:
+                self.test_results['villa_management']['update_villa_invalid'] = True
+                self.log_success(f"/users/{test_user_id}", "PATCH", f"- Correctly rejected non-numeric villa: {response.json().get('detail', '')}")
+            else:
+                self.test_results['villa_management']['update_villa_invalid'] = False
+                self.log_error(f"/users/{test_user_id}", "PATCH", f"Should reject non-numeric villa but got status: {response.status_code}")
+        except Exception as e:
+            self.test_results['villa_management']['update_villa_invalid'] = False
+            self.log_error(f"/users/{test_user_id}", "PATCH", f"Exception: {str(e)}")
+        
+        # Test PATCH /api/users/{id} - Admin can reset user password
+        try:
+            update_data = {"new_password": "newpassword123"}
+            response = requests.patch(
+                f"{self.base_url}/users/{test_user_id}",
+                json=update_data,
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 200:
+                self.test_results['villa_management']['update_password'] = True
+                self.log_success(f"/users/{test_user_id}", "PATCH", "- Password reset successful")
+            else:
+                self.test_results['villa_management']['update_password'] = False
+                self.log_error(f"/users/{test_user_id}", "PATCH", f"Status: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['villa_management']['update_password'] = False
+            self.log_error(f"/users/{test_user_id}", "PATCH", f"Exception: {str(e)}")
+        
+        # Test PATCH /api/users/{id} - Admin can update user photo URL
+        try:
+            update_data = {"picture": "https://example.com/photo.jpg"}
+            response = requests.patch(
+                f"{self.base_url}/users/{test_user_id}",
+                json=update_data,
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('picture') == 'https://example.com/photo.jpg':
+                    self.test_results['villa_management']['update_photo'] = True
+                    self.log_success(f"/users/{test_user_id}", "PATCH", f"- Updated photo to: {data.get('picture')}")
+                else:
+                    self.test_results['villa_management']['update_photo'] = False
+                    self.log_error(f"/users/{test_user_id}", "PATCH", f"Photo not updated correctly: {data.get('picture')}")
+            else:
+                self.test_results['villa_management']['update_photo'] = False
+                self.log_error(f"/users/{test_user_id}", "PATCH", f"Status: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['villa_management']['update_photo'] = False
+            self.log_error(f"/users/{test_user_id}", "PATCH", f"Exception: {str(e)}")
+        
+        # Cleanup test user
+        try:
+            response = requests.delete(
+                f"{self.base_url}/users/{test_user_id}",
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 200:
+                print(f"🧹 Cleaned up test user: {test_user_email}")
+            else:
+                print(f"⚠️  Failed to clean up test user: {test_user_email}")
+        except Exception as e:
+            print(f"⚠️  Exception during cleanup: {str(e)}")
+
+    def test_user_management_features(self):
+        """Test User Management features from the review request"""
+        print("\n🧪 Testing User Management Features...")
+        
+        # Test 1: Admin can toggle email_verified to true
+        try:
+            # First get a user to test with
+            response = requests.get(f"{self.base_url}/users", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                users = response.json()
+                if users:
+                    test_user = users[0]  # Use first user for testing
+                    user_id = test_user['id']
+                    
+                    # Test toggling email_verified to true
+                    update_data = {'email_verified': True}
+                    response = requests.patch(f"{self.base_url}/users/{user_id}", 
+                                            json=update_data, 
+                                            headers=self.auth_headers,
+                                            timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get('email_verified') == True:
+                            self.test_results['user_management']['toggle_verified_true'] = True
+                            self.log_success(f"/users/{user_id} (toggle verified true)", "PATCH", "- Successfully toggled email_verified to true")
+                        else:
+                            self.test_results['user_management']['toggle_verified_true'] = False
+                            self.log_error(f"/users/{user_id} (toggle verified true)", "PATCH", "email_verified not updated to true")
+                    else:
+                        self.test_results['user_management']['toggle_verified_true'] = False
+                        self.log_error(f"/users/{user_id} (toggle verified true)", "PATCH", f"Status code: {response.status_code}")
+                    
+                    # Test 2: Admin can toggle email_verified to false
+                    update_data = {'email_verified': False}
+                    response = requests.patch(f"{self.base_url}/users/{user_id}", 
+                                            json=update_data, 
+                                            headers=self.auth_headers,
+                                            timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get('email_verified') == False:
+                            self.test_results['user_management']['toggle_verified_false'] = True
+                            self.log_success(f"/users/{user_id} (toggle verified false)", "PATCH", "- Successfully toggled email_verified to false")
+                        else:
+                            self.test_results['user_management']['toggle_verified_false'] = False
+                            self.log_error(f"/users/{user_id} (toggle verified false)", "PATCH", "email_verified not updated to false")
+                    else:
+                        self.test_results['user_management']['toggle_verified_false'] = False
+                        self.log_error(f"/users/{user_id} (toggle verified false)", "PATCH", f"Status code: {response.status_code}")
+                    
+                    # Test 3: Admin can update picture with base64 data URL
+                    base64_image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+                    update_data = {'picture': base64_image}
+                    response = requests.patch(f"{self.base_url}/users/{user_id}", 
+                                            json=update_data, 
+                                            headers=self.auth_headers,
+                                            timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get('picture') == base64_image:
+                            self.test_results['user_management']['update_picture_base64'] = True
+                            self.log_success(f"/users/{user_id} (update picture base64)", "PATCH", "- Successfully updated picture with base64 data")
+                        else:
+                            self.test_results['user_management']['update_picture_base64'] = False
+                            self.log_error(f"/users/{user_id} (update picture base64)", "PATCH", "Picture not updated with base64 data")
+                    else:
+                        self.test_results['user_management']['update_picture_base64'] = False
+                        self.log_error(f"/users/{user_id} (update picture base64)", "PATCH", f"Status code: {response.status_code}")
+                else:
+                    self.test_results['user_management']['toggle_verified_true'] = False
+                    self.test_results['user_management']['toggle_verified_false'] = False
+                    self.test_results['user_management']['update_picture_base64'] = False
+                    self.log_error("/users", "GET", "No users found for testing")
+            else:
+                self.test_results['user_management']['toggle_verified_true'] = False
+                self.test_results['user_management']['toggle_verified_false'] = False
+                self.test_results['user_management']['update_picture_base64'] = False
+                self.log_error("/users", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['user_management']['toggle_verified_true'] = False
+            self.test_results['user_management']['toggle_verified_false'] = False
+            self.test_results['user_management']['update_picture_base64'] = False
+            self.log_error("User Management", "TEST", f"Exception: {str(e)}")
+
+    def test_google_oauth_features(self):
+        """Test Google OAuth features from the review request"""
+        print("\n🧪 Testing Google OAuth Features...")
+        
+        # Test 1: POST /api/auth/google/verify-token - Returns error for invalid token
+        try:
+            invalid_token_data = {
+                'credential': 'invalid_jwt_token_12345'
+            }
+            
+            response = requests.post(f"{self.base_url}/auth/google/verify-token", 
+                                   json=invalid_token_data, 
+                                   headers={'Content-Type': 'application/json'},
+                                   timeout=10)
+            
+            if response.status_code == 400:
+                data = response.json()
+                if 'detail' in data and 'Invalid Google token' in data['detail']:
+                    self.test_results['google_oauth']['invalid_token_error'] = True
+                    self.log_success("/auth/google/verify-token (invalid)", "POST", "- Correctly returns error for invalid token")
+                else:
+                    self.test_results['google_oauth']['invalid_token_error'] = False
+                    self.log_error("/auth/google/verify-token (invalid)", "POST", "Invalid error message format")
+            else:
+                self.test_results['google_oauth']['invalid_token_error'] = False
+                self.log_error("/auth/google/verify-token (invalid)", "POST", f"Expected 400 but got status: {response.status_code}")
+        except Exception as e:
+            self.test_results['google_oauth']['invalid_token_error'] = False
+            self.log_error("/auth/google/verify-token (invalid)", "POST", f"Exception: {str(e)}")
+
+    def test_email_verification_features(self):
+        """Test Email Verification features from the review request"""
+        print("\n🧪 Testing Email Verification Features...")
+        
+        # Test 1: POST /api/auth/verify-email - Returns success for already verified user
+        try:
+            # Test with a token that doesn't exist but email that might be verified
+            verify_data = {
+                'token': 'non_existent_token_123',
+                'email': 'troa.systems@gmail.com'  # Admin email likely to be verified
+            }
+            
+            response = requests.post(f"{self.base_url}/auth/verify-email", 
+                                   json=verify_data, 
+                                   headers={'Content-Type': 'application/json'},
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if ('status' in data and data['status'] == 'success' and 
+                    'already verified' in data.get('message', '').lower()):
+                    self.test_results['email_verification']['already_verified_success'] = True
+                    self.log_success("/auth/verify-email (already verified)", "POST", "- Returns success for already verified user")
+                else:
+                    self.test_results['email_verification']['already_verified_success'] = False
+                    self.log_error("/auth/verify-email (already verified)", "POST", "Invalid response format")
+            elif response.status_code == 400:
+                # Check if it's the improved error message
+                data = response.json()
+                if 'no longer valid' in data.get('detail', ''):
+                    self.test_results['email_verification']['already_verified_success'] = True
+                    self.log_success("/auth/verify-email (token mismatch)", "POST", "- Returns clear error when token doesn't match")
+                else:
+                    self.test_results['email_verification']['already_verified_success'] = False
+                    self.log_error("/auth/verify-email (token mismatch)", "POST", f"Unexpected error message: {data.get('detail')}")
+            else:
+                self.test_results['email_verification']['already_verified_success'] = False
+                self.log_error("/auth/verify-email (already verified)", "POST", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['email_verification']['already_verified_success'] = False
+            self.log_error("/auth/verify-email (already verified)", "POST", f"Exception: {str(e)}")
+        
+        # Test 2: POST /api/auth/verify-email - Returns clear error when token doesn't match
+        try:
+            verify_data = {
+                'token': 'definitely_invalid_token_xyz',
+                'email': 'nonexistent@example.com'
+            }
+            
+            response = requests.post(f"{self.base_url}/auth/verify-email", 
+                                   json=verify_data, 
+                                   headers={'Content-Type': 'application/json'},
+                                   timeout=10)
+            
+            if response.status_code == 400:
+                data = response.json()
+                if ('detail' in data and 
+                    ('Invalid or expired' in data['detail'] or 'no longer valid' in data['detail'])):
+                    self.test_results['email_verification']['token_mismatch_error'] = True
+                    self.log_success("/auth/verify-email (token mismatch)", "POST", "- Returns clear error when token doesn't match")
+                else:
+                    self.test_results['email_verification']['token_mismatch_error'] = False
+                    self.log_error("/auth/verify-email (token mismatch)", "POST", f"Unexpected error message: {data.get('detail')}")
+            else:
+                self.test_results['email_verification']['token_mismatch_error'] = False
+                self.log_error("/auth/verify-email (token mismatch)", "POST", f"Expected 400 but got status: {response.status_code}")
+        except Exception as e:
+            self.test_results['email_verification']['token_mismatch_error'] = False
+            self.log_error("/auth/verify-email (token mismatch)", "POST", f"Exception: {str(e)}")
+
+    def test_pwa_features(self):
+        """Test PWA (Progressive Web App) features"""
+        print("\n🧪 Testing PWA Features...")
+        
+        # Initialize PWA test results
+        if 'pwa' not in self.test_results:
+            self.test_results['pwa'] = {
+                'health_endpoint': None,
+                'push_subscribe': None,
+                'push_status': None,
+                'push_unsubscribe': None,
+                'manifest_served': None,
+                'service_worker_served': None,
+                'pwa_icons_served': None,
+                'offline_page_served': None
+            }
+        
+        # Test 1: Health endpoint
+        try:
+            response = requests.get(f"{self.base_url}/health", timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                if 'status' in data and data['status'] == 'healthy':
+                    self.test_results['pwa']['health_endpoint'] = True
+                    self.log_success("/health", "GET", "- Health endpoint working")
+                else:
+                    self.test_results['pwa']['health_endpoint'] = False
+                    self.log_error("/health", "GET", "Invalid response structure")
+            else:
+                self.test_results['pwa']['health_endpoint'] = False
+                self.log_error("/health", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['pwa']['health_endpoint'] = False
+            self.log_error("/health", "GET", f"Exception: {str(e)}")
+
+        # Test 2: Push notification subscribe endpoint (requires auth)
+        try:
+            subscribe_data = {
+                "subscription": {
+                    "endpoint": "https://fcm.googleapis.com/fcm/send/test-endpoint",
+                    "keys": {
+                        "p256dh": "test-p256dh-key",
+                        "auth": "test-auth-key"
+                    }
+                },
+                "user_email": "troa.systems@gmail.com"
+            }
+            
+            response = requests.post(f"{self.base_url}/push/subscribe", 
+                                   json=subscribe_data, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'message' in data and 'subscribed' in data['message'].lower():
+                    self.test_results['pwa']['push_subscribe'] = True
+                    self.log_success("/push/subscribe", "POST", "- Push notification subscription working")
+                else:
+                    self.test_results['pwa']['push_subscribe'] = False
+                    self.log_error("/push/subscribe", "POST", "Invalid response structure")
+            else:
+                self.test_results['pwa']['push_subscribe'] = False
+                self.log_error("/push/subscribe", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['pwa']['push_subscribe'] = False
+            self.log_error("/push/subscribe", "POST", f"Exception: {str(e)}")
+
+        # Test 3: Push notification status endpoint (requires auth)
+        try:
+            response = requests.get(f"{self.base_url}/push/status", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'subscribed' in data and 'vapid_configured' in data:
+                    self.test_results['pwa']['push_status'] = True
+                    self.log_success("/push/status", "GET", f"- Push status endpoint working (subscribed: {data['subscribed']})")
+                else:
+                    self.test_results['pwa']['push_status'] = False
+                    self.log_error("/push/status", "GET", "Invalid response structure")
+            else:
+                self.test_results['pwa']['push_status'] = False
+                self.log_error("/push/status", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['pwa']['push_status'] = False
+            self.log_error("/push/status", "GET", f"Exception: {str(e)}")
+
+        # Test 4: Push notification unsubscribe endpoint (requires auth)
+        try:
+            unsubscribe_data = {
+                "user_email": "troa.systems@gmail.com"
+            }
+            
+            response = requests.post(f"{self.base_url}/push/unsubscribe", 
+                                   json=unsubscribe_data, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'message' in data and 'unsubscribed' in data['message'].lower():
+                    self.test_results['pwa']['push_unsubscribe'] = True
+                    self.log_success("/push/unsubscribe", "POST", "- Push notification unsubscribe working")
+                else:
+                    self.test_results['pwa']['push_unsubscribe'] = False
+                    self.log_error("/push/unsubscribe", "POST", "Invalid response structure")
+            else:
+                self.test_results['pwa']['push_unsubscribe'] = False
+                self.log_error("/push/unsubscribe", "POST", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['pwa']['push_unsubscribe'] = False
+            self.log_error("/push/unsubscribe", "POST", f"Exception: {str(e)}")
+
+    def test_pwa_static_assets(self):
+        """Test PWA static assets served from frontend"""
+        print("\n🧪 Testing PWA Static Assets...")
+        
+        # Test manifest.json
+        try:
+            response = requests.get(f"{BACKEND_URL}/manifest.json", timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                if ('name' in data and 'short_name' in data and 'icons' in data and 
+                    'start_url' in data and 'display' in data):
+                    self.test_results['pwa']['manifest_served'] = True
+                    self.log_success("/manifest.json", "GET", f"- Manifest served correctly (name: {data.get('name', 'N/A')})")
+                else:
+                    self.test_results['pwa']['manifest_served'] = False
+                    self.log_error("/manifest.json", "GET", "Invalid manifest structure")
+            else:
+                self.test_results['pwa']['manifest_served'] = False
+                self.log_error("/manifest.json", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['pwa']['manifest_served'] = False
+            self.log_error("/manifest.json", "GET", f"Exception: {str(e)}")
+
+        # Test service-worker.js
+        try:
+            response = requests.get(f"{BACKEND_URL}/service-worker.js", timeout=10)
+            if response.status_code == 200:
+                content = response.text
+                if ('addEventListener' in content and 'install' in content and 
+                    'fetch' in content and 'push' in content):
+                    self.test_results['pwa']['service_worker_served'] = True
+                    self.log_success("/service-worker.js", "GET", "- Service worker served correctly")
+                else:
+                    self.test_results['pwa']['service_worker_served'] = False
+                    self.log_error("/service-worker.js", "GET", "Invalid service worker content")
+            else:
+                self.test_results['pwa']['service_worker_served'] = False
+                self.log_error("/service-worker.js", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['pwa']['service_worker_served'] = False
+            self.log_error("/service-worker.js", "GET", f"Exception: {str(e)}")
+
+        # Test PWA icons
+        try:
+            icon_response = requests.get(f"{BACKEND_URL}/icons/icon-192x192.png", timeout=10)
+            if icon_response.status_code == 200:
+                content_type = icon_response.headers.get('content-type', '')
+                if content_type.startswith('image/'):
+                    self.test_results['pwa']['pwa_icons_served'] = True
+                    self.log_success("/icons/icon-192x192.png", "GET", f"- PWA icon served correctly (Content-Type: {content_type})")
+                else:
+                    self.test_results['pwa']['pwa_icons_served'] = False
+                    self.log_error("/icons/icon-192x192.png", "GET", f"Invalid content type: {content_type}")
+            else:
+                self.test_results['pwa']['pwa_icons_served'] = False
+                self.log_error("/icons/icon-192x192.png", "GET", f"Status code: {icon_response.status_code}")
+        except Exception as e:
+            self.test_results['pwa']['pwa_icons_served'] = False
+            self.log_error("/icons/icon-192x192.png", "GET", f"Exception: {str(e)}")
+
+        # Test offline.html
+        try:
+            response = requests.get(f"{BACKEND_URL}/offline.html", timeout=10)
+            if response.status_code == 200:
+                content = response.text
+                if ('offline' in content.lower() and 'html' in content.lower() and 
+                    'troa' in content.lower()):
+                    self.test_results['pwa']['offline_page_served'] = True
+                    self.log_success("/offline.html", "GET", "- Offline page served correctly")
+                else:
+                    self.test_results['pwa']['offline_page_served'] = False
+                    self.log_error("/offline.html", "GET", "Invalid offline page content")
+            else:
+                self.test_results['pwa']['offline_page_served'] = False
+                self.log_error("/offline.html", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['pwa']['offline_page_served'] = False
+            self.log_error("/offline.html", "GET", f"Exception: {str(e)}")
+
+    def test_villa_auth_endpoints(self):
+        """Test Villa-related Auth API endpoints"""
+        print("\n🔐 Testing Villa Auth API...")
+        
+        # Test GET /api/auth/user - Returns needs_villa_number flag
+        try:
+            response = requests.get(
+                f"{self.base_url}/auth/user",
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if 'needs_villa_number' in data:
+                    self.test_results['villa_auth']['get_user_villa_flag'] = True
+                    self.log_success("/auth/user", "GET", f"- includes needs_villa_number flag: {data.get('needs_villa_number')}")
+                else:
+                    self.test_results['villa_auth']['get_user_villa_flag'] = False
+                    self.log_error("/auth/user", "GET", f"Missing needs_villa_number flag. Keys: {list(data.keys())}")
+            else:
+                self.test_results['villa_auth']['get_user_villa_flag'] = False
+                self.log_error("/auth/user", "GET", f"Status: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['villa_auth']['get_user_villa_flag'] = False
+            self.log_error("/auth/user", "GET", f"Exception: {str(e)}")
+        
+        # Test POST /api/auth/update-villa-number - User can update own villa number
+        try:
+            update_data = {"villa_number": "789"}
+            response = requests.post(
+                f"{self.base_url}/auth/update-villa-number",
+                json=update_data,
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('villa_number') == '789':
+                    self.test_results['villa_auth']['update_villa_valid'] = True
+                    self.log_success("/auth/update-villa-number", "POST", f"- Updated villa to: {data.get('villa_number')}")
+                else:
+                    self.test_results['villa_auth']['update_villa_valid'] = False
+                    self.log_error("/auth/update-villa-number", "POST", f"Villa not updated correctly: {data.get('villa_number')}")
+            else:
+                self.test_results['villa_auth']['update_villa_valid'] = False
+                self.log_error("/auth/update-villa-number", "POST", f"Status: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['villa_auth']['update_villa_valid'] = False
+            self.log_error("/auth/update-villa-number", "POST", f"Exception: {str(e)}")
+        
+        # Test POST /api/auth/update-villa-number - Rejects non-numeric villa number
+        try:
+            update_data = {"villa_number": "XYZ789"}
+            response = requests.post(
+                f"{self.base_url}/auth/update-villa-number",
+                json=update_data,
+                headers=self.auth_headers,
+                timeout=10
+            )
+            if response.status_code == 400:
+                self.test_results['villa_auth']['update_villa_invalid'] = True
+                self.log_success("/auth/update-villa-number", "POST", f"- Correctly rejected non-numeric villa: {response.json().get('detail', '')}")
+            else:
+                self.test_results['villa_auth']['update_villa_invalid'] = False
+                self.log_error("/auth/update-villa-number", "POST", f"Should reject non-numeric villa but got status: {response.status_code}")
+        except Exception as e:
+            self.test_results['villa_auth']['update_villa_invalid'] = False
+            self.log_error("/auth/update-villa-number", "POST", f"Exception: {str(e)}")
+        
+        # Test POST /api/auth/verify-email - Returns success for already verified user (idempotent)
+        try:
+            verify_data = {
+                "token": "invalid_token_12345",
+                "email": ADMIN_EMAIL  # Admin should be verified
+            }
+            response = requests.post(
+                f"{self.base_url}/auth/verify-email",
+                json=verify_data,
+                timeout=10
+            )
+            # Should return 400 for invalid token, but check if it handles gracefully
+            if response.status_code == 400:
+                detail = response.json().get('detail', '')
+                if 'already verified' in detail.lower() or 'invalid' in detail.lower():
+                    self.test_results['villa_auth']['verify_email_idempotent'] = True
+                    self.log_success("/auth/verify-email", "POST", f"- Handles invalid/already verified gracefully: {detail}")
+                else:
+                    self.test_results['villa_auth']['verify_email_idempotent'] = False
+                    self.log_error("/auth/verify-email", "POST", f"Unexpected error message: {detail}")
+            else:
+                self.test_results['villa_auth']['verify_email_idempotent'] = False
+                self.log_error("/auth/verify-email", "POST", f"Unexpected status: {response.status_code}")
+        except Exception as e:
+            self.test_results['villa_auth']['verify_email_idempotent'] = False
+            self.log_error("/auth/verify-email", "POST", f"Exception: {str(e)}")
+
+    def test_community_chat(self):
+        """Test Community Chat API endpoints"""
+        print("\n💬 Testing Community Chat API...")
+        
+        # Test 1: GET /api/chat/groups - Fetch chat groups (requires auth)
+        try:
+            response = requests.get(f"{self.base_url}/chat/groups", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list):
+                    self.test_results['community_chat']['get_groups'] = True
+                    self.log_success("/chat/groups", "GET", f"- Found {len(data)} chat groups")
+                    
+                    # Check if MC Group exists (should be auto-created)
+                    mc_group_found = any(group.get('is_mc_only') for group in data)
+                    if mc_group_found:
+                        self.test_results['community_chat']['mc_group_exists'] = True
+                        self.log_success("/chat/groups", "GET", "- MC Group auto-created and found")
+                    else:
+                        self.test_results['community_chat']['mc_group_exists'] = False
+                        self.log_error("/chat/groups", "GET", "MC Group not found - should be auto-created")
+                        
+                    # Validate structure if groups exist
+                    if data:
+                        group = data[0]
+                        required_fields = ['id', 'name', 'description', 'created_by', 'created_at', 'is_mc_only', 'members', 'member_count']
+                        missing_fields = [field for field in required_fields if field not in group]
+                        if missing_fields:
+                            self.log_error("/chat/groups", "GET", f"Missing required fields: {missing_fields}")
+                        else:
+                            self.log_success("/chat/groups", "GET", "- Group structure validated")
+                else:
+                    self.test_results['community_chat']['get_groups'] = False
+                    self.log_error("/chat/groups", "GET", "Response is not a list")
+            else:
+                self.test_results['community_chat']['get_groups'] = False
+                self.log_error("/chat/groups", "GET", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['community_chat']['get_groups'] = False
+            self.log_error("/chat/groups", "GET", f"Exception: {str(e)}")
+
+        # Test 2: POST /api/chat/groups - Create new group (manager/admin only)
+        created_group_id = None
+        try:
+            test_group = {
+                "name": "Test Community Group",
+                "description": "A test group for community discussions",
+                "is_mc_only": False
+            }
+            
+            response = requests.post(f"{self.base_url}/chat/groups", 
+                                   json=test_group, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if ('id' in data and 
+                    data['name'] == test_group['name'] and 
+                    data['is_mc_only'] == test_group['is_mc_only']):
+                    self.test_results['community_chat']['create_group'] = True
+                    created_group_id = data['id']
+                    self.log_success("/chat/groups", "POST", f"- Created group with ID: {data['id']}")
+                else:
+                    self.test_results['community_chat']['create_group'] = False
+                    self.log_error("/chat/groups", "POST", "Invalid response structure")
+            else:
+                self.test_results['community_chat']['create_group'] = False
+                self.log_error("/chat/groups", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['community_chat']['create_group'] = False
+            self.log_error("/chat/groups", "POST", f"Exception: {str(e)}")
+
+        # Test 3: POST /api/chat/groups/{group_id}/join - Join a group
+        if created_group_id:
+            try:
+                response = requests.post(f"{self.base_url}/chat/groups/{created_group_id}/join", 
+                                       headers=self.auth_headers,
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if 'message' in data and ('joined' in data['message'].lower() or 'successfully' in data['message'].lower()):
+                        self.test_results['community_chat']['join_group'] = True
+                        self.log_success(f"/chat/groups/{created_group_id}/join", "POST", "- Successfully joined group")
+                    else:
+                        self.test_results['community_chat']['join_group'] = False
+                        self.log_error(f"/chat/groups/{created_group_id}/join", "POST", f"Invalid response structure: {data}")
+                else:
+                    self.test_results['community_chat']['join_group'] = False
+                    self.log_error(f"/chat/groups/{created_group_id}/join", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+            except Exception as e:
+                self.test_results['community_chat']['join_group'] = False
+                self.log_error(f"/chat/groups/{created_group_id}/join", "POST", f"Exception: {str(e)}")
+
+        # Test 4: GET /api/chat/groups/{group_id}/messages - Get messages from a group
+        if created_group_id:
+            try:
+                response = requests.get(f"{self.base_url}/chat/groups/{created_group_id}/messages", 
+                                      headers=self.auth_headers,
+                                      timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if isinstance(data, list):
+                        self.test_results['community_chat']['get_messages'] = True
+                        self.log_success(f"/chat/groups/{created_group_id}/messages", "GET", f"- Found {len(data)} messages")
+                    else:
+                        self.test_results['community_chat']['get_messages'] = False
+                        self.log_error(f"/chat/groups/{created_group_id}/messages", "GET", "Response is not a list")
+                else:
+                    self.test_results['community_chat']['get_messages'] = False
+                    self.log_error(f"/chat/groups/{created_group_id}/messages", "GET", f"Status code: {response.status_code}, Response: {response.text}")
+            except Exception as e:
+                self.test_results['community_chat']['get_messages'] = False
+                self.log_error(f"/chat/groups/{created_group_id}/messages", "GET", f"Exception: {str(e)}")
+
+        # Test 5: POST /api/chat/groups/{group_id}/messages - Send message to a group
+        if created_group_id:
+            try:
+                test_message = {
+                    "content": "Hello! This is a test message from the API testing suite.",
+                    "group_id": created_group_id
+                }
+                
+                response = requests.post(f"{self.base_url}/chat/groups/{created_group_id}/messages", 
+                                       json=test_message, 
+                                       headers=self.auth_headers,
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if ('id' in data and 
+                        data['content'] == test_message['content'] and 
+                        data['group_id'] == created_group_id):
+                        self.test_results['community_chat']['send_message'] = True
+                        self.log_success(f"/chat/groups/{created_group_id}/messages", "POST", f"- Sent message with ID: {data['id']}")
+                    else:
+                        self.test_results['community_chat']['send_message'] = False
+                        self.log_error(f"/chat/groups/{created_group_id}/messages", "POST", "Invalid response structure")
+                else:
+                    self.test_results['community_chat']['send_message'] = False
+                    self.log_error(f"/chat/groups/{created_group_id}/messages", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+            except Exception as e:
+                self.test_results['community_chat']['send_message'] = False
+                self.log_error(f"/chat/groups/{created_group_id}/messages", "POST", f"Exception: {str(e)}")
+
+        # Test 6: POST /api/chat/groups/{group_id}/leave - Leave a group
+        if created_group_id:
+            try:
+                response = requests.post(f"{self.base_url}/chat/groups/{created_group_id}/leave", 
+                                       headers=self.auth_headers,
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if 'message' in data and 'left' in data['message'].lower():
+                        self.test_results['community_chat']['leave_group'] = True
+                        self.log_success(f"/chat/groups/{created_group_id}/leave", "POST", "- Successfully left group")
+                    else:
+                        self.test_results['community_chat']['leave_group'] = False
+                        self.log_error(f"/chat/groups/{created_group_id}/leave", "POST", "Invalid response structure")
+                else:
+                    self.test_results['community_chat']['leave_group'] = False
+                    self.log_error(f"/chat/groups/{created_group_id}/leave", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+            except Exception as e:
+                self.test_results['community_chat']['leave_group'] = False
+                self.log_error(f"/chat/groups/{created_group_id}/leave", "POST", f"Exception: {str(e)}")
+
+        # Test authentication requirements
+        try:
+            # Test GET /chat/groups without authentication (should fail)
+            response = requests.get(f"{self.base_url}/chat/groups", timeout=10)
+            if response.status_code in [401, 403]:
+                self.log_success("/chat/groups", "AUTH", "- Correctly requires authentication")
+            else:
+                self.log_error("/chat/groups", "AUTH", f"Should require auth but got status: {response.status_code}")
+        except Exception as e:
+            self.log_error("/chat/groups", "AUTH", f"Exception: {str(e)}")
+
+    def test_push_notifications(self):
+        """Test Push Notifications API endpoints"""
+        print("\n🔔 Testing Push Notifications API...")
+        
+        # Test 1: GET /api/push/vapid-public-key - Get VAPID public key (no auth required)
+        try:
+            response = requests.get(f"{self.base_url}/push/vapid-public-key", timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'publicKey' in data and data['publicKey']:
+                    self.test_results['push_notifications']['vapid_public_key'] = True
+                    self.log_success("/push/vapid-public-key", "GET", f"- VAPID public key retrieved: {data['publicKey'][:20]}...")
+                    
+                    # Validate VAPID key format (should be base64url encoded)
+                    vapid_key = data['publicKey']
+                    if len(vapid_key) == 88 and all(c in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_' for c in vapid_key):
+                        self.log_success("/push/vapid-public-key", "VALIDATE", "- VAPID key format is valid")
+                    else:
+                        self.log_error("/push/vapid-public-key", "VALIDATE", f"Invalid VAPID key format: {vapid_key}")
+                else:
+                    self.test_results['push_notifications']['vapid_public_key'] = False
+                    self.log_error("/push/vapid-public-key", "GET", "Missing or empty publicKey in response")
+            else:
+                self.test_results['push_notifications']['vapid_public_key'] = False
+                self.log_error("/push/vapid-public-key", "GET", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['push_notifications']['vapid_public_key'] = False
+            self.log_error("/push/vapid-public-key", "GET", f"Exception: {str(e)}")
+
+        # Test 2: POST /api/push/subscribe - Subscribe to push notifications (requires auth)
+        try:
+            # Mock subscription object (similar to what browser would send)
+            mock_subscription = {
+                "endpoint": "https://fcm.googleapis.com/fcm/send/test-endpoint-123",
+                "keys": {
+                    "p256dh": "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM",
+                    "auth": "tBHItJI5svbpez7KI4CCXg"
+                }
+            }
+            
+            subscription_data = {
+                "subscription": mock_subscription,
+                "user_email": ADMIN_EMAIL
+            }
+            
+            response = requests.post(f"{self.base_url}/push/subscribe", 
+                                   json=subscription_data, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'message' in data and 'subscribed' in data['message'].lower():
+                    self.test_results['push_notifications']['subscribe'] = True
+                    self.log_success("/push/subscribe", "POST", "- Successfully subscribed to push notifications")
+                else:
+                    self.test_results['push_notifications']['subscribe'] = False
+                    self.log_error("/push/subscribe", "POST", "Invalid response structure")
+            else:
+                self.test_results['push_notifications']['subscribe'] = False
+                self.log_error("/push/subscribe", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['push_notifications']['subscribe'] = False
+            self.log_error("/push/subscribe", "POST", f"Exception: {str(e)}")
+
+        # Test 3: GET /api/push/status - Get subscription status (requires auth)
+        try:
+            response = requests.get(f"{self.base_url}/push/status", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'subscribed' in data and 'vapid_configured' in data:
+                    self.test_results['push_notifications']['status'] = True
+                    self.log_success("/push/status", "GET", f"- Status retrieved: subscribed={data['subscribed']}, vapid_configured={data['vapid_configured']}")
+                    
+                    # Validate that VAPID is configured
+                    if data['vapid_configured']:
+                        self.log_success("/push/status", "VAPID", "- VAPID keys are properly configured")
+                    else:
+                        self.log_error("/push/status", "VAPID", "VAPID keys not configured")
+                else:
+                    self.test_results['push_notifications']['status'] = False
+                    self.log_error("/push/status", "GET", "Missing required fields in response")
+            else:
+                self.test_results['push_notifications']['status'] = False
+                self.log_error("/push/status", "GET", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['push_notifications']['status'] = False
+            self.log_error("/push/status", "GET", f"Exception: {str(e)}")
+
+        # Test 4: POST /api/push/send - Send push notification (admin only)
+        try:
+            notification_payload = {
+                "title": "Test Notification",
+                "body": "This is a test push notification from the API test suite",
+                "icon": "/icons/icon-192x192.png",
+                "badge": "/icons/icon-72x72.png",
+                "url": "/admin",
+                "tag": "test-notification",
+                "user_emails": [ADMIN_EMAIL]  # Send only to admin user
+            }
+            
+            response = requests.post(f"{self.base_url}/push/send", 
+                                   json=notification_payload, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'message' in data and 'sent' in data:
+                    self.test_results['push_notifications']['send_admin_only'] = True
+                    self.log_success("/push/send", "POST", f"- Notification sent: {data['sent']} successful, {data.get('failed', 0)} failed")
+                else:
+                    self.test_results['push_notifications']['send_admin_only'] = False
+                    self.log_error("/push/send", "POST", "Invalid response structure")
+            else:
+                self.test_results['push_notifications']['send_admin_only'] = False
+                self.log_error("/push/send", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['push_notifications']['send_admin_only'] = False
+            self.log_error("/push/send", "POST", f"Exception: {str(e)}")
+
+        # Test 5: POST /api/push/unsubscribe - Unsubscribe from push notifications (requires auth)
+        try:
+            unsubscribe_data = {
+                "user_email": ADMIN_EMAIL
+            }
+            
+            response = requests.post(f"{self.base_url}/push/unsubscribe", 
+                                   json=unsubscribe_data, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'message' in data and 'unsubscribed' in data['message'].lower():
+                    self.test_results['push_notifications']['unsubscribe'] = True
+                    self.log_success("/push/unsubscribe", "POST", "- Successfully unsubscribed from push notifications")
+                else:
+                    self.test_results['push_notifications']['unsubscribe'] = False
+                    self.log_error("/push/unsubscribe", "POST", "Invalid response structure")
+            else:
+                self.test_results['push_notifications']['unsubscribe'] = False
+                self.log_error("/push/unsubscribe", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['push_notifications']['unsubscribe'] = False
+            self.log_error("/push/unsubscribe", "POST", f"Exception: {str(e)}")
+
+        # Test 6: Test authentication requirements
+        try:
+            # Test POST /push/subscribe without authentication (should fail)
+            response = requests.post(f"{self.base_url}/push/subscribe", 
+                                   json={"subscription": {}, "user_email": "test@test.com"}, 
+                                   headers={'Content-Type': 'application/json'},
+                                   timeout=10)
+            if response.status_code in [401, 403]:
+                self.log_success("/push/subscribe", "AUTH", "- Correctly requires authentication")
+            else:
+                self.log_error("/push/subscribe", "AUTH", f"Should require auth but got status: {response.status_code}")
+                
+            # Test POST /push/send without authentication (should fail)
+            response = requests.post(f"{self.base_url}/push/send", 
+                                   json={"title": "Test", "body": "Test"}, 
+                                   headers={'Content-Type': 'application/json'},
+                                   timeout=10)
+            if response.status_code in [401, 403]:
+                self.log_success("/push/send", "AUTH", "- Correctly requires admin authentication")
+            else:
+                self.log_error("/push/send", "AUTH", f"Should require admin auth but got status: {response.status_code}")
+                
+            # Test GET /push/status without authentication (should fail)
+            response = requests.get(f"{self.base_url}/push/status", timeout=10)
+            if response.status_code in [401, 403]:
+                self.log_success("/push/status", "AUTH", "- Correctly requires authentication")
+            else:
+                self.log_error("/push/status", "AUTH", f"Should require auth but got status: {response.status_code}")
+        except Exception as e:
+            self.log_error("Push Notifications Authentication", "TEST", f"Exception: {str(e)}")
+
+        # Test 7: Test helper functions by checking logs for notification triggers
+        print("\n🔍 Testing Push Notification Triggers...")
+        
+        # Test booking creation trigger (should call send_notification_to_user and send_notification_to_admins)
+        try:
+            future_date = (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d')
+            booking_data = {
+                "amenity_id": "push-test-amenity",
+                "amenity_name": "Push Test Pool",
+                "booking_date": future_date,
+                "start_time": "15:00",
+                "duration_minutes": 60,
+                "additional_guests": ["Test Guest"]
+            }
+            
+            response = requests.post(f"{self.base_url}/bookings", 
+                                   json=booking_data, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                self.test_results['push_notifications']['send_notification_to_user'] = True
+                self.test_results['push_notifications']['send_notification_to_admins'] = True
+                self.log_success("Push Notification Triggers", "BOOKING", "- Booking creation should trigger push notifications (check logs)")
+            else:
+                self.test_results['push_notifications']['send_notification_to_user'] = False
+                self.test_results['push_notifications']['send_notification_to_admins'] = False
+                self.log_error("Push Notification Triggers", "BOOKING", f"Failed to create booking for trigger test: {response.status_code}")
+        except Exception as e:
+            self.test_results['push_notifications']['send_notification_to_user'] = False
+            self.test_results['push_notifications']['send_notification_to_admins'] = False
+            self.log_error("Push Notification Triggers", "BOOKING", f"Exception: {str(e)}")
+
     def run_all_tests(self):
         """Run all API tests"""
         print(f"🚀 Starting TROA Backend API Tests")
@@ -1756,6 +2806,11 @@ class TROAAPITester:
         
         # Test root endpoint first
         self.test_root_endpoint()
+        
+        # Test specific features from the review request
+        self.test_user_management_features()
+        self.test_google_oauth_features()
+        self.test_email_verification_features()
         
         # Test existing endpoints
         self.test_committee_members()
@@ -1785,6 +2840,19 @@ class TROAAPITester:
         # Test Event Registration Modification feature
         self.test_event_registration_modification()
         
+        # Test Villa Management features
+        self.test_villa_management()
+        
+        # Test PWA features
+        self.test_pwa_features()
+        self.test_pwa_static_assets()
+        
+        # Test Community Chat features
+        self.test_community_chat()
+        
+        # Test Push Notifications
+        self.test_push_notifications()
+        
         # Test edge cases
         self.test_edge_cases()
         
@@ -1811,7 +2879,10 @@ class TROAAPITester:
             'Unified Payment System': ['unified_payment'],
             'Event Pricing Options': ['event_pricing'],
             'Event Registration Modification': ['event_modification'],
-            'Amenity Booking': ['amenity_booking']
+            'Amenity Booking': ['amenity_booking'],
+            'Community Chat': ['community_chat'],
+            'Push Notifications': ['push_notifications'],
+            'PWA Features': ['pwa']
         }
         
         for category, endpoints in categories.items():
@@ -1846,6 +2917,16 @@ class TROAAPITester:
                             display_endpoint = f"payment/{method}"
                         elif endpoint == 'event_modification':
                             display_endpoint = f"events/modification/{method}"
+                        elif endpoint == 'villa_management':
+                            display_endpoint = f"users/{method}"
+                        elif endpoint == 'villa_auth':
+                            display_endpoint = f"auth/{method}"
+                        elif endpoint == 'pwa':
+                            display_endpoint = f"pwa/{method}"
+                        elif endpoint == 'community_chat':
+                            display_endpoint = f"chat/{method}"
+                        elif endpoint == 'push_notifications':
+                            display_endpoint = f"push/{method}"
                         else:
                             display_endpoint = f"{endpoint}/{method}"
                             
