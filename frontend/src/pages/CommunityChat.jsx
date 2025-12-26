@@ -637,11 +637,16 @@ const CommunityChat = () => {
 
   const fetchAttachment = async (attachmentId) => {
     try {
+      const sessionToken = localStorage.getItem('session_token');
       const response = await axios.get(`${getAPI()}/chat/attachments/${attachmentId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          ...(sessionToken ? { 'X-Session-Token': `Bearer ${sessionToken}` } : {})
+        }
       });
       return response.data;
     } catch (error) {
+      console.error('Error fetching attachment:', error);
       toast({ title: 'Error', description: 'Failed to load attachment', variant: 'destructive' });
       return null;
     }
@@ -652,20 +657,39 @@ const CommunityChat = () => {
     if (data && data.data) {
       setPreviewImage({
         ...attachment,
-        data: data.data
+        ...data
       });
     }
   };
 
   const handleDownload = async (attachment) => {
-    const data = await fetchAttachment(attachment.id);
-    if (data && data.data) {
-      const link = document.createElement('a');
-      link.href = `data:${data.content_type};base64,${data.data}`;
-      link.download = data.filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    try {
+      const data = await fetchAttachment(attachment.id);
+      if (data && data.data) {
+        // Create blob from base64
+        const byteCharacters = atob(data.data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: data.content_type });
+        
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = data.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        toast({ title: 'Success', description: 'File downloaded' });
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({ title: 'Error', description: 'Failed to download file', variant: 'destructive' });
     }
   };
 
