@@ -242,11 +242,13 @@ export const AuthProvider = ({ children }) => {
         withCredentials: true
       });
       setUser(null);
+      setToken(null);
       localStorage.removeItem('session_token');
       window.location.href = '/';
     } catch (error) {
       console.error('Logout error:', error);
       localStorage.removeItem('session_token');
+      setToken(null);
       setUser(null);
       window.location.href = '/';
     }
