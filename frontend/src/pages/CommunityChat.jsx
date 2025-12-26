@@ -4,7 +4,8 @@ import { useSearchParams } from 'react-router-dom';
 import { 
   MessageSquare, Users, Plus, Send, ArrowLeft, LogOut, LogIn, 
   Crown, Shield, Trash2, X, Loader2, UserPlus, Settings,
-  Paperclip, Image, FileText, Download, Eye, UserMinus, Search
+  Paperclip, Image, FileText, Download, Eye, UserMinus, Search,
+  Check, CheckCheck, Edit2, Camera
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from '../hooks/use-toast';
@@ -28,6 +29,63 @@ const ALLOWED_DOC_TYPES = ['application/pdf', 'application/msword',
   'text/plain'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
+// Message Status Component
+const MessageStatus = ({ status, isOwnMessage }) => {
+  if (!isOwnMessage) return null;
+  
+  const iconClass = "w-3.5 h-3.5";
+  
+  switch (status) {
+    case 'sending':
+      return <Loader2 className={`${iconClass} animate-spin text-white/60`} />;
+    case 'sent':
+      return <Check className={`${iconClass} text-white/60`} />;
+    case 'delivered':
+      return <CheckCheck className={`${iconClass} text-white/60`} />;
+    case 'read':
+      return <CheckCheck className={`${iconClass} text-blue-300`} />;
+    default:
+      return <Check className={`${iconClass} text-white/60`} />;
+  }
+};
+
+// Confirmation Dialog Component
+const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, confirmText, confirmColor = 'purple' }) => {
+  if (!isOpen) return null;
+  
+  const colorClasses = {
+    purple: 'bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600',
+    red: 'bg-red-600 hover:bg-red-700',
+    green: 'bg-green-600 hover:bg-green-700'
+  };
+  
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50">
+      <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+        <p className="text-gray-600 mb-6">{message}</p>
+        <div className="flex space-x-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              onConfirm();
+              onClose();
+            }}
+            className={`flex-1 px-4 py-2 ${colorClasses[confirmColor]} text-white rounded-lg font-medium`}
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const CommunityChat = () => {
   const { isAuthenticated, user, token, isAdmin, isManager } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -40,9 +98,11 @@ const CommunityChat = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [showManageMembersModal, setShowManageMembersModal] = useState(false);
+  const [showEditGroupModal, setShowEditGroupModal] = useState(false);
   const [members, setMembers] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [previewImage, setPreviewImage] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, confirmText: '', confirmColor: 'purple' });
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const pollIntervalRef = useRef(null);
@@ -87,15 +147,23 @@ const CommunityChat = () => {
         if (group.members?.includes(user?.email)) {
           setSelectedGroup(group);
         } else {
-          // Auto-join and then open
-          joinGroup(groupIdFromUrl).then(() => {
-            // Refresh groups and select
-            fetchGroups().then(() => {
-              const updatedGroup = groups.find(g => g.id === groupIdFromUrl);
-              if (updatedGroup) {
-                setSelectedGroup({...updatedGroup, members: [...(updatedGroup.members || []), user?.email]});
-              }
-            });
+          // Show confirmation before auto-join
+          setConfirmDialog({
+            isOpen: true,
+            title: 'Join Group',
+            message: `Would you like to join "${group.name}"?`,
+            confirmText: 'Join',
+            confirmColor: 'green',
+            onConfirm: () => {
+              joinGroup(groupIdFromUrl).then(() => {
+                fetchGroups().then(() => {
+                  const updatedGroup = groups.find(g => g.id === groupIdFromUrl);
+                  if (updatedGroup) {
+                    setSelectedGroup({...updatedGroup, members: [...(updatedGroup.members || []), user?.email]});
+                  }
+                });
+              });
+            }
           });
         }
         // Clear the URL parameter
@@ -167,6 +235,17 @@ const CommunityChat = () => {
     }
   };
 
+  const handleJoinGroup = (groupId, groupName) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Join Group',
+      message: `Would you like to join "${groupName}"?`,
+      confirmText: 'Join',
+      confirmColor: 'green',
+      onConfirm: () => joinGroup(groupId)
+    });
+  };
+
   const leaveGroup = async (groupId) => {
     try {
       await axios.post(`${getAPI()}/chat/groups/${groupId}/leave`, {}, {
@@ -178,6 +257,17 @@ const CommunityChat = () => {
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to leave group', variant: 'destructive' });
     }
+  };
+
+  const handleLeaveGroup = (groupId, groupName) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Leave Group',
+      message: `Are you sure you want to leave "${groupName}"?`,
+      confirmText: 'Leave',
+      confirmColor: 'red',
+      onConfirm: () => leaveGroup(groupId)
+    });
   };
 
   const handleFileSelect = (e) => {
@@ -224,13 +314,39 @@ const CommunityChat = () => {
     e.preventDefault();
     if ((!newMessage.trim() && selectedFiles.length === 0) || !selectedGroup) return;
 
+    // Add optimistic message with 'sending' status
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMessage = {
+      id: tempId,
+      group_id: selectedGroup.id,
+      sender_email: user?.email,
+      sender_name: user?.name,
+      sender_picture: user?.picture,
+      content: newMessage,
+      created_at: new Date().toISOString(),
+      attachments: selectedFiles.map((f, i) => ({
+        id: `temp-att-${i}`,
+        filename: f.name,
+        is_image: ALLOWED_IMAGE_TYPES.includes(f.type),
+        size: f.size
+      })),
+      status: 'sending',
+      read_by: []
+    };
+    
+    setMessages(prev => [...prev, optimisticMessage]);
+    const messageContent = newMessage;
+    const filesToSend = [...selectedFiles];
+    setNewMessage('');
+    setSelectedFiles([]);
+
     setSendingMessage(true);
     try {
-      if (selectedFiles.length > 0) {
+      if (filesToSend.length > 0) {
         // Send with files
         const formData = new FormData();
-        formData.append('content', newMessage);
-        selectedFiles.forEach(file => {
+        formData.append('content', messageContent);
+        filesToSend.forEach(file => {
           formData.append('files', file);
         });
         
@@ -248,15 +364,18 @@ const CommunityChat = () => {
         // Send text only
         await axios.post(
           `${getAPI()}/chat/groups/${selectedGroup.id}/messages`,
-          { content: newMessage, group_id: selectedGroup.id },
+          { content: messageContent, group_id: selectedGroup.id },
           { headers: { Authorization: `Bearer ${token}` } }
         );
       }
       
-      setNewMessage('');
-      setSelectedFiles([]);
+      // Fetch actual messages to replace optimistic one
       fetchMessages(selectedGroup.id);
     } catch (error) {
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setNewMessage(messageContent);
+      setSelectedFiles(filesToSend);
       toast({ 
         title: 'Error', 
         description: error.response?.data?.detail || 'Failed to send message', 
@@ -268,8 +387,6 @@ const CommunityChat = () => {
   };
 
   const deleteGroup = async (groupId) => {
-    if (!window.confirm('Are you sure you want to delete this group? All messages will be lost.')) return;
-    
     try {
       await axios.delete(`${getAPI()}/chat/groups/${groupId}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -280,6 +397,17 @@ const CommunityChat = () => {
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to delete group', variant: 'destructive' });
     }
+  };
+
+  const handleDeleteGroup = (groupId, groupName) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Group',
+      message: `Are you sure you want to delete "${groupName}"? All messages will be permanently lost.`,
+      confirmText: 'Delete',
+      confirmColor: 'red',
+      onConfirm: () => deleteGroup(groupId)
+    });
   };
 
   const fetchAttachment = async (attachmentId) => {
@@ -324,6 +452,16 @@ const CommunityChat = () => {
     return true;
   };
 
+  // Get message read status
+  const getMessageStatus = (message, groupMembers) => {
+    if (message.status === 'sending') return 'sending';
+    if (!message.read_by || message.read_by.length === 0) return 'sent';
+    // If at least one other member has read it
+    const otherReaders = message.read_by.filter(email => email !== message.sender_email);
+    if (otherReaders.length > 0) return 'read';
+    return 'delivered';
+  };
+
   // Not authenticated view
   if (!isAuthenticated) {
     return (
@@ -336,7 +474,7 @@ const CommunityChat = () => {
           <p className="text-gray-600 mb-6">Login to join the conversation</p>
           <a
             href="/login"
-            className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl font-semibold"
+            className="inline-flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl font-semibold"
           >
             <LogIn className="w-5 h-5" />
             <span>Login to Chat</span>
@@ -368,6 +506,28 @@ const CommunityChat = () => {
             >
               <ArrowLeft className="w-6 h-6" />
             </button>
+            {/* Group Icon */}
+            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+              {selectedGroup.icon ? (
+                <img 
+                  src={selectedGroup.icon.startsWith('data:') ? selectedGroup.icon : `data:image/png;base64,${selectedGroup.icon}`} 
+                  alt={selectedGroup.name} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className={`w-full h-full flex items-center justify-center ${
+                  selectedGroup.is_mc_only 
+                    ? 'bg-gradient-to-br from-yellow-400 to-orange-500' 
+                    : 'bg-white/20'
+                }`}>
+                  {selectedGroup.is_mc_only ? (
+                    <Crown className="w-5 h-5 text-white" />
+                  ) : (
+                    <Users className="w-5 h-5 text-white" />
+                  )}
+                </div>
+              )}
+            </div>
             <div>
               <div className="flex items-center space-x-2">
                 <h2 className="font-semibold text-white text-lg">{selectedGroup.name}</h2>
@@ -389,6 +549,13 @@ const CommunityChat = () => {
             {(isAdmin || isManager) && (
               <>
                 <button
+                  onClick={() => setShowEditGroupModal(true)}
+                  className="p-2 hover:bg-white/20 rounded-full text-white"
+                  title="Edit group"
+                >
+                  <Edit2 className="w-5 h-5" />
+                </button>
+                <button
                   onClick={() => {
                     fetchMembers(selectedGroup.id);
                     setShowManageMembersModal(true);
@@ -399,7 +566,7 @@ const CommunityChat = () => {
                   <Settings className="w-5 h-5" />
                 </button>
                 <button
-                  onClick={() => deleteGroup(selectedGroup.id)}
+                  onClick={() => handleDeleteGroup(selectedGroup.id, selectedGroup.name)}
                   className="p-2 hover:bg-white/20 rounded-full text-white"
                   title="Delete group"
                 >
@@ -408,7 +575,7 @@ const CommunityChat = () => {
               </>
             )}
             <button
-              onClick={() => leaveGroup(selectedGroup.id)}
+              onClick={() => handleLeaveGroup(selectedGroup.id, selectedGroup.name)}
               className="p-2 hover:bg-white/20 rounded-full text-white"
               title="Leave group"
             >
@@ -427,12 +594,30 @@ const CommunityChat = () => {
           ) : (
             messages.map((message) => {
               const isOwnMessage = message.sender_email === user?.email;
+              const messageStatus = getMessageStatus(message, selectedGroup.members);
               return (
                 <div
                   key={message.id}
                   className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className={`max-w-[80%] ${isOwnMessage ? 'order-2' : ''}`}>
+                  {/* Sender Avatar for other's messages */}
+                  {!isOwnMessage && (
+                    <div className="flex-shrink-0 mr-2 mt-5">
+                      {message.sender_picture ? (
+                        <img 
+                          src={message.sender_picture} 
+                          alt={message.sender_name} 
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-medium">
+                          {message.sender_name?.[0]?.toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  <div className={`max-w-[75%]`}>
                     {!isOwnMessage && (
                       <p className="text-xs text-gray-500 mb-1 ml-1">{message.sender_name}</p>
                     )}
@@ -451,9 +636,9 @@ const CommunityChat = () => {
                               {attachment.is_image ? (
                                 <div 
                                   className="cursor-pointer rounded-lg overflow-hidden"
-                                  onClick={() => handleImagePreview(attachment)}
+                                  onClick={() => !attachment.id.startsWith('temp') && handleImagePreview(attachment)}
                                 >
-                                  <div className="bg-gray-100 p-2 rounded-lg flex items-center space-x-2">
+                                  <div className={`p-2 rounded-lg flex items-center space-x-2 ${isOwnMessage ? 'bg-white/20' : 'bg-gray-100'}`}>
                                     <Image className={`w-5 h-5 ${isOwnMessage ? 'text-white/80' : 'text-gray-500'}`} />
                                     <span className={`text-sm ${isOwnMessage ? 'text-white/90' : 'text-gray-700'}`}>
                                       {attachment.filename}
@@ -464,7 +649,7 @@ const CommunityChat = () => {
                               ) : (
                                 <div 
                                   className="cursor-pointer"
-                                  onClick={() => handleDownload(attachment)}
+                                  onClick={() => !attachment.id.startsWith('temp') && handleDownload(attachment)}
                                 >
                                   <div className={`p-2 rounded-lg flex items-center space-x-2 ${isOwnMessage ? 'bg-white/20' : 'bg-gray-100'}`}>
                                     <FileText className={`w-5 h-5 ${isOwnMessage ? 'text-white/80' : 'text-gray-500'}`} />
@@ -490,9 +675,13 @@ const CommunityChat = () => {
                         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                       )}
                       
-                      <p className={`text-xs mt-1 ${isOwnMessage ? 'text-white/70' : 'text-gray-400'}`}>
-                        {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
+                      {/* Time and Status */}
+                      <div className={`flex items-center justify-end space-x-1 mt-1`}>
+                        <p className={`text-xs ${isOwnMessage ? 'text-white/70' : 'text-gray-400'}`}>
+                          {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                        <MessageStatus status={messageStatus} isOwnMessage={isOwnMessage} />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -621,7 +810,7 @@ const CommunityChat = () => {
                 {members.map((member) => (
                   <div key={member.email} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50">
                     {member.picture ? (
-                      <img src={member.picture} alt={member.name} className="w-10 h-10 rounded-full" />
+                      <img src={member.picture} alt={member.name} className="w-10 h-10 rounded-full object-cover" />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-medium">
                         {member.name?.[0]?.toUpperCase()}
@@ -663,6 +852,30 @@ const CommunityChat = () => {
             isManager={isManager}
           />
         )}
+
+        {/* Edit Group Modal */}
+        {showEditGroupModal && (
+          <EditGroupModal
+            group={selectedGroup}
+            onClose={() => setShowEditGroupModal(false)}
+            onUpdated={(updatedGroup) => {
+              setSelectedGroup(updatedGroup);
+              fetchGroups();
+            }}
+            token={token}
+          />
+        )}
+
+        {/* Confirmation Dialog */}
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+          onConfirm={confirmDialog.onConfirm}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmText={confirmDialog.confirmText}
+          confirmColor={confirmDialog.confirmColor}
+        />
       </div>
     );
   }
@@ -716,15 +929,26 @@ const CommunityChat = () => {
                     className="flex items-center space-x-3 flex-1 cursor-pointer"
                     onClick={() => joined && setSelectedGroup(group)}
                   >
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                      group.is_mc_only 
-                        ? 'bg-gradient-to-br from-yellow-400 to-orange-500' 
-                        : 'bg-gradient-to-br from-purple-500 to-pink-500'
-                    }`}>
-                      {group.is_mc_only ? (
-                        <Crown className="w-6 h-6 text-white" />
+                    {/* Group Icon */}
+                    <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
+                      {group.icon ? (
+                        <img 
+                          src={group.icon.startsWith('data:') ? group.icon : `data:image/png;base64,${group.icon}`}
+                          alt={group.name} 
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
-                        <Users className="w-6 h-6 text-white" />
+                        <div className={`w-full h-full flex items-center justify-center ${
+                          group.is_mc_only 
+                            ? 'bg-gradient-to-br from-yellow-400 to-orange-500' 
+                            : 'bg-gradient-to-br from-purple-500 to-pink-500'
+                        }`}>
+                          {group.is_mc_only ? (
+                            <Crown className="w-6 h-6 text-white" />
+                          ) : (
+                            <Users className="w-6 h-6 text-white" />
+                          )}
+                        </div>
                       )}
                     </div>
                     <div>
@@ -749,8 +973,8 @@ const CommunityChat = () => {
                       </button>
                     ) : (
                       <button
-                        onClick={() => joinGroup(group.id)}
-                        className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-lg text-sm font-medium flex items-center space-x-1"
+                        onClick={() => handleJoinGroup(group.id, group.name)}
+                        className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-lg text-sm font-medium flex items-center justify-center space-x-1"
                       >
                         <UserPlus className="w-4 h-4" />
                         <span>Join</span>
@@ -775,6 +999,158 @@ const CommunityChat = () => {
           token={token} 
         />
       )}
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmText={confirmDialog.confirmText}
+        confirmColor={confirmDialog.confirmColor}
+      />
+    </div>
+  );
+};
+
+// Edit Group Modal Component
+const EditGroupModal = ({ group, onClose, onUpdated, token }) => {
+  const [name, setName] = useState(group.name);
+  const [description, setDescription] = useState(group.description || '');
+  const [icon, setIcon] = useState(group.icon || null);
+  const [saving, setSaving] = useState(false);
+  const iconInputRef = useRef(null);
+
+  const handleIconSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: 'Error', description: 'Icon must be less than 2MB', variant: 'destructive' });
+      return;
+    }
+    
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      toast({ title: 'Error', description: 'Please select an image file', variant: 'destructive' });
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setIcon(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = async () => {
+    if (!name.trim()) return;
+    
+    setSaving(true);
+    try {
+      const response = await axios.put(
+        `${getAPI()}/chat/groups/${group.id}`,
+        { 
+          name: name.trim(), 
+          description: description.trim(),
+          icon: icon
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast({ title: 'Success', description: 'Group updated successfully' });
+      onUpdated(response.data);
+      onClose();
+    } catch (error) {
+      toast({ 
+        title: 'Error', 
+        description: error.response?.data?.detail || 'Failed to update group', 
+        variant: 'destructive' 
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <div className="bg-white rounded-2xl w-full max-w-md">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h3 className="font-semibold text-lg">Edit Group</h3>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-4 space-y-4">
+          {/* Group Icon */}
+          <div className="flex justify-center">
+            <div className="relative">
+              <input
+                ref={iconInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleIconSelect}
+                className="hidden"
+              />
+              <div 
+                className="w-24 h-24 rounded-full overflow-hidden cursor-pointer border-4 border-gray-100"
+                onClick={() => iconInputRef.current?.click()}
+              >
+                {icon ? (
+                  <img 
+                    src={icon.startsWith('data:') ? icon : `data:image/png;base64,${icon}`}
+                    alt="Group icon" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <Users className="w-10 h-10 text-white" />
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => iconInputRef.current?.click()}
+                className="absolute bottom-0 right-0 p-2 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700"
+              >
+                <Camera className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Group Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter group name"
+              className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What's this group about?"
+              className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+              rows={3}
+            />
+          </div>
+          
+          <button
+            onClick={handleSave}
+            disabled={!name.trim() || saving}
+            className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl font-semibold disabled:opacity-50 flex items-center justify-center space-x-2"
+          >
+            {saving ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <span>Save Changes</span>
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
@@ -839,8 +1215,6 @@ const ManageMembersModal = ({ group, members, onClose, onMemberAdded, onMemberRe
   };
 
   const removeMember = async (email) => {
-    if (!window.confirm('Are you sure you want to remove this member?')) return;
-    
     setRemoving(email);
     try {
       await axios.post(
@@ -891,7 +1265,7 @@ const ManageMembersModal = ({ group, members, onClose, onMemberAdded, onMemberRe
                 <div key={user.email} className="flex items-center justify-between p-2 hover:bg-gray-100">
                   <div className="flex items-center space-x-2">
                     {user.picture ? (
-                      <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full" />
+                      <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full object-cover" />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white text-sm">
                         {user.name?.[0]?.toUpperCase()}
@@ -905,7 +1279,7 @@ const ManageMembersModal = ({ group, members, onClose, onMemberAdded, onMemberRe
                   <button
                     onClick={() => addMember(user.email)}
                     disabled={adding === user.email}
-                    className="px-3 py-1 bg-purple-600 text-white rounded-lg text-xs disabled:opacity-50"
+                    className="px-3 py-1 bg-purple-600 text-white rounded-lg text-xs disabled:opacity-50 flex items-center justify-center"
                   >
                     {adding === user.email ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserPlus className="w-3 h-3" />}
                   </button>
@@ -929,7 +1303,7 @@ const ManageMembersModal = ({ group, members, onClose, onMemberAdded, onMemberRe
             <div key={member.email} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
               <div className="flex items-center space-x-3">
                 {member.picture ? (
-                  <img src={member.picture} alt={member.name} className="w-10 h-10 rounded-full" />
+                  <img src={member.picture} alt={member.name} className="w-10 h-10 rounded-full object-cover" />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-medium">
                     {member.name?.[0]?.toUpperCase()}
@@ -970,11 +1344,34 @@ const CreateGroupModal = ({ onClose, onCreated, token }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isMcOnly, setIsMcOnly] = useState(false);
+  const [icon, setIcon] = useState(null);
   const [creating, setCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedMembers, setSelectedMembers] = useState([]);
   const [searching, setSearching] = useState(false);
+  const iconInputRef = useRef(null);
+
+  const handleIconSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: 'Error', description: 'Icon must be less than 2MB', variant: 'destructive' });
+      return;
+    }
+    
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      toast({ title: 'Error', description: 'Please select an image file', variant: 'destructive' });
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setIcon(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const searchUsers = async (query) => {
     if (!query || query.length < 2) {
@@ -1026,7 +1423,8 @@ const CreateGroupModal = ({ onClose, onCreated, token }) => {
           name, 
           description, 
           is_mc_only: isMcOnly,
-          initial_members: selectedMembers.map(m => m.email)
+          initial_members: selectedMembers.map(m => m.email),
+          icon: icon
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -1054,6 +1452,38 @@ const CreateGroupModal = ({ onClose, onCreated, token }) => {
           </button>
         </div>
         <form onSubmit={handleCreate} className="p-4 space-y-4 overflow-y-auto max-h-[calc(90vh-80px)]">
+          {/* Group Icon */}
+          <div className="flex justify-center">
+            <div className="relative">
+              <input
+                ref={iconInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleIconSelect}
+                className="hidden"
+              />
+              <div 
+                className="w-20 h-20 rounded-full overflow-hidden cursor-pointer border-4 border-gray-100"
+                onClick={() => iconInputRef.current?.click()}
+              >
+                {icon ? (
+                  <img src={icon} alt="Group icon" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <Users className="w-8 h-8 text-white" />
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => iconInputRef.current?.click()}
+                className="absolute bottom-0 right-0 p-1.5 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700"
+              >
+                <Camera className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Group Name</label>
             <input
@@ -1101,7 +1531,7 @@ const CreateGroupModal = ({ onClose, onCreated, token }) => {
                   >
                     <div className="flex items-center space-x-2">
                       {user.picture ? (
-                        <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full" />
+                        <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full object-cover" />
                       ) : (
                         <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white text-sm">
                           {user.name?.[0]?.toUpperCase()}
