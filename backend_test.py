@@ -3187,7 +3187,7 @@ class TROAAPITester:
         
         # Test 2: No-cache headers on auth endpoints
         try:
-            response = requests.get(f"{self.base_url}/auth", 
+            response = requests.get(f"{BACKEND_URL}/api/auth", 
                                   auth=(BASIC_AUTH_USERNAME, BASIC_AUTH_PASSWORD),
                                   timeout=10)
             
