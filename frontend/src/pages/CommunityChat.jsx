@@ -351,22 +351,30 @@ const CommunityChat = () => {
 
   const fetchMessages = async (groupId, silent = false) => {
     try {
+      const sessionToken = localStorage.getItem('session_token');
       const response = await axios.get(`${getAPI()}/chat/groups/${groupId}/messages?limit=10`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          ...(sessionToken ? { 'X-Session-Token': `Bearer ${sessionToken}` } : {})
+        }
       });
+      
       // On silent poll, only update if there are new messages at the end
       if (silent && messages.length > 0) {
         const lastExistingId = messages[messages.length - 1]?.id;
         const newMessages = response.data;
         const lastNewId = newMessages[newMessages.length - 1]?.id;
+        
         if (lastExistingId !== lastNewId) {
-          // New messages arrived, append them
+          // Check for truly new messages (not in existing list)
           const existingIds = new Set(messages.map(m => m.id));
           const trulyNew = newMessages.filter(m => !existingIds.has(m.id));
+          
           if (trulyNew.length > 0) {
             setMessages(prev => [...prev, ...trulyNew]);
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
           }
+          
           // Also update existing messages (for status changes, deletions)
           setMessages(prev => {
             const updatedMap = new Map(newMessages.map(m => [m.id, m]));
@@ -375,10 +383,12 @@ const CommunityChat = () => {
         }
       } else {
         setMessages(response.data);
+        setMessagesLoading(false);
       }
     } catch (error) {
       if (!silent) {
         console.error('Error fetching messages:', error);
+        setMessagesLoading(false);
       }
     }
   };
