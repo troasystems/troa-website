@@ -70,24 +70,26 @@ const Navbar = () => {
             </div>
           </Link>
           {/* Show user avatar or login on mobile header */}
-          {isAuthenticated ? (
-            <Link to="/profile" className="flex items-center space-x-2">
-              {user?.picture ? (
-                <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full border-2 border-purple-200" />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                  <User className="w-4 h-4 text-white" />
-                </div>
-              )}
-            </Link>
-          ) : (
-            <Link
-              to="/login"
-              className="px-4 py-1.5 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white rounded-full text-sm font-medium"
-            >
-              Login
-            </Link>
-          )}
+          <div className="flex items-center">
+            {isAuthenticated ? (
+              <Link to="/profile" className="flex items-center justify-center">
+                {user?.picture ? (
+                  <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full border-2 border-purple-200" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <User className="w-4 h-4 text-white" />
+                  </div>
+                )}
+              </Link>
+            ) : (
+              <Link
+                to="/login"
+                className="inline-flex items-center justify-center px-4 py-1.5 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white rounded-full text-sm font-medium h-8"
+              >
+                Login
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* Desktop Header */}
