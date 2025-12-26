@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, lazy, Suspense } from 'react';
 import './App.css';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -10,32 +10,53 @@ import FeedbackBanner from './components/FeedbackBanner';
 import EmailVerificationBanner from './components/EmailVerificationBanner';
 import VillaNumberModalWrapper from './components/VillaNumberModalWrapper';
 import Footer from './components/Footer';
-import Chatbot from './components/Chatbot';
 import InstallPWA from './components/InstallPWA';
 import PushNotifications from './components/PushNotifications';
 import UpdateNotification from './components/UpdateNotification';
+import { prefetchCommonData } from './hooks/useCache';
+
+// Eagerly loaded critical pages
 import Home from './pages/Home';
-import About from './pages/About';
-import Committee from './pages/Committee';
-import Amenities from './pages/Amenities';
-import Gallery from './pages/Gallery';
-import Contact from './pages/Contact';
-import HelpDesk from './pages/HelpDesk';
 import Login from './pages/Login';
-import AdminPortal from './pages/AdminPortal';
-import Feedback from './pages/Feedback';
-import MyBookings from './pages/MyBookings';
-import Events from './pages/Events';
-import MyEvents from './pages/MyEvents';
-import ProfileSettings from './pages/ProfileSettings';
-import VerifyEmail from './pages/VerifyEmail';
-import CommunityChat from './pages/CommunityChat';
+
+// Lazy loaded pages for better initial load
+const About = lazy(() => import('./pages/About'));
+const Committee = lazy(() => import('./pages/Committee'));
+const Amenities = lazy(() => import('./pages/Amenities'));
+const Gallery = lazy(() => import('./pages/Gallery'));
+const Contact = lazy(() => import('./pages/Contact'));
+const HelpDesk = lazy(() => import('./pages/HelpDesk'));
+const AdminPortal = lazy(() => import('./pages/AdminPortal'));
+const Feedback = lazy(() => import('./pages/Feedback'));
+const MyBookings = lazy(() => import('./pages/MyBookings'));
+const Events = lazy(() => import('./pages/Events'));
+const MyEvents = lazy(() => import('./pages/MyEvents'));
+const ProfileSettings = lazy(() => import('./pages/ProfileSettings'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+const CommunityChat = lazy(() => import('./pages/CommunityChat'));
+const Chatbot = lazy(() => import('./components/Chatbot'));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-purple-600"></div>
+  </div>
+);
 
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
 function App() {
   const [feedbackBannerVisible, setFeedbackBannerVisible] = useState(false);
   const [emailBannerVisible, setEmailBannerVisible] = useState(false);
+
+  // Prefetch common data after initial render
+  useEffect(() => {
+    // Delay prefetch to not block initial render
+    const timer = setTimeout(() => {
+      prefetchCommonData();
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleFeedbackVisibility = useCallback((visible) => {
     setFeedbackBannerVisible(visible);
