@@ -3144,6 +3144,162 @@ class TROAAPITester:
             self.test_results['community_chat']['message_order'] = False
             self.log_error(f"/chat/groups/{self.test_group_id}/messages (order)", "GET", f"Exception: {str(e)}")
 
+    def test_pwa_caching_features(self):
+        """Test PWA caching features including cache headers and service worker"""
+        print("\n🗄️ Testing PWA Caching Features...")
+        
+        # Test 1: Cache headers on cacheable endpoints
+        cacheable_endpoints = [
+            ('/api/amenities', 'amenities'),
+            ('/api/committee', 'committee'),
+            ('/api/events', 'events'),
+            ('/api/gallery', 'gallery')
+        ]
+        
+        for endpoint, name in cacheable_endpoints:
+            try:
+                response = requests.get(f"{self.base_url}{endpoint}", 
+                                      auth=(BASIC_AUTH_USERNAME, BASIC_AUTH_PASSWORD),
+                                      timeout=10)
+                
+                if response.status_code == 200:
+                    cache_control = response.headers.get('Cache-Control', '')
+                    vary_header = response.headers.get('Vary', '')
+                    
+                    # Expected: public, max-age=300, stale-while-revalidate=3600
+                    has_public = 'public' in cache_control
+                    has_max_age = 'max-age=300' in cache_control
+                    has_stale_while_revalidate = 'stale-while-revalidate=3600' in cache_control
+                    has_vary = 'Accept-Encoding' in vary_header
+                    
+                    if has_public and has_max_age and has_stale_while_revalidate and has_vary:
+                        self.test_results['pwa_caching'][f'cache_headers_{name}'] = True
+                        self.log_success(f"{endpoint} (cache headers)", "GET", f"- Correct cache headers: {cache_control}")
+                    else:
+                        self.test_results['pwa_caching'][f'cache_headers_{name}'] = False
+                        self.log_error(f"{endpoint} (cache headers)", "GET", f"Incorrect cache headers: {cache_control}, Vary: {vary_header}")
+                else:
+                    self.test_results['pwa_caching'][f'cache_headers_{name}'] = False
+                    self.log_error(f"{endpoint} (cache headers)", "GET", f"Status code: {response.status_code}")
+            except Exception as e:
+                self.test_results['pwa_caching'][f'cache_headers_{name}'] = False
+                self.log_error(f"{endpoint} (cache headers)", "GET", f"Exception: {str(e)}")
+        
+        # Test 2: No-cache headers on auth endpoints
+        try:
+            response = requests.get(f"{self.base_url}/auth", 
+                                  auth=(BASIC_AUTH_USERNAME, BASIC_AUTH_PASSWORD),
+                                  timeout=10)
+            
+            cache_control = response.headers.get('Cache-Control', '')
+            pragma = response.headers.get('Pragma', '')
+            
+            # Expected: no-store, no-cache, must-revalidate, private
+            has_no_store = 'no-store' in cache_control
+            has_no_cache = 'no-cache' in cache_control
+            has_must_revalidate = 'must-revalidate' in cache_control
+            has_private = 'private' in cache_control
+            
+            if has_no_store and has_no_cache and has_must_revalidate and has_private:
+                self.test_results['pwa_caching']['no_cache_auth'] = True
+                self.log_success("/auth (no-cache headers)", "GET", f"- Correct no-cache headers: {cache_control}")
+            else:
+                self.test_results['pwa_caching']['no_cache_auth'] = False
+                self.log_error("/auth (no-cache headers)", "GET", f"Incorrect no-cache headers: {cache_control}, Pragma: {pragma}")
+        except Exception as e:
+            self.test_results['pwa_caching']['no_cache_auth'] = False
+            self.log_error("/auth (no-cache headers)", "GET", f"Exception: {str(e)}")
+        
+        # Test 3: Service worker accessibility
+        try:
+            response = requests.get(f"{BACKEND_URL}/service-worker.js", 
+                                  auth=(BASIC_AUTH_USERNAME, BASIC_AUTH_PASSWORD),
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                content = response.text
+                # Check for key service worker features
+                has_install_event = 'addEventListener(\'install\'' in content
+                has_fetch_event = 'addEventListener(\'fetch\'' in content
+                has_cache_patterns = 'CACHEABLE_API_PATTERNS' in content
+                has_cache_expiry = 'CACHE_EXPIRY' in content
+                has_stale_while_revalidate = 'stale-while-revalidate' in content
+                
+                if has_install_event and has_fetch_event and has_cache_patterns and has_cache_expiry and has_stale_while_revalidate:
+                    self.test_results['pwa_caching']['service_worker'] = True
+                    self.log_success("/service-worker.js", "GET", f"- Service worker with caching features: {len(content)} bytes")
+                else:
+                    self.test_results['pwa_caching']['service_worker'] = False
+                    missing_features = []
+                    if not has_install_event: missing_features.append('install event')
+                    if not has_fetch_event: missing_features.append('fetch event')
+                    if not has_cache_patterns: missing_features.append('cache patterns')
+                    if not has_cache_expiry: missing_features.append('cache expiry')
+                    if not has_stale_while_revalidate: missing_features.append('stale-while-revalidate')
+                    self.log_error("/service-worker.js", "GET", f"Missing features: {', '.join(missing_features)}")
+            else:
+                self.test_results['pwa_caching']['service_worker'] = False
+                self.log_error("/service-worker.js", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['pwa_caching']['service_worker'] = False
+            self.log_error("/service-worker.js", "GET", f"Exception: {str(e)}")
+        
+        # Test 4: PWA manifest accessibility
+        try:
+            response = requests.get(f"{BACKEND_URL}/manifest.json", 
+                                  auth=(BASIC_AUTH_USERNAME, BASIC_AUTH_PASSWORD),
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                try:
+                    manifest = response.json()
+                    has_name = 'name' in manifest
+                    has_icons = 'icons' in manifest and len(manifest['icons']) > 0
+                    has_start_url = 'start_url' in manifest
+                    has_display = 'display' in manifest
+                    
+                    if has_name and has_icons and has_start_url and has_display:
+                        self.test_results['pwa_caching']['manifest'] = True
+                        self.log_success("/manifest.json", "GET", f"- Valid PWA manifest: {manifest.get('name', 'N/A')}")
+                    else:
+                        self.test_results['pwa_caching']['manifest'] = False
+                        missing_fields = [k for k in ['name', 'icons', 'start_url', 'display'] if k not in manifest]
+                        self.log_error("/manifest.json", "GET", f"Missing fields: {missing_fields}")
+                except Exception as parse_error:
+                    self.test_results['pwa_caching']['manifest'] = False
+                    self.log_error("/manifest.json", "GET", f"JSON parse error: {str(parse_error)}")
+            else:
+                self.test_results['pwa_caching']['manifest'] = False
+                self.log_error("/manifest.json", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['pwa_caching']['manifest'] = False
+            self.log_error("/manifest.json", "GET", f"Exception: {str(e)}")
+        
+        # Test 5: CORS headers for PWA compatibility
+        try:
+            response = requests.options(f"{self.base_url}/amenities", 
+                                      headers={'Origin': BACKEND_URL},
+                                      auth=(BASIC_AUTH_USERNAME, BASIC_AUTH_PASSWORD),
+                                      timeout=10)
+            
+            access_control_allow_origin = response.headers.get('Access-Control-Allow-Origin', '')
+            access_control_allow_credentials = response.headers.get('Access-Control-Allow-Credentials', '')
+            access_control_allow_methods = response.headers.get('Access-Control-Allow-Methods', '')
+            
+            has_origin = access_control_allow_origin != ''
+            has_credentials = access_control_allow_credentials.lower() == 'true'
+            has_methods = 'GET' in access_control_allow_methods
+            
+            if has_origin and has_credentials and has_methods:
+                self.test_results['pwa_caching']['cors_headers'] = True
+                self.log_success("/amenities (CORS)", "OPTIONS", f"- CORS configured: Origin={access_control_allow_origin}")
+            else:
+                self.test_results['pwa_caching']['cors_headers'] = False
+                self.log_error("/amenities (CORS)", "OPTIONS", f"CORS issues: Origin={access_control_allow_origin}, Credentials={access_control_allow_credentials}")
+        except Exception as e:
+            self.test_results['pwa_caching']['cors_headers'] = False
+            self.log_error("/amenities (CORS)", "OPTIONS", f"Exception: {str(e)}")
+
     def run_all_tests(self):
         """Run all API tests"""
         print(f"🚀 Starting TROA Backend API Tests")
