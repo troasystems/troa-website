@@ -1,39 +1,29 @@
-# Chat Features Test Plan
+# PWA & Chat Caching Test Plan
 
 ## Features to Test
 
-### 1. Image Thumbnail Preview with Popup
-- Images in messages should show as small thumbnails (max 150px)
-- Clicking thumbnail opens medium-sized popup (max 600x600px)
-- Popup has download button
-- Popup closes when clicking outside or X button
+### 1. Service Worker Caching
+- Service worker registration
+- Static assets caching (JS, CSS, fonts)
+- API response caching (amenities, events, committee)
+- Image caching from external domains
 
-### 2. Message Deletion (Soft Delete)
-- Users can delete their own messages
-- Delete button appears on hover
-- Confirmation dialog before deletion
-- Deleted messages show "This message was deleted" to all users
-- Sender name still visible, content replaced
+### 2. Chat Caching (IndexedDB + Memory)
+- Groups list caching
+- Messages caching per group
+- Attachments/images caching
+- Cache invalidation on new messages
 
-### 3. File Uploads (PDF Fix)
-- PDFs should upload successfully
-- Other document types (doc, docx, xls, xlsx, txt) should work
-- MIME type detection uses extension as fallback
+### 3. Lazy Loading & Code Splitting
+- Pages load on demand
+- Suspense fallback shows during load
 
-### 4. Reverse Pagination
-- Initially loads last 10 messages
-- Scrolling to top loads previous 10 messages
-- Loading indicator shows when fetching older messages
-- "Beginning of conversation" shown when no more messages
+### 4. API Cache Headers
+- Backend returns proper Cache-Control headers
+- Stale-while-revalidate for public endpoints
 
 ## Test Credentials
-- Use Google OAuth login (no password auth)
-- Test user: troa.systems@gmail.com
-
-## API Endpoints to Test
-- GET /api/chat/groups/{group_id}/messages?limit=10&before={timestamp}
-- DELETE /api/chat/messages/{message_id}
-- POST /api/chat/groups/{group_id}/messages/upload (with PDF)
+- Use existing test user or create new one via signup
 
 ## Test Status
 - Backend testing: PENDING
