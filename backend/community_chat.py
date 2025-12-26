@@ -403,8 +403,8 @@ async def delete_chat_group(group_id: str, request: Request):
 
 
 @chat_router.get("/groups/{group_id}/messages", response_model=List[Message])
-async def get_group_messages(group_id: str, request: Request, limit: int = 50, before: Optional[str] = None):
-    """Get messages from a chat group"""
+async def get_group_messages(group_id: str, request: Request, limit: int = 10, before: Optional[str] = None):
+    """Get messages from a chat group with pagination (reverse chronological)"""
     try:
         from auth import require_auth
         user = await require_auth(request)
@@ -435,13 +435,17 @@ async def get_group_messages(group_id: str, request: Request, limit: int = 50, b
         ).to_list(100)
         user_pictures = {u['email']: u.get('picture') for u in users_data}
         
-        # Add sender pictures and ensure status/read_by fields
+        # Add sender pictures and ensure status/read_by/is_deleted fields
         for msg in messages:
             msg['sender_picture'] = user_pictures.get(msg.get('sender_email'))
             if 'status' not in msg:
                 msg['status'] = 'delivered'  # Default for old messages
             if 'read_by' not in msg:
                 msg['read_by'] = []
+            if 'is_deleted' not in msg:
+                msg['is_deleted'] = False
+            if 'deleted_at' not in msg:
+                msg['deleted_at'] = None
             # Mark as read if current user hasn't read it yet
             if user['email'] not in msg['read_by'] and msg['sender_email'] != user['email']:
                 await db.chat_messages.update_one(
