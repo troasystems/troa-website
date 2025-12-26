@@ -1019,6 +1019,7 @@ const EditGroupModal = ({ group, onClose, onUpdated, token }) => {
   const [name, setName] = useState(group.name);
   const [description, setDescription] = useState(group.description || '');
   const [icon, setIcon] = useState(group.icon || null);
+  const [iconChanged, setIconChanged] = useState(false);
   const [saving, setSaving] = useState(false);
   const iconInputRef = useRef(null);
 
@@ -1039,6 +1040,7 @@ const EditGroupModal = ({ group, onClose, onUpdated, token }) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       setIcon(e.target.result);
+      setIconChanged(true);
     };
     reader.readAsDataURL(file);
   };
@@ -1048,13 +1050,19 @@ const EditGroupModal = ({ group, onClose, onUpdated, token }) => {
     
     setSaving(true);
     try {
+      const updateData = { 
+        name: name.trim(), 
+        description: description.trim()
+      };
+      
+      // Only include icon if it was actually changed
+      if (iconChanged) {
+        updateData.icon = icon;
+      }
+      
       const response = await axios.put(
         `${getAPI()}/chat/groups/${group.id}`,
-        { 
-          name: name.trim(), 
-          description: description.trim(),
-          icon: icon
-        },
+        updateData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast({ title: 'Success', description: 'Group updated successfully' });
