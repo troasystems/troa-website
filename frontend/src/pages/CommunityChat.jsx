@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSearchParams } from 'react-router-dom';
 import { 
@@ -10,6 +10,20 @@ import {
 import axios from 'axios';
 import { toast } from '../hooks/use-toast';
 import { getBackendUrl } from '../utils/api';
+import {
+  cacheGroups,
+  getCachedGroups,
+  isGroupsCacheValid,
+  cacheMessages,
+  getCachedMessages,
+  addMessageToCache,
+  updateMessageInCache,
+  isMessagesCacheValid,
+  cacheAttachment,
+  getCachedAttachment,
+  clearGroupMessagesCache,
+  invalidateGroupsCache
+} from '../services/chatCache';
 
 const getAPI = () => `${getBackendUrl()}/api`;
 
