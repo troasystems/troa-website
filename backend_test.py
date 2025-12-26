@@ -3192,8 +3192,8 @@ class TROAAPITester:
         self.test_pwa_features()
         self.test_pwa_static_assets()
         
-        # Test Community Chat features
-        self.test_community_chat()
+        # Test Community Chat features (comprehensive)
+        self.test_community_chat_comprehensive()
         
         # Test Push Notifications
         self.test_push_notifications()
