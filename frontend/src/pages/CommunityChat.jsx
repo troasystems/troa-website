@@ -203,19 +203,19 @@ const CommunityChat = () => {
   // Chat view when group is selected
   if (selectedGroup) {
     return (
-      <div className="fixed inset-0 flex flex-col bg-gray-50 z-40 pt-14 md:pt-20 pb-16 md:pb-0">
-        {/* Chat Header - with gradient background to match groups header */}
-        <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 px-4 py-3 flex items-center justify-between shrink-0">
+      <div className="fixed inset-0 flex flex-col bg-gray-50 z-[100]">
+        {/* Chat Header - full width at top, above everything */}
+        <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 px-4 py-4 flex items-center justify-between shrink-0 safe-area-top">
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setSelectedGroup(null)}
               className="p-2 hover:bg-white/20 rounded-full text-white"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-6 h-6" />
             </button>
             <div>
               <div className="flex items-center space-x-2">
-                <h2 className="font-semibold text-white">{selectedGroup.name}</h2>
+                <h2 className="font-semibold text-white text-lg">{selectedGroup.name}</h2>
                 {selectedGroup.is_mc_only && (
                   <Crown className="w-4 h-4 text-yellow-300" />
                 )}
@@ -223,7 +223,7 @@ const CommunityChat = () => {
               <p className="text-xs text-white/70">{selectedGroup.member_count} members</p>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1">
             <button
               onClick={() => fetchMembers(selectedGroup.id)}
               className="p-2 hover:bg-white/20 rounded-full text-white"
