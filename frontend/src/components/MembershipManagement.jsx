@@ -151,18 +151,20 @@ const MembershipManagement = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header with responsive layout */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Membership Applications</h2>
-          <p className="text-gray-600">Review and manage membership requests</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Membership Applications</h2>
+          <p className="text-sm sm:text-base text-gray-600">Review and manage membership requests</p>
         </div>
-        <div className="flex space-x-2">
+        {/* Filter buttons - wrap on mobile */}
+        <div className="flex flex-wrap gap-2">
           {['all', 'pending', 'approved', 'rejected'].map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status)}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm font-medium transition-all ${
                 filter === status
                   ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
                   : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
