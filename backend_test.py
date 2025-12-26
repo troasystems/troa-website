@@ -3387,7 +3387,8 @@ class TROAAPITester:
             'Amenity Booking': ['amenity_booking'],
             'Community Chat': ['community_chat'],
             'Push Notifications': ['push_notifications'],
-            'PWA Features': ['pwa']
+            'PWA Features': ['pwa'],
+            'PWA Caching': ['pwa_caching']
         }
         
         for category, endpoints in categories.items():
