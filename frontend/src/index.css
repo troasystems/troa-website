@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Safe area insets for notch and home indicator on iOS */
+.safe-area-top {
+    padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 body {
     margin: 0;
     font-family:
