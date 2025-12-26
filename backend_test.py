@@ -42,7 +42,8 @@ class TROAAPITester:
             'google_oauth': {'invalid_token_error': None},
             'email_verification': {'already_verified_success': None, 'token_mismatch_error': None},
             'community_chat': {'get_groups': None, 'create_group': None, 'join_group': None, 'leave_group': None, 'get_messages': None, 'send_message': None, 'mc_group_exists': None, 'message_pagination': None, 'message_deletion': None, 'file_upload_pdf': None, 'deleted_message_response': None, 'message_order': None},
-            'push_notifications': {'vapid_public_key': None, 'subscribe': None, 'unsubscribe': None, 'status': None, 'send_admin_only': None, 'send_notification_to_user': None, 'send_notification_to_admins': None}
+            'push_notifications': {'vapid_public_key': None, 'subscribe': None, 'unsubscribe': None, 'status': None, 'send_admin_only': None, 'send_notification_to_user': None, 'send_notification_to_admins': None},
+            'pwa_caching': {'cache_headers_amenities': None, 'cache_headers_committee': None, 'cache_headers_events': None, 'cache_headers_gallery': None, 'no_cache_auth': None, 'service_worker': None, 'manifest': None, 'cors_headers': None}
         }
         self.errors = []
         self.created_event_id = None
