@@ -130,6 +130,7 @@ export const AuthProvider = ({ children }) => {
       if (response.data.status === 'success' && response.data.token) {
         console.log('[Auth] Google login successful');
         localStorage.setItem('session_token', response.data.token);
+        setToken(response.data.token);
         setUser(response.data.user);
         
         // Check if user needs villa number
