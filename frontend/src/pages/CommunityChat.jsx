@@ -360,9 +360,9 @@ const CommunityChat = () => {
 
   // Group list view
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white px-4 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 pt-14 md:pt-20">
+      {/* Header - sticky below navbar */}
+      <div className="sticky top-14 md:top-20 z-30 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-white px-4 py-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Community Chat</h1>
