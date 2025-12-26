@@ -44,6 +44,7 @@ export const AuthProvider = ({ children }) => {
       // Store token in localStorage
       console.log('[Auth] Storing token in localStorage');
       localStorage.setItem('session_token', token);
+      setToken(token);
       // Remove token from URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
