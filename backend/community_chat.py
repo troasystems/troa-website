@@ -302,7 +302,7 @@ async def send_message(group_id: str, message_data: ChatMessage, request: Reques
                 title=f"{user['name']} in {group['name']}",
                 body=preview,
                 exclude_email=user['email'],
-                url="/chat"
+                url=f"/chat?group={group_id}"
             )
         except Exception as push_error:
             logger.error(f"Failed to send chat push notifications: {push_error}")
