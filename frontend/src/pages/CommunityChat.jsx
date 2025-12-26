@@ -87,9 +87,10 @@ const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, confirmText
 };
 
 // Image Thumbnail Component - Shows small preview with click to expand
-const ImageThumbnail = ({ attachment, isOwnMessage, onPreview }) => {
+const ImageThumbnail = ({ attachment, isOwnMessage, onPreview, token }) => {
   const [thumbnailData, setThumbnailData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   
   useEffect(() => {
     // For temp attachments (during sending), don't load
@@ -101,41 +102,48 @@ const ImageThumbnail = ({ attachment, isOwnMessage, onPreview }) => {
     // Load thumbnail data
     const loadThumbnail = async () => {
       try {
+        const sessionToken = localStorage.getItem('session_token');
         const response = await axios.get(`${getAPI()}/chat/attachments/${attachment.id}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            ...(sessionToken ? { 'X-Session-Token': `Bearer ${sessionToken}` } : {})
+          }
         });
         if (response.data && response.data.data) {
           setThumbnailData(response.data);
+        } else {
+          setError(true);
         }
       } catch (error) {
         console.error('Error loading thumbnail:', error);
+        setError(true);
       } finally {
         setLoading(false);
       }
     };
     
     loadThumbnail();
-  }, [attachment.id]);
+  }, [attachment.id, token]);
   
   if (loading) {
     return (
-      <div className={`w-[150px] h-[100px] rounded-lg flex items-center justify-center ${isOwnMessage ? 'bg-white/20' : 'bg-gray-100'}`}>
+      <div className={`w-[120px] h-[80px] rounded-lg flex items-center justify-center ${isOwnMessage ? 'bg-white/20' : 'bg-gray-100'}`}>
         <Loader2 className={`w-5 h-5 animate-spin ${isOwnMessage ? 'text-white/60' : 'text-gray-400'}`} />
       </div>
     );
   }
   
-  if (!thumbnailData) {
+  if (error || !thumbnailData) {
     return (
       <div 
         className={`p-2 rounded-lg flex items-center space-x-2 cursor-pointer ${isOwnMessage ? 'bg-white/20' : 'bg-gray-100'}`}
         onClick={onPreview}
       >
         <Image className={`w-5 h-5 ${isOwnMessage ? 'text-white/80' : 'text-gray-500'}`} />
-        <span className={`text-sm ${isOwnMessage ? 'text-white/90' : 'text-gray-700'}`}>
+        <span className={`text-sm truncate max-w-[100px] ${isOwnMessage ? 'text-white/90' : 'text-gray-700'}`}>
           {attachment.filename}
         </span>
-        <Eye className={`w-4 h-4 ${isOwnMessage ? 'text-white/60' : 'text-gray-400'}`} />
+        <Eye className={`w-4 h-4 flex-shrink-0 ${isOwnMessage ? 'text-white/60' : 'text-gray-400'}`} />
       </div>
     );
   }
