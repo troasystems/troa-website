@@ -3158,7 +3158,7 @@ class TROAAPITester:
         
         for endpoint, name in cacheable_endpoints:
             try:
-                response = requests.get(f"{self.base_url}{endpoint}", 
+                response = requests.get(f"{BACKEND_URL}{endpoint}", 
                                       auth=(BASIC_AUTH_USERNAME, BASIC_AUTH_PASSWORD),
                                       timeout=10)
                 
