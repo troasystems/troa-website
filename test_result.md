@@ -1,21 +1,27 @@
 # Test Results
 
 ## Testing Protocol
-- Testing banner visibility fix
-- Testing file/image upload in chat
-- Testing group member management
+- Testing 5 new features for chat functionality
+- Button text center alignment fix
+- Confirmation dialogs for join/leave group
+- User profile pictures in chat messages
+- Read/unread message status with tick marks
+- Group name/icon editing by admin/managers
 
 ## Features to Test
-1. Banner visibility - Feedback and Email Verification banners should be visible below navbar
-2. Chat file upload - Users can upload files (images, documents) up to 5MB
-3. Chat multiple files - Users can upload multiple files in a single message
-4. Chat image preview - Images can be previewed in chat
-5. Chat file download - Documents can be downloaded
-6. Group member management - Admins/managers can add/remove members
-7. Group creation with members - Can add members during group creation
-8. User search for adding members - Search users by name or email
+1. Banner button text center alignment - inline-flex with justify-center applied
+2. Login button text center alignment - inline-flex with justify-center applied  
+3. Join group confirmation dialog - shows before joining
+4. Leave group confirmation dialog - shows before leaving
+5. Delete group confirmation dialog - shows before deleting
+6. User profile picture thumbnail next to messages
+7. Message status icons - sending (spinner), sent (single tick), read (double blue tick)
+8. Group edit modal - admin/managers can update name and icon
+9. PUT /api/chat/groups/{id} endpoint - updates group name/description/icon
 
 ## Incorporate User Feedback
-- Max file size: 5MB
-- Multiple files per message: Yes
-- Admins/managers can remove anyone, normal users can add but not remove
+- Buttons should have center-aligned text
+- Confirmation popups for join/leave actions
+- Profile thumbnails next to messages in chat
+- Read/unread status with tick marks like WhatsApp
+- Admin/managers can edit group name and icon
