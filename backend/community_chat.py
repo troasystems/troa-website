@@ -10,6 +10,7 @@ from uuid import uuid4
 import os
 import logging
 import base64
+import mimetypes
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,37 @@ ALLOWED_DOC_TYPES = ['application/pdf', 'application/msword',
                      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                      'text/plain']
 ALLOWED_FILE_TYPES = ALLOWED_IMAGE_TYPES + ALLOWED_DOC_TYPES
+
+# Extension to MIME type mapping for fallback
+EXTENSION_TO_MIME = {
+    '.pdf': 'application/pdf',
+    '.doc': 'application/msword',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.xls': 'application/vnd.ms-excel',
+    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    '.txt': 'text/plain',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp'
+}
+
+def get_content_type(file: UploadFile) -> str:
+    """Get content type from file, using extension as fallback"""
+    content_type = file.content_type
+    
+    # If content_type is missing or generic, try to determine from extension
+    if not content_type or content_type == 'application/octet-stream':
+        if file.filename:
+            ext = os.path.splitext(file.filename)[1].lower()
+            content_type = EXTENSION_TO_MIME.get(ext, content_type)
+            if not content_type:
+                # Use mimetypes as last resort
+                guessed_type, _ = mimetypes.guess_type(file.filename)
+                content_type = guessed_type or 'application/octet-stream'
+    
+    return content_type
 
 # Pydantic Models
 class ChatGroupCreate(BaseModel):
