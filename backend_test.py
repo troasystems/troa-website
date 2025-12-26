@@ -3277,7 +3277,7 @@ class TROAAPITester:
         
         # Test 5: CORS headers for PWA compatibility
         try:
-            response = requests.options(f"{self.base_url}/amenities", 
+            response = requests.options(f"{BACKEND_URL}/api/amenities", 
                                       headers={'Origin': BACKEND_URL},
                                       auth=(BASIC_AUTH_USERNAME, BASIC_AUTH_PASSWORD),
                                       timeout=10)
