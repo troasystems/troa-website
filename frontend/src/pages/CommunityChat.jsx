@@ -839,21 +839,29 @@ const CommunityChat = () => {
           className="flex-1 overflow-y-auto p-4 space-y-3"
           onScroll={handleScroll}
         >
+          {/* Initial loading indicator */}
+          {messagesLoading && (
+            <div className="flex flex-col items-center justify-center py-10">
+              <Loader2 className="w-10 h-10 animate-spin text-purple-500 mb-3" />
+              <p className="text-gray-500">Loading messages...</p>
+            </div>
+          )}
+          
           {/* Loading more indicator */}
-          {loadingMore && (
+          {!messagesLoading && loadingMore && (
             <div className="text-center py-2">
               <Loader2 className="w-5 h-5 animate-spin text-purple-500 mx-auto" />
               <p className="text-xs text-gray-500 mt-1">Loading older messages...</p>
             </div>
           )}
           
-          {!hasMoreMessages && messages.length > 0 && (
+          {!messagesLoading && !hasMoreMessages && messages.length > 0 && (
             <div className="text-center py-2">
               <p className="text-xs text-gray-400">Beginning of conversation</p>
             </div>
           )}
           
-          {messages.length === 0 ? (
+          {!messagesLoading && messages.length === 0 ? (
             <div className="text-center text-gray-500 py-10">
               <MessageSquare className="w-12 h-12 mx-auto mb-3 text-gray-300" />
               <p>No messages yet. Start the conversation!</p>
