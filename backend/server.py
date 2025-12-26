@@ -25,6 +25,7 @@ from payment import payment_router
 from chatbot import chatbot_router
 from events import events_router
 from email_service import email_service, get_admin_manager_emails
+from push_notifications import send_notification_to_user, send_notification_to_admins
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -69,8 +70,15 @@ async def root():
 @api_router.get("/committee", response_model=List[CommitteeMember])
 async def get_committee_members():
     try:
-        members = await db.committee_members.find({}, {"_id": 0}).to_list(100)
-        return [CommitteeMember(**member) for member in members]
+        members = await db.committee_members.find().to_list(100)
+        result = []
+        for member in members:
+            # Use existing 'id' field or fallback to string of MongoDB '_id'
+            if 'id' not in member or not member['id']:
+                member['id'] = str(member['_id'])
+            member.pop('_id', None)
+            result.append(CommitteeMember(**member))
+        return result
     except Exception as e:
         logger.error(f"Error fetching committee members: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch committee members")
@@ -97,15 +105,33 @@ async def update_committee_member(member_id: str, member: CommitteeMemberCreate,
     try:
         admin = await require_admin(request)
         
+        # Try to find by 'id' field first, then by '_id' (for legacy documents)
+        from bson import ObjectId
+        query = {"id": member_id}
+        existing = await db.committee_members.find_one(query)
+        
+        if not existing:
+            # Try finding by MongoDB _id (for documents without 'id' field)
+            try:
+                query = {"_id": ObjectId(member_id)}
+                existing = await db.committee_members.find_one(query)
+            except:
+                pass
+        
+        if not existing:
+            raise HTTPException(status_code=404, detail="Committee member not found")
+        
+        # Update the document and ensure it has an 'id' field
+        update_data = member.dict()
+        update_data['id'] = member_id  # Persist the id field
+        
         result = await db.committee_members.find_one_and_update(
-            {"id": member_id},
-            {"$set": member.dict()},
+            query,
+            {"$set": update_data},
             return_document=True
         )
         
-        if not result:
-            raise HTTPException(status_code=404, detail="Committee member not found")
-        
+        result.pop('_id', None)
         return CommitteeMember(**result)
     except HTTPException:
         raise
@@ -119,7 +145,16 @@ async def delete_committee_member(member_id: str, request: Request):
     try:
         admin = await require_admin(request)
         
+        # Try to delete by 'id' field first, then by '_id' (for legacy documents)
+        from bson import ObjectId
         result = await db.committee_members.delete_one({"id": member_id})
+        
+        if result.deleted_count == 0:
+            # Try deleting by MongoDB _id
+            try:
+                result = await db.committee_members.delete_one({"_id": ObjectId(member_id)})
+            except:
+                pass
         
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Committee member not found")
@@ -136,7 +171,14 @@ async def delete_committee_member(member_id: str, request: Request):
 async def get_amenities():
     try:
         amenities = await db.amenities.find().to_list(100)
-        return [Amenity(**amenity) for amenity in amenities]
+        result = []
+        for amenity in amenities:
+            # Use existing 'id' field or fallback to string of MongoDB '_id'
+            if 'id' not in amenity or not amenity['id']:
+                amenity['id'] = str(amenity['_id'])
+            amenity.pop('_id', None)
+            result.append(Amenity(**amenity))
+        return result
     except Exception as e:
         logger.error(f"Error fetching amenities: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch amenities")
@@ -163,15 +205,33 @@ async def update_amenity(amenity_id: str, amenity: AmenityCreate, request: Reque
     try:
         admin = await require_admin(request)
         
+        # Try to find by 'id' field first, then by '_id' (for legacy documents)
+        from bson import ObjectId
+        query = {"id": amenity_id}
+        existing = await db.amenities.find_one(query)
+        
+        if not existing:
+            # Try finding by MongoDB _id (for documents without 'id' field)
+            try:
+                query = {"_id": ObjectId(amenity_id)}
+                existing = await db.amenities.find_one(query)
+            except:
+                pass
+        
+        if not existing:
+            raise HTTPException(status_code=404, detail="Amenity not found")
+        
+        # Update the document and ensure it has an 'id' field
+        update_data = amenity.dict()
+        update_data['id'] = amenity_id  # Persist the id field
+        
         result = await db.amenities.find_one_and_update(
-            {"id": amenity_id},
-            {"$set": amenity.dict()},
+            query,
+            {"$set": update_data},
             return_document=True
         )
         
-        if not result:
-            raise HTTPException(status_code=404, detail="Amenity not found")
-        
+        result.pop('_id', None)
         return Amenity(**result)
     except HTTPException:
         raise
@@ -185,7 +245,16 @@ async def delete_amenity(amenity_id: str, request: Request):
     try:
         admin = await require_admin(request)
         
+        # Try to delete by 'id' field first, then by '_id' (for legacy documents)
+        from bson import ObjectId
         result = await db.amenities.delete_one({"id": amenity_id})
+        
+        if result.deleted_count == 0:
+            # Try deleting by MongoDB _id
+            try:
+                result = await db.amenities.delete_one({"_id": ObjectId(amenity_id)})
+            except:
+                pass
         
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Amenity not found")
@@ -240,6 +309,16 @@ async def create_membership_application(application: MembershipApplicationCreate
             )
         except Exception as email_error:
             logger.error(f"Failed to send membership notification email: {email_error}")
+        
+        # Send push notification to admins
+        try:
+            await send_notification_to_admins(
+                title="New Membership Application",
+                body=f"{app_obj.name} (Villa {app_obj.villa_no}) applied for membership",
+                url="/admin"
+            )
+        except Exception as push_error:
+            logger.error(f"Failed to send membership push notification: {push_error}")
         
         return app_obj
     except Exception as e:
@@ -338,6 +417,10 @@ async def add_user_to_whitelist(user_data: UserCreate, request: Request):
         if user_data.role not in ['admin', 'manager', 'user']:
             raise HTTPException(status_code=400, detail="Invalid role. Must be: admin, manager, or user")
         
+        # Validate villa_number if provided (must be numeric)
+        if user_data.villa_number and not user_data.villa_number.isdigit():
+            raise HTTPException(status_code=400, detail="Villa number must be numeric")
+        
         # Create user with the specified role
         user_obj = User(
             email=user_data.email,
@@ -345,11 +428,12 @@ async def add_user_to_whitelist(user_data: UserCreate, request: Request):
             picture=user_data.picture or "",
             provider="whitelist",
             role=user_data.role,
-            is_admin=user_data.role == 'admin'
+            is_admin=user_data.role == 'admin',
+            villa_number=user_data.villa_number or ""
         )
         
         await db.users.insert_one(user_obj.dict())
-        logger.info(f"User added to whitelist by {admin['email']}: {user_data.email} with role {user_data.role}")
+        logger.info(f"User added to whitelist by {admin['email']}: {user_data.email} with role {user_data.role}, villa: {user_data.villa_number}")
         return user_obj
     except HTTPException:
         raise
@@ -358,45 +442,77 @@ async def add_user_to_whitelist(user_data: UserCreate, request: Request):
         raise HTTPException(status_code=500, detail="Failed to add user")
 
 @api_router.patch("/users/{user_id}", response_model=User)
-async def update_user_role(user_id: str, update: UserUpdate, request: Request):
-    """Update user role - admin only"""
+async def update_user(user_id: str, update: UserUpdate, request: Request):
+    """Update user details - admin only"""
     try:
         admin = await require_admin(request)
         
-        # Validate role
-        if update.role not in ['admin', 'manager', 'user']:
-            raise HTTPException(status_code=400, detail="Invalid role. Must be: admin, manager, or user")
-        
-        # Check if trying to modify super admin
+        # Check if trying to modify super admin's role
         from auth import SUPER_ADMIN_EMAIL
         user_to_update = await db.users.find_one({"id": user_id}, {"_id": 0})
-        if user_to_update and user_to_update.get('email') == SUPER_ADMIN_EMAIL:
+        
+        if not user_to_update:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        if user_to_update.get('email') == SUPER_ADMIN_EMAIL and update.role and update.role != 'admin':
             raise HTTPException(status_code=400, detail="Cannot modify the super admin's role")
         
-        from datetime import datetime
+        # Build update dict with only provided fields
+        update_data = {"updated_at": datetime.utcnow()}
+        
+        # Validate and add role if provided
+        if update.role is not None:
+            if update.role not in ['admin', 'manager', 'user']:
+                raise HTTPException(status_code=400, detail="Invalid role. Must be: admin, manager, or user")
+            update_data["role"] = update.role
+            update_data["is_admin"] = update.role == 'admin'
+        
+        # Add name if provided
+        if update.name is not None:
+            update_data["name"] = update.name
+        
+        # Validate and add villa_number if provided (must be numeric)
+        if update.villa_number is not None:
+            if update.villa_number and not update.villa_number.isdigit():
+                raise HTTPException(status_code=400, detail="Villa number must be numeric")
+            update_data["villa_number"] = update.villa_number
+        
+        # Add picture if provided
+        if update.picture is not None:
+            update_data["picture"] = update.picture
+        
+        # Handle password reset if provided
+        if update.new_password is not None:
+            if len(update.new_password) < 6:
+                raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+            import bcrypt
+            password_hash = bcrypt.hashpw(update.new_password.encode('utf-8'), bcrypt.gensalt())
+            update_data["password_hash"] = password_hash.decode('utf-8')
+        
+        # Handle email_verified toggle if provided
+        if update.email_verified is not None:
+            update_data["email_verified"] = update.email_verified
+            if update.email_verified:
+                update_data["verified_at"] = datetime.utcnow()
+                update_data["verification_token"] = None  # Clear token when manually verified
+            else:
+                update_data["verified_at"] = None
+        
         result = await db.users.find_one_and_update(
             {"id": user_id},
-            {
-                "$set": {
-                    "role": update.role,
-                    "is_admin": update.role == 'admin',
-                    "updated_at": datetime.utcnow()
-                }
-            },
+            {"$set": update_data},
             return_document=True
         )
         
-        if not result:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        # Remove _id for serialization
+        # Remove _id and password_hash for serialization
         result.pop('_id', None)
+        result.pop('password_hash', None)
         return User(**result)
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error updating user role: {e}")
-        raise HTTPException(status_code=500, detail="Failed to update user role")
+        logger.error(f"Error updating user: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update user")
 
 @api_router.delete("/users/{user_id}")
 async def delete_user(user_id: str, request: Request):
@@ -463,6 +579,16 @@ async def submit_feedback(feedback: FeedbackCreate, request: Request):
             )
         except Exception as email_error:
             logger.error(f"Failed to send feedback notification email: {email_error}")
+        
+        # Send push notification to admins
+        try:
+            await send_notification_to_admins(
+                title="New Feedback Received",
+                body=f"{user['name']} submitted feedback with {feedback.rating}⭐ rating",
+                url="/admin"
+            )
+        except Exception as push_error:
+            logger.error(f"Failed to send feedback push notification: {push_error}")
         
         return feedback_obj
     except HTTPException:
@@ -628,6 +754,27 @@ async def create_booking(booking: AmenityBookingCreate, request: Request):
         except Exception as email_error:
             logger.error(f"Failed to send admin booking notification: {email_error}")
         
+        # Send push notification to user
+        try:
+            await send_notification_to_user(
+                user_email=user['email'],
+                title="Booking Confirmed 🎉",
+                body=f"Your {booking.amenity_name} booking on {booking.booking_date} at {booking.start_time} is confirmed!",
+                url="/my-bookings"
+            )
+        except Exception as push_error:
+            logger.error(f"Failed to send booking push notification: {push_error}")
+        
+        # Send push notification to admins
+        try:
+            await send_notification_to_admins(
+                title="New Booking",
+                body=f"{user['name']} booked {booking.amenity_name} on {booking.booking_date}",
+                url="/admin"
+            )
+        except Exception as push_error:
+            logger.error(f"Failed to send admin push notification: {push_error}")
+        
         return booking_obj
     except HTTPException:
         raise
@@ -723,6 +870,16 @@ async def cancel_booking(booking_id: str, request: Request):
         except Exception as email_error:
             logger.error(f"Failed to send admin cancellation notification: {email_error}")
         
+        # Send push notification to admins about cancellation
+        try:
+            await send_notification_to_admins(
+                title="Booking Cancelled",
+                body=f"{user['name']} cancelled {booking['amenity_name']} booking on {booking['booking_date']}",
+                url="/admin"
+            )
+        except Exception as push_error:
+            logger.error(f"Failed to send admin push notification: {push_error}")
+        
         return {"message": "Booking cancelled successfully"}
     except HTTPException:
         raise
@@ -739,6 +896,14 @@ app.include_router(gridfs_router, prefix="/api")
 app.include_router(payment_router, prefix="/api")
 app.include_router(chatbot_router, prefix="/api")
 app.include_router(events_router, prefix="/api")
+
+# Push notifications router for PWA
+from push_notifications import push_router
+app.include_router(push_router, prefix="/api")
+
+# Community Chat router
+from community_chat import chat_router, init_mc_group
+app.include_router(chat_router, prefix="/api")
 
 # Add session middleware
 app.add_middleware(
@@ -775,3 +940,11 @@ app.add_middleware(
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+@app.on_event("startup")
+async def startup_event():
+    # Initialize MC Group
+    try:
+        await init_mc_group()
+    except Exception as e:
+        logging.error(f"Error initializing MC Group: {e}")

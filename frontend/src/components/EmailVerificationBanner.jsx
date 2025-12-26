@@ -13,7 +13,7 @@ const getBackendUrl = () => {
 
 const API = `${getBackendUrl()}/api`;
 
-const EmailVerificationBanner = () => {
+const EmailVerificationBanner = ({ onVisibilityChange }) => {
   const { isAuthenticated, user } = useAuth();
   const location = useLocation();
   const [isVisible, setIsVisible] = useState(true);
@@ -52,20 +52,23 @@ const EmailVerificationBanner = () => {
     }
   }, [user?.verification_expires_at, user?.email_verified]);
 
-  // Don't show banner if:
-  // - User is not authenticated
-  // - User's email is already verified
-  // - User logged in via Google (auto-verified)
-  // - Banner is dismissed
-  // - On certain pages
-  if (
-    !isVisible ||
-    !isAuthenticated ||
-    user?.email_verified ||
-    user?.provider === 'google' ||
-    location.pathname === '/login' ||
-    location.pathname === '/verify-email'
-  ) {
+  // Determine if banner should show
+  const shouldShow = isVisible &&
+    isAuthenticated &&
+    user?.email_verified !== true &&
+    user?.provider !== 'google' &&
+    location.pathname !== '/login' &&
+    location.pathname !== '/verify-email' &&
+    location.pathname !== '/chat';
+
+  // Notify parent of visibility changes
+  useEffect(() => {
+    if (onVisibilityChange) {
+      onVisibilityChange(shouldShow);
+    }
+  }, [shouldShow, onVisibilityChange]);
+
+  if (!shouldShow) {
     return null;
   }
 
@@ -105,7 +108,7 @@ const EmailVerificationBanner = () => {
   const isUrgent = timeRemaining && !isExpired && (timeRemaining.includes('hour') || timeRemaining.includes('minute'));
 
   return (
-    <div className={`fixed top-20 w-full ${isExpired ? 'bg-red-600' : isUrgent ? 'bg-orange-500' : 'bg-amber-500'} text-white py-2 md:py-3 px-3 md:px-4 shadow-lg z-40`}>
+    <div className={`w-full ${isExpired ? 'bg-red-600' : isUrgent ? 'bg-orange-500' : 'bg-amber-500'} text-white py-2 md:py-3 px-3 md:px-4 shadow-lg z-40`}>
       <div className="max-w-7xl mx-auto">
         {/* Desktop Layout */}
         <div className="hidden md:flex items-center justify-between">

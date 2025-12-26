@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from models import Event, EventCreate, EventRegistration, EventRegistrationCreate
 from auth import require_admin, require_auth, require_manager_or_admin
 from email_service import email_service, get_admin_manager_emails
+from push_notifications import send_notification_to_user, send_notification_to_admins
 
 load_dotenv()
 
@@ -254,6 +255,28 @@ async def register_for_event(event_id: str, registration_data: EventRegistration
         except Exception as email_error:
             logger.error(f"Failed to send admin event notification: {email_error}")
         
+        # Send push notification to user
+        try:
+            status_text = "pending approval" if payment_method == "offline" else "pending payment"
+            await send_notification_to_user(
+                user_email=user['email'],
+                title=f"Event Registration - {status_text.title()}",
+                body=f"Your registration for {event['name']} on {event['event_date']} is {status_text}.",
+                url="/my-events"
+            )
+        except Exception as push_error:
+            logger.error(f"Failed to send event registration push notification: {push_error}")
+        
+        # Send push notification to admins
+        try:
+            await send_notification_to_admins(
+                title="New Event Registration",
+                body=f"{user['name']} registered for {event['name']} ({len(registrants)} people)",
+                url="/admin"
+            )
+        except Exception as push_error:
+            logger.error(f"Failed to send admin push notification: {push_error}")
+        
         return registration.dict()
     finally:
         client.close()
@@ -311,6 +334,17 @@ async def complete_registration_payment(registration_id: str, payment_id: str, r
                 )
         except Exception as email_error:
             logger.error(f"Failed to send payment completion email: {email_error}")
+        
+        # Send push notification to user
+        try:
+            await send_notification_to_user(
+                user_email=user['email'],
+                title="Payment Successful! 🎉",
+                body=f"Your payment for {registration.get('event_name', 'Event')} is confirmed!",
+                url="/my-events"
+            )
+        except Exception as push_error:
+            logger.error(f"Failed to send payment completion push notification: {push_error}")
         
         return {"message": "Payment completed successfully", "registration_id": registration_id}
     except HTTPException:
@@ -469,6 +503,16 @@ async def withdraw_from_event(registration_id: str, request: Request):
             )
         except Exception as email_error:
             logger.error(f"Failed to send admin withdrawal notification: {email_error}")
+        
+        # Send push notification to admins
+        try:
+            await send_notification_to_admins(
+                title="Event Withdrawal",
+                body=f"{user['name']} withdrew from {registration.get('event_name', 'Event')}",
+                url="/admin"
+            )
+        except Exception as push_error:
+            logger.error(f"Failed to send withdrawal push notification: {push_error}")
         
         return {
             "message": "Successfully withdrawn from event",
