@@ -425,6 +425,29 @@ async def get_group_messages(group_id: str, request: Request, limit: int = 50, b
         messages = await db.chat_messages.find(query, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
         messages.reverse()  # Oldest first for chat display
         
+        # Get user pictures for all senders
+        sender_emails = list(set(msg.get('sender_email') for msg in messages))
+        users_data = await db.users.find(
+            {"email": {"$in": sender_emails}},
+            {"_id": 0, "email": 1, "picture": 1}
+        ).to_list(100)
+        user_pictures = {u['email']: u.get('picture') for u in users_data}
+        
+        # Add sender pictures and ensure status/read_by fields
+        for msg in messages:
+            msg['sender_picture'] = user_pictures.get(msg.get('sender_email'))
+            if 'status' not in msg:
+                msg['status'] = 'delivered'  # Default for old messages
+            if 'read_by' not in msg:
+                msg['read_by'] = []
+            # Mark as read if current user hasn't read it yet
+            if user['email'] not in msg['read_by'] and msg['sender_email'] != user['email']:
+                await db.chat_messages.update_one(
+                    {"id": msg['id']},
+                    {"$addToSet": {"read_by": user['email']}}
+                )
+                msg['read_by'].append(user['email'])
+        
         return [Message(**msg) for msg in messages]
     except HTTPException:
         raise
