@@ -479,15 +479,22 @@ async def send_message(group_id: str, message_data: ChatMessage, request: Reques
             if not user_data or user_data.get('role') not in ['admin', 'manager']:
                 raise HTTPException(status_code=403, detail="Only managers can send messages in the MC Group")
         
+        # Get sender's picture
+        sender_data = await db.users.find_one({"email": user['email']}, {"_id": 0, "picture": 1})
+        sender_picture = sender_data.get('picture') if sender_data else None
+        
         # Create message
         message = {
             "id": str(uuid4()),
             "group_id": group_id,
             "sender_email": user['email'],
             "sender_name": user['name'],
+            "sender_picture": sender_picture,
             "content": message_data.content,
             "created_at": datetime.now(timezone.utc).isoformat(),
-            "attachments": []
+            "attachments": [],
+            "status": "sent",
+            "read_by": []
         }
         
         await db.chat_messages.insert_one(message)
