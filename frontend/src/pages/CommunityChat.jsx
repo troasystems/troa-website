@@ -227,6 +227,7 @@ const CommunityChat = () => {
     } else {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, token]);
 
   // Poll for new messages when in a group
@@ -247,6 +248,7 @@ const CommunityChat = () => {
         clearInterval(pollIntervalRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedGroup, isAuthenticated, token]);
 
   // Scroll to bottom only on initial load or new messages from self
