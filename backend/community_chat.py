@@ -602,19 +602,23 @@ async def send_message_with_files(
                     detail=f"File {file.filename} exceeds maximum size of 5MB"
                 )
             
+            # Get content type with fallback to extension-based detection
+            content_type = get_content_type(file)
+            logger.info(f"File upload: {file.filename}, detected content_type: {content_type}, original: {file.content_type}")
+            
             # Check file type
-            if file.content_type not in ALLOWED_FILE_TYPES:
+            if content_type not in ALLOWED_FILE_TYPES:
                 raise HTTPException(
                     status_code=400, 
-                    detail=f"File type {file.content_type} is not allowed"
+                    detail=f"File type {content_type} is not allowed. Allowed types: images (jpeg, png, gif, webp) and documents (pdf, doc, docx, xls, xlsx, txt)"
                 )
             
-            is_image = file.content_type in ALLOWED_IMAGE_TYPES
+            is_image = content_type in ALLOWED_IMAGE_TYPES
             
             attachment = {
                 "id": str(uuid4()),
                 "filename": file.filename,
-                "content_type": file.content_type,
+                "content_type": content_type,
                 "size": len(file_content),
                 "is_image": is_image,
                 "group_id": group_id,
@@ -622,12 +626,8 @@ async def send_message_with_files(
                 "uploaded_at": datetime.now(timezone.utc).isoformat()
             }
             
-            # For images, store as base64 for easy display
-            if is_image:
-                attachment["data"] = base64.b64encode(file_content).decode('utf-8')
-            else:
-                # Store document data separately
-                attachment["data"] = base64.b64encode(file_content).decode('utf-8')
+            # Store file data as base64
+            attachment["data"] = base64.b64encode(file_content).decode('utf-8')
             
             # Store attachment in separate collection
             await db.chat_attachments.insert_one({**attachment, "_id": None})
