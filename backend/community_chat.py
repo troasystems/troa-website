@@ -310,7 +310,7 @@ async def remove_member_from_group(group_id: str, member_data: RemoveMemberReque
         )
         
         logger.info(f"User {member_data.email} removed from group {group['name']} by {user['email']}")
-        return {"message": f"Successfully removed member from the group"}
+        return {"message": "Successfully removed member from the group"}
     except HTTPException:
         raise
     except Exception as e:
@@ -593,7 +593,7 @@ async def get_group_members(group_id: str, request: Request):
     """Get members of a chat group"""
     try:
         from auth import require_auth
-        user = await require_auth(request)
+        await require_auth(request)  # Verify user is authenticated
         db = await get_db()
         
         # Get the group
@@ -626,7 +626,7 @@ async def search_users(request: Request, q: str = ""):
     """Search users by name or email for adding to groups"""
     try:
         from auth import require_auth
-        user = await require_auth(request)
+        await require_auth(request)  # Verify user is authenticated
         db = await get_db()
         
         if not q or len(q) < 2:
