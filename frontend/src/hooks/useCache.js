@@ -66,8 +66,7 @@ export function useCachedFetch(url, options = {}) {
     enabled = true,
     staleWhileRevalidate = true,
     onSuccess,
-    onError,
-    dependencies = []
+    onError
   } = options;
 
   const [data, setData] = useState(() => getFromCache(url));
