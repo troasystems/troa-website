@@ -77,14 +77,14 @@ const FeedbackBanner = ({ onVisibilityChange }) => {
             {isAuthenticated ? (
               <Link
                 to="/feedback"
-                className="px-3 py-1.5 bg-white text-pink-600 rounded-lg font-semibold text-xs whitespace-nowrap"
+                className="px-3 py-1.5 bg-white text-pink-600 rounded-lg font-semibold text-xs whitespace-nowrap inline-flex items-center justify-center"
               >
                 Feedback
               </Link>
             ) : (
               <Link
                 to="/login"
-                className="px-3 py-1.5 bg-white text-pink-600 rounded-lg font-semibold text-xs whitespace-nowrap"
+                className="px-3 py-1.5 bg-white text-pink-600 rounded-lg font-semibold text-xs whitespace-nowrap inline-flex items-center justify-center"
               >
                 Login
               </Link>
