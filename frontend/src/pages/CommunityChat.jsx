@@ -203,49 +203,49 @@ const CommunityChat = () => {
   // Chat view when group is selected
   if (selectedGroup) {
     return (
-      <div className="fixed inset-0 flex flex-col bg-gray-50 pt-14 md:pt-20 pb-16 md:pb-0">
-        {/* Chat Header */}
-        <div className="bg-white border-b px-4 py-3 flex items-center justify-between shrink-0">
+      <div className="fixed inset-0 flex flex-col bg-gray-50 z-40 pt-14 md:pt-20 pb-16 md:pb-0">
+        {/* Chat Header - with gradient background to match groups header */}
+        <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 px-4 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setSelectedGroup(null)}
-              className="p-2 hover:bg-gray-100 rounded-full"
+              className="p-2 hover:bg-white/20 rounded-full text-white"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
               <div className="flex items-center space-x-2">
-                <h2 className="font-semibold text-gray-900">{selectedGroup.name}</h2>
+                <h2 className="font-semibold text-white">{selectedGroup.name}</h2>
                 {selectedGroup.is_mc_only && (
-                  <Crown className="w-4 h-4 text-yellow-500" />
+                  <Crown className="w-4 h-4 text-yellow-300" />
                 )}
               </div>
-              <p className="text-xs text-gray-500">{selectedGroup.member_count} members</p>
+              <p className="text-xs text-white/70">{selectedGroup.member_count} members</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
             <button
               onClick={() => fetchMembers(selectedGroup.id)}
-              className="p-2 hover:bg-gray-100 rounded-full"
+              className="p-2 hover:bg-white/20 rounded-full text-white"
               title="View members"
             >
-              <Users className="w-5 h-5 text-gray-600" />
+              <Users className="w-5 h-5" />
             </button>
             {(isAdmin || isManager) && (
               <button
                 onClick={() => deleteGroup(selectedGroup.id)}
-                className="p-2 hover:bg-red-100 rounded-full"
+                className="p-2 hover:bg-white/20 rounded-full text-white"
                 title="Delete group"
               >
-                <Trash2 className="w-5 h-5 text-red-500" />
+                <Trash2 className="w-5 h-5" />
               </button>
             )}
             <button
               onClick={() => leaveGroup(selectedGroup.id)}
-              className="p-2 hover:bg-gray-100 rounded-full"
+              className="p-2 hover:bg-white/20 rounded-full text-white"
               title="Leave group"
             >
-              <LogOut className="w-5 h-5 text-gray-600" />
+              <LogOut className="w-5 h-5" />
             </button>
           </div>
         </div>
