@@ -289,9 +289,9 @@ const CommunityChat = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Message Input */}
+        {/* Message Input - shrink-0 to prevent shrinking */}
         {canSendMessage(selectedGroup) ? (
-          <form onSubmit={sendMessage} className="bg-white border-t p-4">
+          <form onSubmit={sendMessage} className="bg-white border-t p-4 shrink-0">
             <div className="flex items-center space-x-3">
               <input
                 type="text"
@@ -314,7 +314,7 @@ const CommunityChat = () => {
             </div>
           </form>
         ) : (
-          <div className="bg-gray-100 border-t p-4 text-center text-gray-500 text-sm">
+          <div className="bg-gray-100 border-t p-4 text-center text-gray-500 text-sm shrink-0">
             {selectedGroup.is_mc_only 
               ? 'Only managers can send messages in this group' 
               : 'Join this group to send messages'}
