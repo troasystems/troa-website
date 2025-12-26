@@ -26,16 +26,16 @@ const CommunityChat = () => {
 
   // Fetch groups
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && token) {
       fetchGroups();
     } else {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, token]);
 
   // Poll for new messages when in a group
   useEffect(() => {
-    if (selectedGroup && isAuthenticated) {
+    if (selectedGroup && isAuthenticated && token) {
       fetchMessages(selectedGroup.id);
       // Poll every 3 seconds for new messages
       pollIntervalRef.current = setInterval(() => {
@@ -47,7 +47,7 @@ const CommunityChat = () => {
         clearInterval(pollIntervalRef.current);
       }
     };
-  }, [selectedGroup, isAuthenticated]);
+  }, [selectedGroup, isAuthenticated, token]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -55,6 +55,7 @@ const CommunityChat = () => {
   }, [messages]);
 
   const fetchGroups = async () => {
+    if (!token) return;
     try {
       const response = await axios.get(`${getAPI()}/chat/groups`, {
         headers: { Authorization: `Bearer ${token}` }
