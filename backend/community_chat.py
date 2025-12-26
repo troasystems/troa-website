@@ -67,8 +67,17 @@ async def get_chat_groups(request: Request):
         user = await require_auth(request)
         db = await get_db()
         
-        # Get all groups
-        groups = await db.chat_groups.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+        # Get user's role
+        user_role = user.get('role', 'user')
+        is_admin_or_manager = user_role in ['admin', 'manager']
+        
+        # Build query - filter out MC-only groups for normal users
+        query = {}
+        if not is_admin_or_manager:
+            query['is_mc_only'] = {'$ne': True}
+        
+        # Get groups based on user role
+        groups = await db.chat_groups.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
         
         result = []
         for group in groups:
