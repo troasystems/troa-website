@@ -172,6 +172,7 @@ export const AuthProvider = ({ children }) => {
       if (event.data.type === 'oauth_success' && event.data.token) {
         console.log('[Auth] OAuth success, storing token');
         localStorage.setItem('session_token', event.data.token);
+        setToken(event.data.token);
         
         // Close popup
         if (popup) {
