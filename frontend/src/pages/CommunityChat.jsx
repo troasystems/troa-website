@@ -352,6 +352,7 @@ const CommunityChat = () => {
         setSearchParams({});
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupIdFromUrl, groups, selectedGroup]);
 
   // Fetch groups with caching
@@ -384,6 +385,7 @@ const CommunityChat = () => {
       console.error('Error fetching groups:', error);
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, isAdmin, isManager]);
   
   // Fetch groups from server and cache
