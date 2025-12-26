@@ -45,7 +45,7 @@ const Home = () => {
   ];
 
   return (
-    <div className="min-h-screen -mt-14 md:-mt-20">
+    <div className="min-h-screen">
       {/* Hero Section - Full viewport height minus bottom nav on mobile */}
       <section
         className="relative h-screen md:h-screen flex items-center justify-center overflow-hidden"
