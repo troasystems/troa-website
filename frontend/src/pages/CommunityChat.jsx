@@ -55,16 +55,14 @@ const CommunityChat = () => {
   }, [messages]);
 
   const fetchGroups = async () => {
-    console.log('[CommunityChat] fetchGroups called, token:', token ? 'present' : 'missing');
     if (!token) return;
     try {
       const response = await axios.get(`${getAPI()}/chat/groups`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      console.log('[CommunityChat] Groups fetched:', response.data?.length, 'groups');
       setGroups(response.data);
     } catch (error) {
-      console.error('[CommunityChat] Error fetching groups:', error);
+      console.error('Error fetching groups:', error);
     } finally {
       setLoading(false);
     }
