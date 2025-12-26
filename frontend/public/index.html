@@ -8,6 +8,13 @@
         <meta name="theme-color" content="#9333ea" />
         <meta name="description" content="The Retreat Owners Association - Empowering Community Living in Bangalore. Book amenities, register for events, and stay connected with your community." />
         
+        <!-- Performance: DNS Prefetch & Preconnect -->
+        <link rel="dns-prefetch" href="https://images.unsplash.com" />
+        <link rel="dns-prefetch" href="https://customer-assets.emergentagent.com" />
+        <link rel="dns-prefetch" href="https://accounts.google.com" />
+        <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
+        <link rel="preconnect" href="https://customer-assets.emergentagent.com" crossorigin />
+        
         <!-- PWA Meta Tags -->
         <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -44,8 +51,8 @@
         
         <title>The Retreat, Bangalore</title>
         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
-        <!-- Razorpay Checkout -->
-        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+        <!-- Razorpay Checkout - defer to not block rendering -->
+        <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
         
         <style>
             /* PWA Splash Screen Styles */
