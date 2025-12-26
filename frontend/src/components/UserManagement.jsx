@@ -631,20 +631,20 @@ const UserManagement = () => {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex items-center space-x-3">
-          <Users className="w-8 h-8 text-purple-600" />
+          <Users className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 flex-shrink-0" />
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
-            <p className="text-gray-600">Manage user roles and details</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">User Management</h2>
+            <p className="text-sm sm:text-base text-gray-600">Manage user roles and details</p>
           </div>
         </div>
         <button
           onClick={() => setIsAddingUser(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg"
+          className="flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg text-sm sm:text-base"
         >
-          <UserPlus className="w-5 h-5" />
-          <span>Add User to Whitelist</span>
+          <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span>Add User</span>
         </button>
       </div>
 
