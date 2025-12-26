@@ -34,10 +34,12 @@ class ChatGroupCreate(BaseModel):
     description: Optional[str] = ""
     is_mc_only: bool = False  # If true, only managers can send messages
     initial_members: Optional[List[str]] = []  # Emails of initial members to add
+    icon: Optional[str] = None  # Base64 encoded group icon
 
 class ChatGroupUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    icon: Optional[str] = None  # Base64 encoded group icon
 
 class ChatMessage(BaseModel):
     content: str
@@ -61,21 +63,28 @@ class ChatGroup(BaseModel):
     is_mc_only: bool = False
     members: List[str] = []
     member_count: int = 0
+    icon: Optional[str] = None  # Base64 encoded group icon
 
 class Message(BaseModel):
     id: str
     group_id: str
     sender_email: str
     sender_name: str
+    sender_picture: Optional[str] = None
     content: str
     created_at: datetime
     attachments: Optional[List[dict]] = []
+    status: str = "sent"  # "sending", "sent", "delivered", "read"
+    read_by: Optional[List[str]] = []  # List of emails who have read this message
 
 class AddMemberRequest(BaseModel):
     email: str
 
 class RemoveMemberRequest(BaseModel):
     email: str
+
+class MarkMessagesReadRequest(BaseModel):
+    message_ids: List[str]
 
 
 # Helper to get DB
