@@ -685,6 +685,50 @@ async def get_attachment(attachment_id: str, request: Request):
         raise HTTPException(status_code=500, detail="Failed to fetch attachment")
 
 
+@chat_router.delete("/messages/{message_id}")
+async def delete_message(message_id: str, request: Request):
+    """Soft delete a message - only the sender can delete their own messages"""
+    try:
+        from auth import require_auth
+        user = await require_auth(request)
+        db = await get_db()
+        
+        # Get the message
+        message = await db.chat_messages.find_one({"id": message_id}, {"_id": 0})
+        if not message:
+            raise HTTPException(status_code=404, detail="Message not found")
+        
+        # Check if user is the sender
+        if message['sender_email'] != user['email']:
+            raise HTTPException(status_code=403, detail="You can only delete your own messages")
+        
+        # Soft delete - mark as deleted but keep the record
+        await db.chat_messages.update_one(
+            {"id": message_id},
+            {
+                "$set": {
+                    "is_deleted": True,
+                    "deleted_at": datetime.now(timezone.utc).isoformat(),
+                    "content": "",  # Clear content
+                    "attachments": []  # Clear attachments
+                }
+            }
+        )
+        
+        # Delete associated attachments from storage
+        if message.get('attachments'):
+            attachment_ids = [att['id'] for att in message['attachments']]
+            await db.chat_attachments.delete_many({"id": {"$in": attachment_ids}})
+        
+        logger.info(f"Message {message_id} deleted by {user['email']}")
+        return {"message": "Message deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting message: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete message")
+
+
 @chat_router.get("/groups/{group_id}/members")
 async def get_group_members(group_id: str, request: Request):
     """Get members of a chat group"""
