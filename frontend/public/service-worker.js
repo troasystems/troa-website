@@ -157,12 +157,18 @@ function isNavigationRequest(request) {
 async function handleApiRequest(request, url) {
   const cacheKey = getCacheKey(request);
   
-  // Check if this API should not be cached
+  // Check if this API should not be cached at all
   if (NO_CACHE_API_PATTERNS.some(pattern => url.pathname.includes(pattern))) {
     return fetch(request).catch(() => new Response(JSON.stringify({ error: 'Offline' }), {
       status: 503,
       headers: { 'Content-Type': 'application/json' }
     }));
+  }
+
+  // Special handling for chat endpoints - short cache with network-first
+  const isChatEndpoint = CHAT_CACHE_PATTERNS.some(pattern => url.pathname.includes(pattern));
+  if (isChatEndpoint) {
+    return handleChatApiRequest(request, url, cacheKey);
   }
 
   // Check if this API should be cached
