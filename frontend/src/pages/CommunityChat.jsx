@@ -103,10 +103,15 @@ const CommunityChat = () => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [previewImage, setPreviewImage] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, confirmText: '', confirmColor: 'purple' });
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [deletingMessage, setDeletingMessage] = useState(null);
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const pollIntervalRef = useRef(null);
   const groupIdFromUrl = searchParams.get('group');
+  const initialLoadRef = useRef(true);
 
   // Fetch groups
   useEffect(() => {
@@ -120,6 +125,8 @@ const CommunityChat = () => {
   // Poll for new messages when in a group
   useEffect(() => {
     if (selectedGroup && isAuthenticated && token) {
+      initialLoadRef.current = true;
+      setHasMoreMessages(true);
       fetchMessages(selectedGroup.id);
       // Poll every 3 seconds for new messages
       pollIntervalRef.current = setInterval(() => {
@@ -133,10 +140,54 @@ const CommunityChat = () => {
     };
   }, [selectedGroup, isAuthenticated, token]);
 
-  // Scroll to bottom when new messages arrive
+  // Scroll to bottom only on initial load or new messages from self
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (initialLoadRef.current && messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      initialLoadRef.current = false;
+    }
   }, [messages]);
+
+  // Handle scroll for loading more messages
+  const handleScroll = async (e) => {
+    const container = e.target;
+    if (container.scrollTop === 0 && hasMoreMessages && !loadingMore && messages.length > 0) {
+      await loadMoreMessages();
+    }
+  };
+
+  const loadMoreMessages = async () => {
+    if (!selectedGroup || loadingMore || !hasMoreMessages) return;
+    
+    setLoadingMore(true);
+    const container = messagesContainerRef.current;
+    const previousScrollHeight = container?.scrollHeight || 0;
+    
+    try {
+      const oldestMessage = messages[0];
+      const response = await axios.get(
+        `${getAPI()}/chat/groups/${selectedGroup.id}/messages?limit=10&before=${oldestMessage.created_at}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.length === 0) {
+        setHasMoreMessages(false);
+      } else {
+        setMessages(prev => [...response.data, ...prev]);
+        // Maintain scroll position after prepending messages
+        setTimeout(() => {
+          if (container) {
+            const newScrollHeight = container.scrollHeight;
+            container.scrollTop = newScrollHeight - previousScrollHeight;
+          }
+        }, 0);
+      }
+    } catch (error) {
+      console.error('Error loading more messages:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   // Auto-select group from URL parameter
   useEffect(() => {
