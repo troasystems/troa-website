@@ -204,6 +204,7 @@ export const AuthProvider = ({ children }) => {
 
       if (response.data.token) {
         localStorage.setItem('session_token', response.data.token);
+        setToken(response.data.token);
         setUser(response.data.user);
         console.log('[Auth] Email login successful');
       }
