@@ -208,9 +208,9 @@ const EventsManagement = () => {
       {/* Pending Approvals View */}
       {viewMode === 'pending' && (
         <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
-            <AlertCircle className="w-6 h-6 inline mr-2 text-amber-500" />
-            Pending Approvals (Registrations & Modifications)
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center flex-wrap gap-2">
+            <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
+            <span>Pending Approvals</span>
           </h2>
 
           {pendingApprovals.length === 0 ? (
