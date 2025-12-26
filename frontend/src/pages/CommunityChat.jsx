@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 import { 
   MessageSquare, Users, Plus, Send, ArrowLeft, LogOut, LogIn, 
   Crown, Shield, Trash2, X, Loader2, UserPlus, Settings
@@ -12,6 +13,7 @@ const getAPI = () => `${getBackendUrl()}/api`;
 
 const CommunityChat = () => {
   const { isAuthenticated, user, token, isAdmin, isManager } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -23,6 +25,7 @@ const CommunityChat = () => {
   const [members, setMembers] = useState([]);
   const messagesEndRef = useRef(null);
   const pollIntervalRef = useRef(null);
+  const groupIdFromUrl = searchParams.get('group');
 
   // Fetch groups
   useEffect(() => {
