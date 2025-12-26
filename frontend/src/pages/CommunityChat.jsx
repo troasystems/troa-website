@@ -798,50 +798,42 @@ const CommunityChat = () => {
                                       onPreview={() => !attachment.id.startsWith('temp') && handleImagePreview(attachment)}
                                     />
                                   ) : (
-                                >
-                                  <div className={`p-2 rounded-lg flex items-center space-x-2 ${isOwnMessage ? 'bg-white/20' : 'bg-gray-100'}`}>
-                                    <Image className={`w-5 h-5 ${isOwnMessage ? 'text-white/80' : 'text-gray-500'}`} />
-                                    <span className={`text-sm ${isOwnMessage ? 'text-white/90' : 'text-gray-700'}`}>
-                                      {attachment.filename}
-                                    </span>
-                                    <Eye className={`w-4 h-4 ${isOwnMessage ? 'text-white/60' : 'text-gray-400'}`} />
-                                  </div>
-                                </div>
-                              ) : (
-                                <div 
-                                  className="cursor-pointer"
-                                  onClick={() => !attachment.id.startsWith('temp') && handleDownload(attachment)}
-                                >
-                                  <div className={`p-2 rounded-lg flex items-center space-x-2 ${isOwnMessage ? 'bg-white/20' : 'bg-gray-100'}`}>
-                                    <FileText className={`w-5 h-5 ${isOwnMessage ? 'text-white/80' : 'text-gray-500'}`} />
-                                    <div className="flex-1 min-w-0">
-                                      <p className={`text-sm truncate ${isOwnMessage ? 'text-white/90' : 'text-gray-700'}`}>
-                                        {attachment.filename}
-                                      </p>
-                                      <p className={`text-xs ${isOwnMessage ? 'text-white/60' : 'text-gray-400'}`}>
-                                        {formatFileSize(attachment.size)}
-                                      </p>
+                                    <div 
+                                      className="cursor-pointer"
+                                      onClick={() => !attachment.id.startsWith('temp') && handleDownload(attachment)}
+                                    >
+                                      <div className={`p-2 rounded-lg flex items-center space-x-2 ${isOwnMessage ? 'bg-white/20' : 'bg-gray-100'}`}>
+                                        <FileText className={`w-5 h-5 ${isOwnMessage ? 'text-white/80' : 'text-gray-500'}`} />
+                                        <div className="flex-1 min-w-0">
+                                          <p className={`text-sm truncate ${isOwnMessage ? 'text-white/90' : 'text-gray-700'}`}>
+                                            {attachment.filename}
+                                          </p>
+                                          <p className={`text-xs ${isOwnMessage ? 'text-white/60' : 'text-gray-400'}`}>
+                                            {formatFileSize(attachment.size)}
+                                          </p>
+                                        </div>
+                                        <Download className={`w-4 h-4 ${isOwnMessage ? 'text-white/60' : 'text-gray-400'}`} />
+                                      </div>
                                     </div>
-                                    <Download className={`w-4 h-4 ${isOwnMessage ? 'text-white/60' : 'text-gray-400'}`} />
-                                  </div>
+                                  )}
                                 </div>
-                              )}
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      )}
-                      
-                      {/* Text content */}
-                      {message.content && (
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          )}
+                          
+                          {/* Text content */}
+                          {message.content && (
+                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          )}
+                        </>
                       )}
                       
                       {/* Time and Status */}
                       <div className={`flex items-center justify-end space-x-1 mt-1`}>
-                        <p className={`text-xs ${isOwnMessage ? 'text-white/70' : 'text-gray-400'}`}>
+                        <p className={`text-xs ${isDeleted ? 'text-gray-400' : isOwnMessage ? 'text-white/70' : 'text-gray-400'}`}>
                           {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
-                        <MessageStatus status={messageStatus} isOwnMessage={isOwnMessage} />
+                        {!isDeleted && <MessageStatus status={messageStatus} isOwnMessage={isOwnMessage} />}
                       </div>
                     </div>
                   </div>
