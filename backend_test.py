@@ -2800,6 +2800,349 @@ class TROAAPITester:
             self.test_results['push_notifications']['send_notification_to_admins'] = False
             self.log_error("Push Notification Triggers", "BOOKING", f"Exception: {str(e)}")
 
+    def test_community_chat_comprehensive(self):
+        """Test Community Chat features comprehensively including new features"""
+        print("\n🧪 Testing Community Chat Comprehensive Features...")
+        
+        # Test 1: Get chat groups
+        try:
+            response = requests.get(f"{self.base_url}/chat/groups", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list):
+                    self.test_results['community_chat']['get_groups'] = True
+                    self.log_success("/chat/groups", "GET", f"- Found {len(data)} chat groups")
+                    
+                    # Use existing group or create one for testing
+                    if data:
+                        self.test_group_id = data[0]['id']
+                        self.log_success("/chat/groups", "GET", f"- Using existing group: {self.test_group_id}")
+                    else:
+                        # Create a test group
+                        self.create_test_group()
+                else:
+                    self.test_results['community_chat']['get_groups'] = False
+                    self.log_error("/chat/groups", "GET", "Response is not a list")
+            else:
+                self.test_results['community_chat']['get_groups'] = False
+                self.log_error("/chat/groups", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['community_chat']['get_groups'] = False
+            self.log_error("/chat/groups", "GET", f"Exception: {str(e)}")
+        
+        # Test 2: Create test group if needed
+        if not self.test_group_id:
+            self.create_test_group()
+        
+        # Test 3: Send test messages for pagination testing
+        if self.test_group_id:
+            self.send_test_messages()
+        
+        # Test 4: Test message pagination
+        if self.test_group_id:
+            self.test_message_pagination()
+        
+        # Test 5: Test file upload with PDF
+        if self.test_group_id:
+            self.test_file_upload_pdf()
+        
+        # Test 6: Test message deletion
+        if self.test_group_id and self.test_message_ids:
+            self.test_message_deletion()
+        
+        # Test 7: Test deleted message response format
+        if self.test_group_id:
+            self.test_deleted_message_response()
+        
+        # Test 8: Test message order (oldest first after reversal)
+        if self.test_group_id:
+            self.test_message_order()
+
+    def create_test_group(self):
+        """Create a test group for chat testing"""
+        try:
+            test_group = {
+                "name": "API Test Group",
+                "description": "Test group for API testing",
+                "is_mc_only": False,
+                "initial_members": [],
+                "icon": None
+            }
+            
+            response = requests.post(f"{self.base_url}/chat/groups", 
+                                   json=test_group, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'id' in data:
+                    self.test_group_id = data['id']
+                    self.test_results['community_chat']['create_group'] = True
+                    self.log_success("/chat/groups", "POST", f"- Created test group: {self.test_group_id}")
+                else:
+                    self.test_results['community_chat']['create_group'] = False
+                    self.log_error("/chat/groups", "POST", "Invalid response structure")
+            else:
+                self.test_results['community_chat']['create_group'] = False
+                self.log_error("/chat/groups", "POST", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['community_chat']['create_group'] = False
+            self.log_error("/chat/groups", "POST", f"Exception: {str(e)}")
+
+    def send_test_messages(self):
+        """Send multiple test messages for pagination testing"""
+        try:
+            # Send 15 messages to test pagination (default limit is 10)
+            for i in range(15):
+                message_data = {
+                    "content": f"Test message {i+1} for pagination testing",
+                    "group_id": self.test_group_id
+                }
+                
+                response = requests.post(f"{self.base_url}/chat/groups/{self.test_group_id}/messages", 
+                                       json=message_data, 
+                                       headers=self.auth_headers,
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if 'id' in data:
+                        self.test_message_ids.append(data['id'])
+                        if i == 0:  # Log success for first message only
+                            self.test_results['community_chat']['send_message'] = True
+                            self.log_success(f"/chat/groups/{self.test_group_id}/messages", "POST", f"- Sent test message: {data['id']}")
+                else:
+                    if i == 0:  # Log error for first message only
+                        self.test_results['community_chat']['send_message'] = False
+                        self.log_error(f"/chat/groups/{self.test_group_id}/messages", "POST", f"Status code: {response.status_code}")
+                    break
+                    
+                # Small delay between messages
+                import time
+                time.sleep(0.1)
+                
+        except Exception as e:
+            self.test_results['community_chat']['send_message'] = False
+            self.log_error(f"/chat/groups/{self.test_group_id}/messages", "POST", f"Exception: {str(e)}")
+
+    def test_message_pagination(self):
+        """Test message pagination with before parameter"""
+        try:
+            # Test 1: Get initial messages (should return last 10)
+            response = requests.get(f"{self.base_url}/chat/groups/{self.test_group_id}/messages?limit=10", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list) and len(data) <= 10:
+                    self.log_success(f"/chat/groups/{self.test_group_id}/messages", "GET", f"- Retrieved {len(data)} messages (limit=10)")
+                    
+                    if len(data) > 0:
+                        # Test 2: Get messages before the first message
+                        first_message_time = data[0]['created_at']
+                        response2 = requests.get(f"{self.base_url}/chat/groups/{self.test_group_id}/messages?limit=5&before={first_message_time}", 
+                                               headers=self.auth_headers,
+                                               timeout=10)
+                        
+                        if response2.status_code == 200:
+                            data2 = response2.json()
+                            if isinstance(data2, list):
+                                self.test_results['community_chat']['message_pagination'] = True
+                                self.log_success(f"/chat/groups/{self.test_group_id}/messages (pagination)", "GET", f"- Retrieved {len(data2)} older messages with before parameter")
+                            else:
+                                self.test_results['community_chat']['message_pagination'] = False
+                                self.log_error(f"/chat/groups/{self.test_group_id}/messages (pagination)", "GET", "Response is not a list")
+                        else:
+                            self.test_results['community_chat']['message_pagination'] = False
+                            self.log_error(f"/chat/groups/{self.test_group_id}/messages (pagination)", "GET", f"Status code: {response2.status_code}")
+                    else:
+                        self.test_results['community_chat']['message_pagination'] = True
+                        self.log_success(f"/chat/groups/{self.test_group_id}/messages (pagination)", "GET", "- No messages to paginate")
+                else:
+                    self.test_results['community_chat']['message_pagination'] = False
+                    self.log_error(f"/chat/groups/{self.test_group_id}/messages", "GET", f"Invalid response: expected list with ≤10 items, got {len(data) if isinstance(data, list) else type(data)}")
+            else:
+                self.test_results['community_chat']['message_pagination'] = False
+                self.log_error(f"/chat/groups/{self.test_group_id}/messages", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['community_chat']['message_pagination'] = False
+            self.log_error(f"/chat/groups/{self.test_group_id}/messages (pagination)", "GET", f"Exception: {str(e)}")
+
+    def test_file_upload_pdf(self):
+        """Test file upload with PDF support"""
+        try:
+            # Create a simple PDF-like content for testing
+            pdf_content = b"%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n>>\nendobj\nxref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000074 00000 n \n0000000120 00000 n \ntrailer\n<<\n/Size 4\n/Root 1 0 R\n>>\nstartxref\n179\n%%EOF"
+            
+            # Prepare multipart form data
+            files = {
+                'files': ('test_document.pdf', pdf_content, 'application/pdf')
+            }
+            data = {
+                'content': 'Test PDF upload'
+            }
+            
+            # Remove Content-Type header to let requests set it for multipart
+            upload_headers = {k: v for k, v in self.auth_headers.items() if k != 'Content-Type'}
+            
+            response = requests.post(f"{self.base_url}/chat/groups/{self.test_group_id}/messages/upload", 
+                                   files=files,
+                                   data=data,
+                                   headers=upload_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if ('id' in data and 
+                    'attachments' in data and 
+                    len(data['attachments']) > 0 and
+                    data['attachments'][0]['filename'] == 'test_document.pdf'):
+                    self.test_results['community_chat']['file_upload_pdf'] = True
+                    self.test_message_ids.append(data['id'])
+                    self.log_success(f"/chat/groups/{self.test_group_id}/messages/upload", "POST", f"- Uploaded PDF successfully: {data['attachments'][0]['filename']}")
+                else:
+                    self.test_results['community_chat']['file_upload_pdf'] = False
+                    self.log_error(f"/chat/groups/{self.test_group_id}/messages/upload", "POST", "Invalid response structure or missing PDF attachment")
+            else:
+                self.test_results['community_chat']['file_upload_pdf'] = False
+                self.log_error(f"/chat/groups/{self.test_group_id}/messages/upload", "POST", f"Status code: {response.status_code}, Response: {response.text}")
+        except Exception as e:
+            self.test_results['community_chat']['file_upload_pdf'] = False
+            self.log_error(f"/chat/groups/{self.test_group_id}/messages/upload", "POST", f"Exception: {str(e)}")
+
+    def test_message_deletion(self):
+        """Test message deletion (soft delete)"""
+        try:
+            if not self.test_message_ids:
+                self.test_results['community_chat']['message_deletion'] = False
+                self.log_error("/chat/messages/{id}", "DELETE", "No test messages available for deletion")
+                return
+            
+            # Delete the first test message
+            message_id = self.test_message_ids[0]
+            response = requests.delete(f"{self.base_url}/chat/messages/{message_id}", 
+                                     headers=self.auth_headers,
+                                     timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'message' in data and 'deleted' in data['message'].lower():
+                    self.test_results['community_chat']['message_deletion'] = True
+                    self.log_success(f"/chat/messages/{message_id}", "DELETE", "- Message deleted successfully")
+                else:
+                    self.test_results['community_chat']['message_deletion'] = False
+                    self.log_error(f"/chat/messages/{message_id}", "DELETE", "Invalid response structure")
+            else:
+                self.test_results['community_chat']['message_deletion'] = False
+                self.log_error(f"/chat/messages/{message_id}", "DELETE", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['community_chat']['message_deletion'] = False
+            self.log_error(f"/chat/messages/{message_id}", "DELETE", f"Exception: {str(e)}")
+
+    def test_deleted_message_response(self):
+        """Test that deleted messages show is_deleted: true in response"""
+        try:
+            # Get messages and check if deleted message has is_deleted: true
+            response = requests.get(f"{self.base_url}/chat/groups/{self.test_group_id}/messages?limit=20", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list):
+                    # Look for deleted messages
+                    deleted_messages = [msg for msg in data if msg.get('is_deleted') == True]
+                    if deleted_messages:
+                        deleted_msg = deleted_messages[0]
+                        if (deleted_msg.get('is_deleted') == True and 
+                            deleted_msg.get('deleted_at') is not None and
+                            deleted_msg.get('content') == ''):
+                            self.test_results['community_chat']['deleted_message_response'] = True
+                            self.log_success(f"/chat/groups/{self.test_group_id}/messages (deleted)", "GET", "- Deleted message shows correct is_deleted: true format")
+                        else:
+                            self.test_results['community_chat']['deleted_message_response'] = False
+                            self.log_error(f"/chat/groups/{self.test_group_id}/messages (deleted)", "GET", "Deleted message format incorrect")
+                    else:
+                        # If no deleted messages found, try to delete one and check again
+                        if self.test_message_ids and len(self.test_message_ids) > 1:
+                            # Delete another message for testing
+                            message_id = self.test_message_ids[1]
+                            delete_response = requests.delete(f"{self.base_url}/chat/messages/{message_id}", 
+                                                            headers=self.auth_headers,
+                                                            timeout=10)
+                            if delete_response.status_code == 200:
+                                # Check again
+                                response2 = requests.get(f"{self.base_url}/chat/groups/{self.test_group_id}/messages?limit=20", 
+                                                       headers=self.auth_headers,
+                                                       timeout=10)
+                                if response2.status_code == 200:
+                                    data2 = response2.json()
+                                    deleted_messages2 = [msg for msg in data2 if msg.get('is_deleted') == True]
+                                    if deleted_messages2:
+                                        self.test_results['community_chat']['deleted_message_response'] = True
+                                        self.log_success(f"/chat/groups/{self.test_group_id}/messages (deleted)", "GET", "- Deleted message shows correct is_deleted: true format")
+                                    else:
+                                        self.test_results['community_chat']['deleted_message_response'] = False
+                                        self.log_error(f"/chat/groups/{self.test_group_id}/messages (deleted)", "GET", "No deleted messages found after deletion")
+                                else:
+                                    self.test_results['community_chat']['deleted_message_response'] = False
+                                    self.log_error(f"/chat/groups/{self.test_group_id}/messages (deleted)", "GET", f"Status code: {response2.status_code}")
+                            else:
+                                self.test_results['community_chat']['deleted_message_response'] = False
+                                self.log_error(f"/chat/messages/{message_id}", "DELETE", f"Failed to delete message for testing: {delete_response.status_code}")
+                        else:
+                            self.test_results['community_chat']['deleted_message_response'] = True
+                            self.log_success(f"/chat/groups/{self.test_group_id}/messages (deleted)", "GET", "- No messages to delete for testing (acceptable)")
+                else:
+                    self.test_results['community_chat']['deleted_message_response'] = False
+                    self.log_error(f"/chat/groups/{self.test_group_id}/messages (deleted)", "GET", "Response is not a list")
+            else:
+                self.test_results['community_chat']['deleted_message_response'] = False
+                self.log_error(f"/chat/groups/{self.test_group_id}/messages (deleted)", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['community_chat']['deleted_message_response'] = False
+            self.log_error(f"/chat/groups/{self.test_group_id}/messages (deleted)", "GET", f"Exception: {str(e)}")
+
+    def test_message_order(self):
+        """Test that messages are returned in correct order (oldest first after reversal)"""
+        try:
+            response = requests.get(f"{self.base_url}/chat/groups/{self.test_group_id}/messages?limit=10", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list) and len(data) > 1:
+                    # Check if messages are in chronological order (oldest first)
+                    is_chronological = True
+                    for i in range(1, len(data)):
+                        prev_time = data[i-1]['created_at']
+                        curr_time = data[i]['created_at']
+                        if prev_time > curr_time:
+                            is_chronological = False
+                            break
+                    
+                    if is_chronological:
+                        self.test_results['community_chat']['message_order'] = True
+                        self.log_success(f"/chat/groups/{self.test_group_id}/messages (order)", "GET", "- Messages returned in correct chronological order (oldest first)")
+                    else:
+                        self.test_results['community_chat']['message_order'] = False
+                        self.log_error(f"/chat/groups/{self.test_group_id}/messages (order)", "GET", "Messages not in chronological order")
+                else:
+                    self.test_results['community_chat']['message_order'] = True
+                    self.log_success(f"/chat/groups/{self.test_group_id}/messages (order)", "GET", "- Insufficient messages to test order (acceptable)")
+            else:
+                self.test_results['community_chat']['message_order'] = False
+                self.log_error(f"/chat/groups/{self.test_group_id}/messages (order)", "GET", f"Status code: {response.status_code}")
+        except Exception as e:
+            self.test_results['community_chat']['message_order'] = False
+            self.log_error(f"/chat/groups/{self.test_group_id}/messages (order)", "GET", f"Exception: {str(e)}")
+
     def run_all_tests(self):
         """Run all API tests"""
         print(f"🚀 Starting TROA Backend API Tests")
