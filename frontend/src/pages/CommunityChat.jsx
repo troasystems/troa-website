@@ -175,6 +175,7 @@ const CommunityChat = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [messagesLoading, setMessagesLoading] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showMembersModal, setShowMembersModal] = useState(false);
@@ -208,6 +209,8 @@ const CommunityChat = () => {
     if (selectedGroup && isAuthenticated && token) {
       initialLoadRef.current = true;
       setHasMoreMessages(true);
+      setMessages([]);
+      setMessagesLoading(true);
       fetchMessages(selectedGroup.id);
       // Poll every 3 seconds for new messages
       pollIntervalRef.current = setInterval(() => {
@@ -223,22 +226,22 @@ const CommunityChat = () => {
 
   // Scroll to bottom only on initial load or new messages from self
   useEffect(() => {
-    if (initialLoadRef.current && messages.length > 0) {
+    if (initialLoadRef.current && messages.length > 0 && !messagesLoading) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
       initialLoadRef.current = false;
     }
-  }, [messages]);
+  }, [messages, messagesLoading]);
 
   // Handle scroll for loading more messages
   const handleScroll = async (e) => {
     const container = e.target;
-    if (container.scrollTop === 0 && hasMoreMessages && !loadingMore && messages.length > 0) {
+    if (container.scrollTop < 50 && hasMoreMessages && !loadingMore && messages.length > 0) {
       await loadMoreMessages();
     }
   };
 
   const loadMoreMessages = async () => {
-    if (!selectedGroup || loadingMore || !hasMoreMessages) return;
+    if (!selectedGroup || loadingMore || !hasMoreMessages || messages.length === 0) return;
     
     setLoadingMore(true);
     const container = messagesContainerRef.current;
@@ -246,22 +249,42 @@ const CommunityChat = () => {
     
     try {
       const oldestMessage = messages[0];
+      if (!oldestMessage?.created_at) {
+        setHasMoreMessages(false);
+        setLoadingMore(false);
+        return;
+      }
+      
+      const sessionToken = localStorage.getItem('session_token');
       const response = await axios.get(
-        `${getAPI()}/chat/groups/${selectedGroup.id}/messages?limit=10&before=${oldestMessage.created_at}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${getAPI()}/chat/groups/${selectedGroup.id}/messages?limit=10&before=${encodeURIComponent(oldestMessage.created_at)}`,
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            ...(sessionToken ? { 'X-Session-Token': `Bearer ${sessionToken}` } : {})
+          } 
+        }
       );
       
       if (response.data.length === 0) {
         setHasMoreMessages(false);
       } else {
-        setMessages(prev => [...response.data, ...prev]);
-        // Maintain scroll position after prepending messages
-        setTimeout(() => {
-          if (container) {
-            const newScrollHeight = container.scrollHeight;
-            container.scrollTop = newScrollHeight - previousScrollHeight;
-          }
-        }, 0);
+        // Filter out any duplicates by ID
+        const existingIds = new Set(messages.map(m => m.id));
+        const newOlderMessages = response.data.filter(m => !existingIds.has(m.id));
+        
+        if (newOlderMessages.length === 0) {
+          setHasMoreMessages(false);
+        } else {
+          setMessages(prev => [...newOlderMessages, ...prev]);
+          // Maintain scroll position after prepending messages
+          requestAnimationFrame(() => {
+            if (container) {
+              const newScrollHeight = container.scrollHeight;
+              container.scrollTop = newScrollHeight - previousScrollHeight;
+            }
+          });
+        }
       }
     } catch (error) {
       console.error('Error loading more messages:', error);
