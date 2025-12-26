@@ -57,6 +57,32 @@ const CommunityChat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Auto-select group from URL parameter
+  useEffect(() => {
+    if (groupIdFromUrl && groups.length > 0 && !selectedGroup) {
+      const group = groups.find(g => g.id === groupIdFromUrl);
+      if (group) {
+        // Check if user is a member, if so open the group
+        if (group.members?.includes(user?.email)) {
+          setSelectedGroup(group);
+        } else {
+          // Auto-join and then open
+          joinGroup(groupIdFromUrl).then(() => {
+            // Refresh groups and select
+            fetchGroups().then(() => {
+              const updatedGroup = groups.find(g => g.id === groupIdFromUrl);
+              if (updatedGroup) {
+                setSelectedGroup({...updatedGroup, members: [...(updatedGroup.members || []), user?.email]});
+              }
+            });
+          });
+        }
+        // Clear the URL parameter
+        setSearchParams({});
+      }
+    }
+  }, [groupIdFromUrl, groups, selectedGroup]);
+
   const fetchGroups = async () => {
     if (!token) return;
     try {
@@ -71,6 +97,7 @@ const CommunityChat = () => {
         return !group.is_mc_only;
       });
       setGroups(filteredGroups);
+      return filteredGroups;
     } catch (error) {
       console.error('Error fetching groups:', error);
     } finally {
