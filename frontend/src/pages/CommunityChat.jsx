@@ -60,7 +60,14 @@ const CommunityChat = () => {
       const response = await axios.get(`${getAPI()}/chat/groups`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setGroups(response.data);
+      // Filter out MC-only groups for normal users
+      const filteredGroups = response.data.filter(group => {
+        // Show all groups to admins and managers
+        if (isAdmin || isManager) return true;
+        // Hide MC-only groups from normal users
+        return !group.is_mc_only;
+      });
+      setGroups(filteredGroups);
     } catch (error) {
       console.error('Error fetching groups:', error);
     } finally {
