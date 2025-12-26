@@ -328,6 +328,50 @@ async def remove_member_from_group(group_id: str, member_data: RemoveMemberReque
         raise HTTPException(status_code=500, detail="Failed to remove member from chat group")
 
 
+@chat_router.put("/groups/{group_id}")
+async def update_chat_group(group_id: str, group_data: ChatGroupUpdate, request: Request):
+    """Update a chat group name/description/icon - managers and admins only"""
+    try:
+        from auth import require_manager_or_admin
+        user = await require_manager_or_admin(request)
+        db = await get_db()
+        
+        # Get the group
+        group = await db.chat_groups.find_one({"id": group_id}, {"_id": 0})
+        if not group:
+            raise HTTPException(status_code=404, detail="Group not found")
+        
+        # Build update dict
+        update_data = {}
+        if group_data.name is not None:
+            update_data["name"] = group_data.name
+        if group_data.description is not None:
+            update_data["description"] = group_data.description
+        if group_data.icon is not None:
+            update_data["icon"] = group_data.icon
+        
+        if not update_data:
+            raise HTTPException(status_code=400, detail="No update data provided")
+        
+        # Update the group
+        await db.chat_groups.update_one(
+            {"id": group_id},
+            {"$set": update_data}
+        )
+        
+        # Get updated group
+        updated_group = await db.chat_groups.find_one({"id": group_id}, {"_id": 0})
+        updated_group['member_count'] = len(updated_group.get('members', []))
+        
+        logger.info(f"Chat group {group_id} updated by {user['email']}")
+        return ChatGroup(**updated_group)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating chat group: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update chat group")
+
+
 @chat_router.delete("/groups/{group_id}")
 async def delete_chat_group(group_id: str, request: Request):
     """Delete a chat group - managers and admins only"""
