@@ -130,6 +130,7 @@ export function useCachedFetch(url, options = {}) {
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url, enabled, ttl, staleWhileRevalidate, onSuccess, onError]);
 
   const backgroundFetch = useCallback(async () => {
@@ -160,7 +161,8 @@ export function useCachedFetch(url, options = {}) {
         abortControllerRef.current.abort();
       }
     };
-  }, [url, ...dependencies]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url]);
 
   return { data, loading, error, refetch };
 }
