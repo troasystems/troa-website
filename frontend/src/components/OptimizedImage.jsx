@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 
 /**
  * OptimizedImage - A performance-optimized image component
@@ -23,8 +23,14 @@ const OptimizedImage = ({
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const [error, setError] = useState(false);
-  const [currentSrc, setCurrentSrc] = useState(null);
   const imgRef = useRef(null);
+
+  // Compute current source based on state
+  const currentSrc = useMemo(() => {
+    if (!isInView) return null;
+    if (error && fallbackSrc) return fallbackSrc;
+    return src;
+  }, [isInView, error, fallbackSrc, src]);
 
   // Use Intersection Observer for lazy loading
   useEffect(() => {
@@ -48,13 +54,6 @@ const OptimizedImage = ({
     return () => observer.disconnect();
   }, [threshold, rootMargin]);
 
-  // Load image when in view
-  useEffect(() => {
-    if (isInView && src && !error) {
-      setCurrentSrc(src);
-    }
-  }, [isInView, src, error]);
-
   const handleLoad = (e) => {
     setIsLoaded(true);
     onLoad?.(e);
@@ -62,10 +61,6 @@ const OptimizedImage = ({
 
   const handleError = (e) => {
     setError(true);
-    if (fallbackSrc && currentSrc !== fallbackSrc) {
-      setCurrentSrc(fallbackSrc);
-      setError(false);
-    }
     onError?.(e);
   };
 
