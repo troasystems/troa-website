@@ -687,7 +687,10 @@ async def send_message_with_files(
     group_id: str,
     request: Request,
     content: str = Form(default=""),
-    files: List[UploadFile] = File(default=[])
+    files: List[UploadFile] = File(default=[]),
+    reply_to_message_id: Optional[str] = Form(default=None),
+    reply_to_sender_name: Optional[str] = Form(default=None),
+    reply_to_content_preview: Optional[str] = Form(default=None)
 ):
     """Send a message with file attachments to a chat group"""
     try:
@@ -705,7 +708,7 @@ async def send_message_with_files(
             raise HTTPException(status_code=403, detail="You must join this group to send messages")
         
         # Check if MC-only group - only managers can send
-        if group.get('is_mc_only'):
+        if group.get('is_mc_only') or group.get('group_type') == 'mc_only':
             user_data = await db.users.find_one({"email": user['email']}, {"_id": 0})
             if not user_data or user_data.get('role') not in ['admin', 'manager']:
                 raise HTTPException(status_code=403, detail="Only managers can send messages in the MC Group")
