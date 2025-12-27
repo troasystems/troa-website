@@ -1652,7 +1652,9 @@ const CommunityChat = () => {
         <CreateGroupModal 
           onClose={() => setShowCreateModal(false)} 
           onCreated={fetchGroups} 
-          token={token} 
+          token={token}
+          isAdmin={isAdmin}
+          isManager={isManager}
         />
       )}
 
