@@ -138,12 +138,8 @@ function App() {
             </div>
             {/* Bottom Navigation - visible on mobile only */}
             <BottomNavigation />
-            {/* Chatbot - adjust position for mobile */}
-            <Suspense fallback={null}>
-              <div className="md:mb-0 mb-16">
-                <Chatbot />
-              </div>
-            </Suspense>
+            {/* Chatbot - hidden inside community chat group view */}
+            <ChatbotWrapper />
             <VillaNumberModalWrapper />
             {/* PWA Components */}
             <InstallPWA />
