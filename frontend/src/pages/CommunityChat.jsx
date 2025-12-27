@@ -657,7 +657,9 @@ const CommunityChat = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast({ title: 'Success', description: 'Joined group successfully' });
-      fetchGroups();
+      // Invalidate cache and force refresh
+      invalidateGroupsCache();
+      await fetchGroups(true);
     } catch (error) {
       toast({ 
         title: 'Error', 
