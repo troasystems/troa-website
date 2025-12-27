@@ -1,44 +1,20 @@
-# Community Chat Enhancement Test Plan
+# Test Results for Community Chat Features
 
 ## Features to Test
-
-### 1. Emoji Reactions on Messages
-- Long-press on message to open emoji picker
-- Select emoji to add reaction
-- Multiple users can react to same message
-- Same user can add multiple different emojis
-- Tap own reaction to remove it
-- Reactions display below messages with count
-
-### 2. Reply to Message (Swipe/Click)
-- Swipe right on message to reply
-- Click reply button to reply
-- Reply preview shows above input
-- Sent message shows quoted reply
-- Tap quoted message to scroll to original
-
-### 3. Group Types System
-- Public groups: visible to all, anyone can join
-- Private groups: visible only to members, invite only
-- MC groups: visible only to managers/admins
-- Group type selection on creation
-- Group type badge on group list
-
-### 4. Group Management
-- Group creators can add/remove members
-- Group creators can edit group settings
-- All users can create public/private groups
-- Only managers/admins can create MC groups
+1. **Typing Indicator** - Show when users are typing in chat
+2. **Unread Message Counts** - Groups sorted by unread messages with badge display
+3. **UI Changes** - Group tiles with arrow instead of Open button, entire tile clickable
 
 ## Test Credentials
-- Use existing test user or create via signup
+- Email: troa.systems@gmail.com
+- Password: Test@123
 
-## Test Status
-- Backend testing: PENDING
-- Frontend testing: PENDING
+## Testing Protocol
+- Test typing indicator by simulating two users in same group
+- Test unread counts by sending message and verifying badge
+- Test UI changes visually
 
-## Endpoints to Test
-- POST /api/chat/groups - Create group with group_type
-- POST /api/chat/messages/{id}/react - Add reaction
-- DELETE /api/chat/messages/{id}/react/{emoji} - Remove reaction
-- POST /api/chat/groups/{id}/messages - Send with reply_to
+## Incorporate User Feedback
+- Groups should be sorted by latest unreads (not just presence of unreads)
+- Arrow should point right to indicate clickable
+- Unread count badge should be visible
