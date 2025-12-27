@@ -227,6 +227,14 @@ const CommunityChat = () => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(null); // Message ID for emoji picker
   const [longPressTimer, setLongPressTimer] = useState(null);
   const [swipeStart, setSwipeStart] = useState(null);
+  // Typing indicator and unread counts state
+  const [typingUsers, setTypingUsers] = useState([]); // Users currently typing in selected group
+  const [unreadCounts, setUnreadCounts] = useState({}); // {groupId: count}
+  const [latestMessageTimes, setLatestMessageTimes] = useState({}); // {groupId: timestamp}
+  const [isTyping, setIsTyping] = useState(false); // Current user typing status
+  const typingTimeoutRef = useRef(null);
+  const typingPollRef = useRef(null);
+  
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
