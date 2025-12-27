@@ -687,7 +687,10 @@ const CommunityChat = () => {
       });
       toast({ title: 'Success', description: 'Left group successfully' });
       setSelectedGroup(null);
-      fetchGroups();
+      // Invalidate cache and force refresh
+      invalidateGroupsCache();
+      clearGroupMessagesCache(groupId);
+      await fetchGroups(true);
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to leave group', variant: 'destructive' });
     }
