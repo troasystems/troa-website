@@ -1090,6 +1090,195 @@ async def get_message_reactions(message_id: str, request: Request):
         raise HTTPException(status_code=500, detail="Failed to fetch reactions")
 
 
+# ============ TYPING INDICATOR ENDPOINTS ============
+
+# In-memory typing status (clears automatically after 5 seconds)
+# Format: {group_id: {user_email: {name, timestamp}}}
+typing_status = {}
+
+TYPING_TIMEOUT_SECONDS = 5
+
+class TypingStatus(BaseModel):
+    is_typing: bool
+
+@chat_router.post("/groups/{group_id}/typing")
+async def update_typing_status(group_id: str, status: TypingStatus, request: Request):
+    """Update typing status for current user in a group"""
+    try:
+        from auth import require_auth
+        user = await require_auth(request)
+        db = await get_db()
+        
+        # Verify user is member of the group
+        group = await db.chat_groups.find_one({"id": group_id}, {"_id": 0})
+        if not group or user['email'] not in group.get('members', []):
+            raise HTTPException(status_code=403, detail="You must be a group member")
+        
+        if status.is_typing:
+            # Set typing status
+            if group_id not in typing_status:
+                typing_status[group_id] = {}
+            typing_status[group_id][user['email']] = {
+                'name': user['name'],
+                'timestamp': datetime.now(timezone.utc)
+            }
+        else:
+            # Clear typing status
+            if group_id in typing_status and user['email'] in typing_status[group_id]:
+                del typing_status[group_id][user['email']]
+        
+        return {"status": "ok"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating typing status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update typing status")
+
+
+@chat_router.get("/groups/{group_id}/typing")
+async def get_typing_users(group_id: str, request: Request):
+    """Get list of users currently typing in a group"""
+    try:
+        from auth import require_auth
+        user = await require_auth(request)
+        db = await get_db()
+        
+        # Verify user is member of the group
+        group = await db.chat_groups.find_one({"id": group_id}, {"_id": 0})
+        if not group or user['email'] not in group.get('members', []):
+            raise HTTPException(status_code=403, detail="You must be a group member")
+        
+        now = datetime.now(timezone.utc)
+        typing_users = []
+        
+        if group_id in typing_status:
+            # Clean up expired entries and collect active ones
+            expired = []
+            for email, data in typing_status[group_id].items():
+                # Skip current user
+                if email == user['email']:
+                    continue
+                # Check if expired
+                if (now - data['timestamp']).total_seconds() > TYPING_TIMEOUT_SECONDS:
+                    expired.append(email)
+                else:
+                    typing_users.append({'email': email, 'name': data['name']})
+            
+            # Clean up expired
+            for email in expired:
+                del typing_status[group_id][email]
+        
+        return {"typing_users": typing_users}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting typing users: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get typing status")
+
+
+# ============ UNREAD COUNT ENDPOINTS ============
+
+@chat_router.post("/groups/{group_id}/mark-read")
+async def mark_group_as_read(group_id: str, request: Request):
+    """Mark all messages in a group as read for the current user"""
+    try:
+        from auth import require_auth
+        user = await require_auth(request)
+        db = await get_db()
+        
+        # Verify user is member of the group
+        group = await db.chat_groups.find_one({"id": group_id}, {"_id": 0})
+        if not group or user['email'] not in group.get('members', []):
+            raise HTTPException(status_code=403, detail="You must be a group member")
+        
+        # Update user's last read timestamp for this group
+        await db.chat_user_reads.update_one(
+            {"user_email": user['email'], "group_id": group_id},
+            {
+                "$set": {
+                    "user_email": user['email'],
+                    "group_id": group_id,
+                    "last_read_at": datetime.now(timezone.utc).isoformat()
+                }
+            },
+            upsert=True
+        )
+        
+        return {"status": "ok"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error marking group as read: {e}")
+        raise HTTPException(status_code=500, detail="Failed to mark as read")
+
+
+@chat_router.get("/groups/unread-counts")
+async def get_unread_counts(request: Request):
+    """Get unread message counts for all groups the user is a member of"""
+    try:
+        from auth import require_auth
+        user = await require_auth(request)
+        db = await get_db()
+        
+        user_email = user['email']
+        
+        # Get all groups user is a member of
+        groups = await db.chat_groups.find(
+            {"members": user_email},
+            {"_id": 0, "id": 1}
+        ).to_list(100)
+        
+        group_ids = [g['id'] for g in groups]
+        
+        # Get user's last read timestamps for each group
+        user_reads = await db.chat_user_reads.find(
+            {"user_email": user_email, "group_id": {"$in": group_ids}},
+            {"_id": 0}
+        ).to_list(100)
+        
+        last_read_map = {r['group_id']: r['last_read_at'] for r in user_reads}
+        
+        # Calculate unread counts and get latest message time for each group
+        unread_counts = {}
+        latest_message_times = {}
+        
+        for group_id in group_ids:
+            last_read = last_read_map.get(group_id)
+            
+            # Get unread count (messages after last_read, excluding user's own messages)
+            query = {
+                "group_id": group_id,
+                "sender_email": {"$ne": user_email},
+                "is_deleted": {"$ne": True}
+            }
+            if last_read:
+                query["created_at"] = {"$gt": last_read}
+            
+            count = await db.chat_messages.count_documents(query)
+            unread_counts[group_id] = count
+            
+            # Get latest message time for sorting
+            latest_msg = await db.chat_messages.find_one(
+                {"group_id": group_id, "is_deleted": {"$ne": True}},
+                {"_id": 0, "created_at": 1},
+                sort=[("created_at", -1)]
+            )
+            if latest_msg:
+                latest_message_times[group_id] = latest_msg['created_at']
+            else:
+                latest_message_times[group_id] = None
+        
+        return {
+            "unread_counts": unread_counts,
+            "latest_message_times": latest_message_times
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting unread counts: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get unread counts")
+
+
 # Initialize MC Group on startup
 async def init_mc_group():
     """Create MC Group if it doesn't exist"""
