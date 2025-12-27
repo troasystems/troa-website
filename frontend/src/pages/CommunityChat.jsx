@@ -1575,6 +1575,7 @@ const CommunityChat = () => {
         ) : (
           groups.map((group) => {
             const joined = isMember(group);
+            const groupType = group.group_type || (group.is_mc_only ? 'mc_only' : 'public');
             return (
               <div
                 key={group.id}
@@ -1595,12 +1596,16 @@ const CommunityChat = () => {
                         />
                       ) : (
                         <div className={`w-full h-full flex items-center justify-center ${
-                          group.is_mc_only 
+                          groupType === 'mc_only'
                             ? 'bg-gradient-to-br from-yellow-400 to-orange-500' 
-                            : 'bg-gradient-to-br from-purple-500 to-pink-500'
+                            : groupType === 'private'
+                              ? 'bg-gradient-to-br from-gray-500 to-gray-700'
+                              : 'bg-gradient-to-br from-purple-500 to-pink-500'
                         }`}>
-                          {group.is_mc_only ? (
+                          {groupType === 'mc_only' ? (
                             <Crown className="w-6 h-6 text-white" />
+                          ) : groupType === 'private' ? (
+                            <Lock className="w-6 h-6 text-white" />
                           ) : (
                             <Users className="w-6 h-6 text-white" />
                           )}
@@ -1608,10 +1613,15 @@ const CommunityChat = () => {
                       )}
                     </div>
                     <div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 flex-wrap gap-1">
                         <h3 className="font-semibold text-gray-900">{group.name}</h3>
-                        {group.is_mc_only && (
+                        {groupType === 'mc_only' && (
                           <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full">MC Only</span>
+                        )}
+                        {groupType === 'private' && (
+                          <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full flex items-center">
+                            <Lock className="w-3 h-3 mr-1" />Private
+                          </span>
                         )}
                       </div>
                       <p className="text-sm text-gray-500">
