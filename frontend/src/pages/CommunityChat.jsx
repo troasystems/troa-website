@@ -872,6 +872,10 @@ const CommunityChat = () => {
           ? { ...m, is_deleted: true, content: '', attachments: [] }
           : m
       ));
+      // Also update the cache
+      if (selectedGroup) {
+        updateMessageInCache(selectedGroup.id, messageId, { is_deleted: true, content: '', attachments: [] });
+      }
       toast({ title: 'Success', description: 'Message deleted' });
     } catch (error) {
       toast({ 
