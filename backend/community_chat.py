@@ -413,16 +413,25 @@ async def add_member_to_group(group_id: str, member_data: AddMemberRequest, requ
 
 @chat_router.post("/groups/{group_id}/remove-member")
 async def remove_member_from_group(group_id: str, member_data: RemoveMemberRequest, request: Request):
-    """Remove a member from a chat group - only admins/managers can remove"""
+    """Remove a member from a chat group - creator or admins/managers can remove"""
     try:
-        from auth import require_manager_or_admin
-        user = await require_manager_or_admin(request)
+        from auth import require_auth
+        user = await require_auth(request)
         db = await get_db()
         
         # Get the group
         group = await db.chat_groups.find_one({"id": group_id}, {"_id": 0})
         if not group:
             raise HTTPException(status_code=404, detail="Group not found")
+        
+        # Check permissions - creator or admin/manager can remove members
+        user_data = await db.users.find_one({"email": user['email']}, {"_id": 0})
+        user_role = user_data.get('role', 'user') if user_data else 'user'
+        is_admin_or_manager = user_role in ['admin', 'manager']
+        is_creator = group.get('created_by') == user['email']
+        
+        if not is_creator and not is_admin_or_manager:
+            raise HTTPException(status_code=403, detail="Only the group creator or admins can remove members")
         
         # Check if the user to remove is a member
         if member_data.email not in group.get('members', []):
