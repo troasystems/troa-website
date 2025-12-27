@@ -1010,7 +1010,8 @@ const CommunityChat = () => {
             >
               <Users className="w-5 h-5" />
             </button>
-            {(isAdmin || isManager) && (
+            {/* Show management options for creator OR admin/manager */}
+            {(isAdmin || isManager || selectedGroup.created_by === user?.email) && (
               <>
                 <button
                   onClick={() => setShowEditGroupModal(true)}
