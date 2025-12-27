@@ -1546,14 +1546,14 @@ const CommunityChat = () => {
             <h1 className="text-2xl font-bold">Community Chat</h1>
             <p className="text-white/80 text-sm">Connect with your neighbors</p>
           </div>
-          {(isAdmin || isManager) && (
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="p-3 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
-            >
-              <Plus className="w-6 h-6" />
-            </button>
-          )}
+          {/* All authenticated users can create groups */}
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="p-3 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
+            title="Create Group"
+          >
+            <Plus className="w-6 h-6" />
+          </button>
         </div>
       </div>
 
@@ -1563,14 +1563,12 @@ const CommunityChat = () => {
           <div className="text-center py-10">
             <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
             <p className="text-gray-500">No groups available yet</p>
-            {(isAdmin || isManager) && (
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="mt-4 px-6 py-2 bg-purple-600 text-white rounded-lg"
-              >
-                Create First Group
-              </button>
-            )}
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="mt-4 px-6 py-2 bg-purple-600 text-white rounded-lg"
+            >
+              Create First Group
+            </button>
           </div>
         ) : (
           groups.map((group) => {
