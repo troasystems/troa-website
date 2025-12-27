@@ -2244,19 +2244,68 @@ const CreateGroupModal = ({ onClose, onCreated, token, isAdmin, isManager }) => 
             )}
           </div>
           
-          <div className="flex items-center space-x-3">
-            <input
-              type="checkbox"
-              id="isMcOnly"
-              checked={isMcOnly}
-              onChange={(e) => setIsMcOnly(e.target.checked)}
-              className="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-            />
-            <label htmlFor="isMcOnly" className="text-sm text-gray-700">
-              <span className="font-medium">MC Group</span>
-              <span className="text-gray-500 ml-1">- Only managers can send messages</span>
-            </label>
+          {/* Group Type Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Group Type</label>
+            <div className="space-y-2">
+              {/* Public Group */}
+              <label className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors ${groupType === 'public' ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                <input
+                  type="radio"
+                  name="groupType"
+                  value="public"
+                  checked={groupType === 'public'}
+                  onChange={(e) => setGroupType(e.target.value)}
+                  className="sr-only"
+                />
+                <Globe className={`w-5 h-5 mr-3 ${groupType === 'public' ? 'text-purple-600' : 'text-gray-400'}`} />
+                <div className="flex-1">
+                  <p className={`font-medium ${groupType === 'public' ? 'text-purple-700' : 'text-gray-700'}`}>Public Group</p>
+                  <p className="text-xs text-gray-500">Visible to all users, anyone can join</p>
+                </div>
+                {groupType === 'public' && <Check className="w-5 h-5 text-purple-600" />}
+              </label>
+              
+              {/* Private Group */}
+              <label className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors ${groupType === 'private' ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                <input
+                  type="radio"
+                  name="groupType"
+                  value="private"
+                  checked={groupType === 'private'}
+                  onChange={(e) => setGroupType(e.target.value)}
+                  className="sr-only"
+                />
+                <Lock className={`w-5 h-5 mr-3 ${groupType === 'private' ? 'text-purple-600' : 'text-gray-400'}`} />
+                <div className="flex-1">
+                  <p className={`font-medium ${groupType === 'private' ? 'text-purple-700' : 'text-gray-700'}`}>Private Group</p>
+                  <p className="text-xs text-gray-500">Only visible to members, invite only</p>
+                </div>
+                {groupType === 'private' && <Check className="w-5 h-5 text-purple-600" />}
+              </label>
+              
+              {/* MC Group - Only for admins/managers */}
+              {canCreateMcGroup && (
+                <label className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors ${groupType === 'mc_only' ? 'border-yellow-500 bg-yellow-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                  <input
+                    type="radio"
+                    name="groupType"
+                    value="mc_only"
+                    checked={groupType === 'mc_only'}
+                    onChange={(e) => setGroupType(e.target.value)}
+                    className="sr-only"
+                  />
+                  <Crown className={`w-5 h-5 mr-3 ${groupType === 'mc_only' ? 'text-yellow-600' : 'text-gray-400'}`} />
+                  <div className="flex-1">
+                    <p className={`font-medium ${groupType === 'mc_only' ? 'text-yellow-700' : 'text-gray-700'}`}>MC Group</p>
+                    <p className="text-xs text-gray-500">Only managers/admins can view and send messages</p>
+                  </div>
+                  {groupType === 'mc_only' && <Check className="w-5 h-5 text-yellow-600" />}
+                </label>
+              )}
+            </div>
           </div>
+          
           <button
             type="submit"
             disabled={!name.trim() || creating}
