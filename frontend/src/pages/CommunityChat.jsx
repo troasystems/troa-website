@@ -247,13 +247,28 @@ const CommunityChat = () => {
   useEffect(() => {
     if (isAuthenticated && token) {
       fetchGroups();
+      fetchUnreadCounts(); // Also fetch unread counts
     } else {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, token]);
 
-  // Poll for new messages when in a group
+  // Poll for unread counts every 10 seconds when on group list
+  useEffect(() => {
+    let unreadPollInterval;
+    if (isAuthenticated && token && !selectedGroup) {
+      unreadPollInterval = setInterval(() => {
+        fetchUnreadCounts();
+      }, 10000);
+    }
+    return () => {
+      if (unreadPollInterval) clearInterval(unreadPollInterval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, token, selectedGroup]);
+
+  // Poll for new messages and typing status when in a group
   useEffect(() => {
     if (selectedGroup && isAuthenticated && token) {
       initialLoadRef.current = true;
@@ -261,15 +276,30 @@ const CommunityChat = () => {
       setMessages([]);
       setMessagesLoading(true);
       fetchMessages(selectedGroup.id);
+      markGroupAsRead(selectedGroup.id); // Mark as read when entering group
+      
       // Poll every 3 seconds for new messages
       pollIntervalRef.current = setInterval(() => {
         fetchMessages(selectedGroup.id, true);
       }, 3000);
+      
+      // Poll for typing status every 2 seconds
+      typingPollRef.current = setInterval(() => {
+        fetchTypingUsers(selectedGroup.id);
+      }, 2000);
     }
     return () => {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
       }
+      if (typingPollRef.current) {
+        clearInterval(typingPollRef.current);
+      }
+      // Clear typing status when leaving group
+      if (selectedGroup && isTyping) {
+        updateTypingStatus(selectedGroup.id, false);
+      }
+      setTypingUsers([]);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedGroup, isAuthenticated, token]);
