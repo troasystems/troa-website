@@ -3147,6 +3147,283 @@ class TROAAPITester:
             self.test_results['community_chat']['message_order'] = False
             self.log_error(f"/chat/groups/{self.test_group_id}/messages (order)", "GET", f"Exception: {str(e)}")
 
+    def test_whatsapp_features(self):
+        """Test WhatsApp-like features: group types, emoji reactions, replies"""
+        print("\n💬 Testing WhatsApp-like Features...")
+        
+        # Test 1: Create groups with different types
+        self.test_group_types()
+        
+        # Test 2: Test private group join restrictions
+        self.test_private_group_restrictions()
+        
+        # Test 3: Test emoji reactions
+        self.test_emoji_reactions()
+        
+        # Test 4: Test reply messages
+        self.test_reply_messages()
+        
+        # Test 5: Test reaction removal
+        self.test_reaction_removal()
+        
+        # Test 6: Verify messages include reactions and reply_to fields
+        self.test_message_fields()
+
+    def test_group_types(self):
+        """Test creating groups with different types"""
+        try:
+            # Test creating public group
+            public_group = {
+                "name": "Test Public Group",
+                "description": "A test public group",
+                "group_type": "public"
+            }
+            
+            response = requests.post(f"{self.base_url}/chat/groups", 
+                                   json=public_group, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('group_type') == 'public':
+                    self.test_results['community_chat']['group_types'] = True
+                    self.log_success("/chat/groups (public)", "POST", f"- Created public group: {data.get('id')}")
+                    self.public_group_id = data.get('id')
+                else:
+                    self.test_results['community_chat']['group_types'] = False
+                    self.log_error("/chat/groups (public)", "POST", f"Wrong group type: {data.get('group_type')}")
+            else:
+                self.test_results['community_chat']['group_types'] = False
+                self.log_error("/chat/groups (public)", "POST", f"Status code: {response.status_code}")
+                
+            # Test creating private group
+            private_group = {
+                "name": "Test Private Group",
+                "description": "A test private group",
+                "group_type": "private"
+            }
+            
+            response = requests.post(f"{self.base_url}/chat/groups", 
+                                   json=private_group, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('group_type') == 'private':
+                    self.log_success("/chat/groups (private)", "POST", f"- Created private group: {data.get('id')}")
+                    self.private_group_id = data.get('id')
+                else:
+                    self.log_error("/chat/groups (private)", "POST", f"Wrong group type: {data.get('group_type')}")
+            else:
+                self.log_error("/chat/groups (private)", "POST", f"Status code: {response.status_code}")
+                
+            # Test creating MC group (should fail for regular user)
+            mc_group = {
+                "name": "Test MC Group",
+                "description": "A test MC group",
+                "group_type": "mc_only"
+            }
+            
+            response = requests.post(f"{self.base_url}/chat/groups", 
+                                   json=mc_group, 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 403:
+                self.log_success("/chat/groups (mc_only restriction)", "POST", "- Correctly blocked MC group creation for regular user")
+            else:
+                self.log_error("/chat/groups (mc_only restriction)", "POST", f"Expected 403, got: {response.status_code}")
+                
+        except Exception as e:
+            self.test_results['community_chat']['group_types'] = False
+            self.log_error("/chat/groups (types)", "POST", f"Exception: {str(e)}")
+
+    def test_private_group_restrictions(self):
+        """Test that private groups cannot be joined without invitation"""
+        if not hasattr(self, 'private_group_id') or not self.private_group_id:
+            self.test_results['community_chat']['private_group_join_restriction'] = False
+            self.log_error("/chat/groups/{id}/join (private)", "POST", "No private group available for testing")
+            return
+            
+        try:
+            response = requests.post(f"{self.base_url}/chat/groups/{self.private_group_id}/join", 
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 403:
+                self.test_results['community_chat']['private_group_join_restriction'] = True
+                self.log_success(f"/chat/groups/{self.private_group_id}/join (private)", "POST", "- Correctly blocked joining private group")
+            else:
+                self.test_results['community_chat']['private_group_join_restriction'] = False
+                self.log_error(f"/chat/groups/{self.private_group_id}/join (private)", "POST", f"Expected 403, got: {response.status_code}")
+                
+        except Exception as e:
+            self.test_results['community_chat']['private_group_join_restriction'] = False
+            self.log_error(f"/chat/groups/{self.private_group_id}/join (private)", "POST", f"Exception: {str(e)}")
+
+    def test_emoji_reactions(self):
+        """Test emoji reaction functionality"""
+        if not self.test_group_id or not self.test_message_ids:
+            self.test_results['community_chat']['emoji_reactions'] = False
+            self.log_error("/chat/messages/{id}/react", "POST", "No message available for testing reactions")
+            return
+            
+        try:
+            message_id = self.test_message_ids[0]
+            
+            # Add emoji reaction
+            reaction_data = {"emoji": "👍"}
+            response = requests.post(f"{self.base_url}/chat/messages/{message_id}/react", 
+                                   json=reaction_data,
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                reactions = data.get('reactions', [])
+                if any(r.get('emoji') == '👍' for r in reactions):
+                    self.test_results['community_chat']['emoji_reactions'] = True
+                    self.log_success(f"/chat/messages/{message_id}/react", "POST", "- Successfully added emoji reaction")
+                    self.test_message_with_reaction = message_id
+                else:
+                    self.test_results['community_chat']['emoji_reactions'] = False
+                    self.log_error(f"/chat/messages/{message_id}/react", "POST", "Reaction not found in response")
+            else:
+                self.test_results['community_chat']['emoji_reactions'] = False
+                self.log_error(f"/chat/messages/{message_id}/react", "POST", f"Status code: {response.status_code}")
+                
+        except Exception as e:
+            self.test_results['community_chat']['emoji_reactions'] = False
+            self.log_error(f"/chat/messages/{message_id}/react", "POST", f"Exception: {str(e)}")
+
+    def test_reply_messages(self):
+        """Test reply message functionality"""
+        if not self.test_group_id or not self.test_message_ids:
+            self.test_results['community_chat']['reply_messages'] = False
+            self.log_error("/chat/groups/{id}/messages (reply)", "POST", "No message available for testing replies")
+            return
+            
+        try:
+            original_message_id = self.test_message_ids[0]
+            
+            # Send a reply message
+            reply_data = {
+                "content": "This is a reply to the previous message",
+                "group_id": self.test_group_id,
+                "reply_to": {
+                    "message_id": original_message_id,
+                    "sender_name": "Test User",
+                    "content_preview": "Original message content"
+                }
+            }
+            
+            response = requests.post(f"{self.base_url}/chat/groups/{self.test_group_id}/messages", 
+                                   json=reply_data,
+                                   headers=self.auth_headers,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                reply_to = data.get('reply_to')
+                if reply_to and reply_to.get('message_id') == original_message_id:
+                    self.test_results['community_chat']['reply_messages'] = True
+                    self.log_success(f"/chat/groups/{self.test_group_id}/messages (reply)", "POST", "- Successfully sent reply message")
+                else:
+                    self.test_results['community_chat']['reply_messages'] = False
+                    self.log_error(f"/chat/groups/{self.test_group_id}/messages (reply)", "POST", "Reply data not preserved correctly")
+            else:
+                self.test_results['community_chat']['reply_messages'] = False
+                self.log_error(f"/chat/groups/{self.test_group_id}/messages (reply)", "POST", f"Status code: {response.status_code}")
+                
+        except Exception as e:
+            self.test_results['community_chat']['reply_messages'] = False
+            self.log_error(f"/chat/groups/{self.test_group_id}/messages (reply)", "POST", f"Exception: {str(e)}")
+
+    def test_reaction_removal(self):
+        """Test removing emoji reactions"""
+        if not hasattr(self, 'test_message_with_reaction') or not self.test_message_with_reaction:
+            self.test_results['community_chat']['reaction_removal'] = False
+            self.log_error("/chat/messages/{id}/react/{emoji}", "DELETE", "No message with reaction available for testing")
+            return
+            
+        try:
+            message_id = self.test_message_with_reaction
+            emoji = "👍"
+            
+            response = requests.delete(f"{self.base_url}/chat/messages/{message_id}/react/{emoji}", 
+                                     headers=self.auth_headers,
+                                     timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                reactions = data.get('reactions', [])
+                # Check that the reaction was removed
+                user_reactions = [r.get('emoji') for r in reactions if r.get('user_email') == 'test@example.com']
+                if '👍' not in user_reactions:
+                    self.test_results['community_chat']['reaction_removal'] = True
+                    self.log_success(f"/chat/messages/{message_id}/react/{emoji}", "DELETE", "- Successfully removed emoji reaction")
+                else:
+                    self.test_results['community_chat']['reaction_removal'] = False
+                    self.log_error(f"/chat/messages/{message_id}/react/{emoji}", "DELETE", "Reaction not removed correctly")
+            else:
+                self.test_results['community_chat']['reaction_removal'] = False
+                self.log_error(f"/chat/messages/{message_id}/react/{emoji}", "DELETE", f"Status code: {response.status_code}")
+                
+        except Exception as e:
+            self.test_results['community_chat']['reaction_removal'] = False
+            self.log_error(f"/chat/messages/{message_id}/react/{emoji}", "DELETE", f"Exception: {str(e)}")
+
+    def test_message_fields(self):
+        """Test that messages include reactions and reply_to fields"""
+        if not self.test_group_id:
+            self.test_results['community_chat']['message_reactions_field'] = False
+            self.test_results['community_chat']['message_reply_field'] = False
+            self.log_error("/chat/groups/{id}/messages (fields)", "GET", "No group available for testing")
+            return
+            
+        try:
+            response = requests.get(f"{self.base_url}/chat/groups/{self.test_group_id}/messages", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list) and len(data) > 0:
+                    # Check if messages have reactions field
+                    has_reactions_field = all('reactions' in msg for msg in data)
+                    
+                    # Check if any message has reply_to field
+                    has_reply_to_field = any('reply_to' in msg for msg in data)
+                    
+                    if has_reactions_field:
+                        self.test_results['community_chat']['message_reactions_field'] = True
+                        self.log_success(f"/chat/groups/{self.test_group_id}/messages (reactions field)", "GET", "- All messages include reactions field")
+                    else:
+                        self.test_results['community_chat']['message_reactions_field'] = False
+                        self.log_error(f"/chat/groups/{self.test_group_id}/messages (reactions field)", "GET", "Some messages missing reactions field")
+                    
+                    if has_reply_to_field:
+                        self.test_results['community_chat']['message_reply_field'] = True
+                        self.log_success(f"/chat/groups/{self.test_group_id}/messages (reply_to field)", "GET", "- Found messages with reply_to field")
+                    else:
+                        self.test_results['community_chat']['message_reply_field'] = False
+                        self.log_error(f"/chat/groups/{self.test_group_id}/messages (reply_to field)", "GET", "No messages with reply_to field found")
+                else:
+                    self.test_results['community_chat']['message_reactions_field'] = False
+                    self.test_results['community_chat']['message_reply_field'] = False
+                    self.log_error(f"/chat/groups/{self.test_group_id}/messages (fields)", "GET", "No messages found for testing")
+            else:
+                self.test_results['community_chat']['message_reactions_field'] = False
+                self.test_results['community_chat']['message_reply_field'] = False
+                self.log_error(f"/chat/groups/{self.test_group_id}/messages (fields)", "GET", f"Status code: {response.status_code}")
+                
+        except Exception as e:
+            self.test_results['community_chat']['message_reactions_field'] = False
+            self.test_results['community_chat']['message_reply_field'] = False
+            self.log_error(f"/chat/groups/{self.test_group_id}/messages (fields)", "GET", f"Exception: {str(e)}")
+
     def test_pwa_caching_features(self):
         """Test PWA caching features including cache headers and service worker"""
         print("\n🗄️ Testing PWA Caching Features...")
