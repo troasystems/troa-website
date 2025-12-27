@@ -930,7 +930,9 @@ const CommunityChat = () => {
     setShowEmojiPicker(messageId);
   };
 
-  const handleTouchStart = (messageId) => {
+  const handleTouchStart = (e, messageId) => {
+    // Prevent text selection on long press
+    e.preventDefault();
     const timer = setTimeout(() => {
       handleMessageLongPress(messageId);
     }, 500); // 500ms for long press
