@@ -976,7 +976,7 @@ async def search_users(request: Request, q: str = ""):
 
 @chat_router.post("/messages/{message_id}/react")
 async def add_reaction_to_message(message_id: str, reaction_data: AddReactionRequest, request: Request):
-    """Add or toggle a reaction to a message"""
+    """Add or update a reaction to a message. Each user can only have one emoji per message."""
     try:
         from auth import require_auth
         user = await require_auth(request)
@@ -995,19 +995,31 @@ async def add_reaction_to_message(message_id: str, reaction_data: AddReactionReq
         # Get existing reactions
         reactions = message.get('reactions', [])
         
-        # Check if user already has this emoji reaction
+        # Find user's existing reaction (if any)
+        existing_reaction = None
         existing_reaction_idx = None
         for idx, r in enumerate(reactions):
-            if r.get('user_email') == user['email'] and r.get('emoji') == reaction_data.emoji:
+            if r.get('user_email') == user['email']:
+                existing_reaction = r
                 existing_reaction_idx = idx
                 break
         
-        if existing_reaction_idx is not None:
-            # Remove the reaction (toggle off)
-            reactions.pop(existing_reaction_idx)
-            action = "removed"
+        if existing_reaction is not None:
+            if existing_reaction.get('emoji') == reaction_data.emoji:
+                # Same emoji - toggle off (remove reaction)
+                reactions.pop(existing_reaction_idx)
+                action = "removed"
+            else:
+                # Different emoji - update to new emoji
+                reactions[existing_reaction_idx] = {
+                    "emoji": reaction_data.emoji,
+                    "user_email": user['email'],
+                    "user_name": user['name'],
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                action = "updated"
         else:
-            # Add new reaction
+            # No existing reaction - add new one
             new_reaction = {
                 "emoji": reaction_data.emoji,
                 "user_email": user['email'],
