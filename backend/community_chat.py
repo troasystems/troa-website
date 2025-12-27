@@ -575,7 +575,7 @@ async def get_group_messages(group_id: str, request: Request, limit: int = 10, b
         ).to_list(100)
         user_pictures = {u['email']: u.get('picture') for u in users_data}
         
-        # Add sender pictures and ensure status/read_by/is_deleted fields
+        # Add sender pictures and ensure status/read_by/is_deleted/reactions/reply_to fields
         for msg in messages:
             msg['sender_picture'] = user_pictures.get(msg.get('sender_email'))
             if 'status' not in msg:
@@ -586,6 +586,10 @@ async def get_group_messages(group_id: str, request: Request, limit: int = 10, b
                 msg['is_deleted'] = False
             if 'deleted_at' not in msg:
                 msg['deleted_at'] = None
+            if 'reactions' not in msg:
+                msg['reactions'] = []
+            if 'reply_to' not in msg:
+                msg['reply_to'] = None
             # Mark as read if current user hasn't read it yet
             if user['email'] not in msg['read_by'] and msg['sender_email'] != user['email']:
                 await db.chat_messages.update_one(
@@ -620,7 +624,7 @@ async def send_message(group_id: str, message_data: ChatMessage, request: Reques
             raise HTTPException(status_code=403, detail="You must join this group to send messages")
         
         # Check if MC-only group - only managers can send
-        if group.get('is_mc_only'):
+        if group.get('is_mc_only') or group.get('group_type') == 'mc_only':
             user_data = await db.users.find_one({"email": user['email']}, {"_id": 0})
             if not user_data or user_data.get('role') not in ['admin', 'manager']:
                 raise HTTPException(status_code=403, detail="Only managers can send messages in the MC Group")
@@ -628,6 +632,15 @@ async def send_message(group_id: str, message_data: ChatMessage, request: Reques
         # Get sender's picture
         sender_data = await db.users.find_one({"email": user['email']}, {"_id": 0, "picture": 1})
         sender_picture = sender_data.get('picture') if sender_data else None
+        
+        # Handle reply_to if provided
+        reply_to_data = None
+        if message_data.reply_to:
+            reply_to_data = {
+                "message_id": message_data.reply_to.message_id,
+                "sender_name": message_data.reply_to.sender_name,
+                "content_preview": message_data.reply_to.content_preview[:100] if message_data.reply_to.content_preview else ""
+            }
         
         # Create message
         message = {
@@ -640,7 +653,9 @@ async def send_message(group_id: str, message_data: ChatMessage, request: Reques
             "created_at": datetime.now(timezone.utc).isoformat(),
             "attachments": [],
             "status": "sent",
-            "read_by": []
+            "read_by": [],
+            "reactions": [],
+            "reply_to": reply_to_data
         }
         
         await db.chat_messages.insert_one(message)
