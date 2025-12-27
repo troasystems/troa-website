@@ -2088,7 +2088,8 @@ const CreateGroupModal = ({ onClose, onCreated, token, isAdmin, isManager }) => 
         { 
           name, 
           description, 
-          is_mc_only: isMcOnly,
+          group_type: groupType,
+          is_mc_only: groupType === 'mc_only',
           initial_members: selectedMembers.map(m => m.email),
           icon: icon
         },
