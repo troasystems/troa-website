@@ -61,10 +61,18 @@ def get_content_type(file: UploadFile) -> str:
     return content_type
 
 # Pydantic Models
+
+# Group types: public (anyone can see/join), private (invite only), mc_only (managers/admins only)
+class GroupType:
+    PUBLIC = "public"
+    PRIVATE = "private"
+    MC_ONLY = "mc_only"
+
 class ChatGroupCreate(BaseModel):
     name: str
     description: Optional[str] = ""
-    is_mc_only: bool = False  # If true, only managers can send messages
+    group_type: str = "public"  # "public", "private", "mc_only"
+    is_mc_only: bool = False  # Deprecated - kept for backward compatibility
     initial_members: Optional[List[str]] = []  # Emails of initial members to add
     icon: Optional[str] = None  # Base64 encoded group icon
 
@@ -72,10 +80,26 @@ class ChatGroupUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     icon: Optional[str] = None  # Base64 encoded group icon
+    group_type: Optional[str] = None  # "public", "private", "mc_only"
+
+class ReplyTo(BaseModel):
+    message_id: str
+    sender_name: str
+    content_preview: str  # First ~100 chars of the original message
 
 class ChatMessage(BaseModel):
     content: str
     group_id: str
+    reply_to: Optional[ReplyTo] = None  # For replying to a specific message
+
+class Reaction(BaseModel):
+    emoji: str
+    user_email: str
+    user_name: str
+    created_at: Optional[str] = None
+
+class AddReactionRequest(BaseModel):
+    emoji: str
 
 class FileAttachment(BaseModel):
     id: str
@@ -92,7 +116,8 @@ class ChatGroup(BaseModel):
     created_by: str
     created_by_name: str
     created_at: datetime
-    is_mc_only: bool = False
+    group_type: str = "public"  # "public", "private", "mc_only"
+    is_mc_only: bool = False  # Deprecated - kept for backward compatibility
     members: List[str] = []
     member_count: int = 0
     icon: Optional[str] = None  # Base64 encoded group icon
@@ -110,6 +135,8 @@ class Message(BaseModel):
     read_by: Optional[List[str]] = []  # List of emails who have read this message
     is_deleted: bool = False  # Soft delete flag
     deleted_at: Optional[str] = None  # When the message was deleted
+    reactions: Optional[List[dict]] = []  # List of reactions on this message
+    reply_to: Optional[dict] = None  # Reference to message being replied to
 
 class AddMemberRequest(BaseModel):
     email: str
