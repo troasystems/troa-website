@@ -5,9 +5,10 @@ import {
   MessageSquare, Users, Plus, Send, ArrowLeft, LogOut, LogIn, 
   Crown, Shield, Trash2, X, Loader2, UserPlus, Settings,
   Paperclip, Image, FileText, Download, Eye, UserMinus, Search,
-  Check, CheckCheck, Edit2, Camera
+  Check, CheckCheck, Edit2, Camera, Reply, Lock, Globe, Smile
 } from 'lucide-react';
 import axios from 'axios';
+import EmojiPicker from 'emoji-picker-react';
 import { toast } from '../hooks/use-toast';
 import { getBackendUrl } from '../utils/api';
 import {
@@ -26,6 +27,13 @@ import {
 } from '../services/chatCache';
 
 const getAPI = () => `${getBackendUrl()}/api`;
+
+// Group type constants
+const GROUP_TYPES = {
+  PUBLIC: 'public',
+  PRIVATE: 'private',
+  MC_ONLY: 'mc_only'
+};
 
 // File size formatter
 const formatFileSize = (bytes) => {
