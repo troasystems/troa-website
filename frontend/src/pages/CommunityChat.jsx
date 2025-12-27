@@ -984,7 +984,10 @@ const CommunityChat = () => {
       });
       toast({ title: 'Success', description: 'Group deleted successfully' });
       setSelectedGroup(null);
-      fetchGroups();
+      // Invalidate cache and force refresh
+      invalidateGroupsCache();
+      clearGroupMessagesCache(groupId);
+      await fetchGroups(true);
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to delete group', variant: 'destructive' });
     }
