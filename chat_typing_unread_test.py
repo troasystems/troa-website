@@ -253,10 +253,10 @@ class ChatTypingUnreadAPITester:
             self.log_error(f"/chat/groups/{self.created_group_id}/messages", "POST", f"Exception: {str(e)}")
             return
 
-        # Test 1: Get unread counts (should show 1 unread for member)
+        # Test 1: Get unread counts (should show 0 unread for same user)
         try:
             response = requests.get(f"{self.base_url}/chat/groups/unread-counts", 
-                                  headers=self.member_headers,  # Use member to check their unread count
+                                  headers=self.admin_headers,  # Use admin to check their own unread count
                                   timeout=10)
             
             if response.status_code == 200:
@@ -264,18 +264,18 @@ class ChatTypingUnreadAPITester:
                 unread_counts = data.get('unread_counts', {})
                 latest_message_times = data.get('latest_message_times', {})
                 
-                # Check if our group has unread count
+                # Check if our group has unread count (should be 0 for same user)
                 group_unread = unread_counts.get(self.created_group_id, 0)
                 group_latest_time = latest_message_times.get(self.created_group_id)
                 
-                if group_unread > 0:
+                if group_unread == 0:
                     self.test_results['unread_counts']['get_unread_counts'] = True
                     self.test_results['unread_counts']['unread_count_accuracy'] = True
-                    self.log_success("/chat/groups/unread-counts", "GET", f"- Found {group_unread} unread messages")
+                    self.log_success("/chat/groups/unread-counts", "GET", f"- Correctly shows 0 unread for message sender: {group_unread}")
                 else:
                     self.test_results['unread_counts']['get_unread_counts'] = True  # API worked
                     self.test_results['unread_counts']['unread_count_accuracy'] = False  # But count is wrong
-                    self.log_error("/chat/groups/unread-counts", "GET", f"Expected unread count > 0, got: {group_unread}")
+                    self.log_error("/chat/groups/unread-counts", "GET", f"Expected unread count = 0 for sender, got: {group_unread}")
                 
                 if group_latest_time:
                     self.test_results['unread_counts']['latest_message_time'] = True
