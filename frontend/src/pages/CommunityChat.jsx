@@ -625,14 +625,26 @@ const CommunityChat = () => {
         size: f.size
       })),
       status: 'sending',
-      read_by: []
+      read_by: [],
+      reactions: [],
+      reply_to: replyingTo ? {
+        message_id: replyingTo.id,
+        sender_name: replyingTo.sender_name,
+        content_preview: replyingTo.content?.substring(0, 100) || '[Attachment]'
+      } : null
     };
     
     setMessages(prev => [...prev, optimisticMessage]);
     const messageContent = newMessage;
     const filesToSend = [...selectedFiles];
+    const replyData = replyingTo ? {
+      message_id: replyingTo.id,
+      sender_name: replyingTo.sender_name,
+      content_preview: replyingTo.content?.substring(0, 100) || '[Attachment]'
+    } : null;
     setNewMessage('');
     setSelectedFiles([]);
+    setReplyingTo(null); // Clear reply
 
     setSendingMessage(true);
     try {
@@ -643,6 +655,12 @@ const CommunityChat = () => {
         filesToSend.forEach(file => {
           formData.append('files', file);
         });
+        // Add reply data if replying
+        if (replyData) {
+          formData.append('reply_to_message_id', replyData.message_id);
+          formData.append('reply_to_sender_name', replyData.sender_name);
+          formData.append('reply_to_content_preview', replyData.content_preview);
+        }
         
         await axios.post(
           `${getAPI()}/chat/groups/${selectedGroup.id}/messages/upload`,
@@ -656,9 +674,16 @@ const CommunityChat = () => {
         );
       } else {
         // Send text only
+        const messagePayload = { 
+          content: messageContent, 
+          group_id: selectedGroup.id 
+        };
+        if (replyData) {
+          messagePayload.reply_to = replyData;
+        }
         await axios.post(
           `${getAPI()}/chat/groups/${selectedGroup.id}/messages`,
-          { content: messageContent, group_id: selectedGroup.id },
+          messagePayload,
           { headers: { Authorization: `Bearer ${token}` } }
         );
       }
@@ -674,6 +699,7 @@ const CommunityChat = () => {
       setMessages(prev => prev.filter(m => m.id !== tempId));
       setNewMessage(messageContent);
       setSelectedFiles(filesToSend);
+      setReplyingTo(replyData ? messages.find(m => m.id === replyData.message_id) : null);
       toast({ 
         title: 'Error', 
         description: error.response?.data?.detail || 'Failed to send message', 
