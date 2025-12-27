@@ -911,6 +911,10 @@ const CommunityChat = () => {
       setMessages(prev => prev.map(m => 
         m.id === messageId ? { ...m, reactions: response.data.reactions } : m
       ));
+      // Also update the cache
+      if (selectedGroup) {
+        updateMessageInCache(selectedGroup.id, messageId, { reactions: response.data.reactions });
+      }
       setShowEmojiPicker(null);
     } catch (error) {
       toast({ 
