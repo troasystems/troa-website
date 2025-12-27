@@ -1702,7 +1702,9 @@ const CommunityChat = () => {
             onClose={() => setShowEditGroupModal(false)}
             onUpdated={(updatedGroup) => {
               setSelectedGroup(updatedGroup);
-              fetchGroups();
+              // Invalidate cache and force refresh
+              invalidateGroupsCache();
+              fetchGroups(true);
             }}
             token={token}
           />
