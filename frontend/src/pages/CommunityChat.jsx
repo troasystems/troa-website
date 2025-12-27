@@ -1088,12 +1088,34 @@ const CommunityChat = () => {
               const isOwnMessage = message.sender_email === user?.email;
               const messageStatus = getMessageStatus(message, selectedGroup.members);
               const isDeleted = message.is_deleted;
+              const reactions = message.reactions || [];
+              
+              // Group reactions by emoji
+              const groupedReactions = reactions.reduce((acc, r) => {
+                if (!acc[r.emoji]) acc[r.emoji] = [];
+                acc[r.emoji].push(r);
+                return acc;
+              }, {});
               
               return (
                 <div
                   key={message.id}
-                  className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} group`}
+                  ref={el => messageRefs.current[message.id] = el}
+                  className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} group transition-colors duration-300`}
+                  onTouchStart={() => handleTouchStart(message.id)}
+                  onTouchEnd={handleTouchEnd}
+                  onTouchMove={(e) => handleSwipeMove(e, message)}
+                  onMouseDown={() => handleTouchStart(message.id)}
+                  onMouseUp={handleTouchEnd}
+                  onMouseLeave={handleTouchEnd}
                 >
+                  {/* Swipe indicator */}
+                  {!isOwnMessage && (
+                    <div className="flex items-center mr-1 opacity-0 group-hover:opacity-50">
+                      <Reply className="w-4 h-4 text-gray-400" />
+                    </div>
+                  )}
+                  
                   {/* Sender Avatar for other's messages */}
                   {!isOwnMessage && (
                     <div className="flex-shrink-0 mr-2 mt-5">
@@ -1114,6 +1136,17 @@ const CommunityChat = () => {
                   <div className={`max-w-[75%] relative`}>
                     {!isOwnMessage && (
                       <p className="text-xs text-gray-500 mb-1 ml-1">{message.sender_name}</p>
+                    )}
+                    
+                    {/* Reply button for own messages */}
+                    {isOwnMessage && !isDeleted && (
+                      <button
+                        onClick={() => setReplyingTo(message)}
+                        className="absolute -left-16 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-gray-100 hover:bg-purple-100 text-gray-400 hover:text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity mr-1"
+                        title="Reply"
+                      >
+                        <Reply className="w-3.5 h-3.5" />
+                      </button>
                     )}
                     
                     {/* Delete button for own messages */}
