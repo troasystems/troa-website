@@ -56,8 +56,8 @@ class ChatTypingUnreadAPITester:
             'Content-Type': 'application/json'
         }
         
-        # Setup headers for member user (abcde@gmail.com)
-        self.member_session_token = "member_test_token_123"  # This would be a real token in practice
+        # Setup headers for member user (use same token for testing)
+        self.member_session_token = "HVTQkdSZphVYtWmKVkq6MtFd3krZviaLbvOfSN4rqGA"  # Valid token
         self.member_headers = {
             'Authorization': f'Basic {self.basic_auth}',
             'X-Session-Token': f'Bearer {self.member_session_token}',
