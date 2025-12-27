@@ -1265,13 +1265,15 @@ const CommunityChat = () => {
                 <div
                   key={message.id}
                   ref={el => messageRefs.current[message.id] = el}
-                  className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} group transition-colors duration-300 ${reactions.length > 0 ? 'mb-3' : ''}`}
-                  onTouchStart={() => handleTouchStart(message.id)}
+                  className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} group transition-colors duration-300 ${reactions.length > 0 ? 'mb-3' : ''} select-none`}
+                  style={{ WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none' }}
+                  onTouchStart={(e) => handleTouchStart(e, message.id)}
                   onTouchEnd={handleTouchEnd}
                   onTouchMove={(e) => handleSwipeMove(e, message)}
-                  onMouseDown={() => handleTouchStart(message.id)}
+                  onMouseDown={(e) => handleTouchStart(e, message.id)}
                   onMouseUp={handleTouchEnd}
                   onMouseLeave={handleTouchEnd}
+                  onContextMenu={(e) => e.preventDefault()}
                 >
                   {/* Swipe indicator */}
                   {!isOwnMessage && (
