@@ -46,8 +46,8 @@ const PageLoader = () => (
 // Chatbot wrapper that hides on community chat page
 const ChatbotWrapper = () => {
   const location = useLocation();
-  // Hide chatbot when on /chat page with a group selected (has ?group= param)
-  const isCommunityChat = location.pathname === '/chat' && location.search.includes('group=');
+  // Hide chatbot completely when on /chat page (community chat)
+  const isCommunityChat = location.pathname === '/chat';
   
   if (isCommunityChat) return null;
   
