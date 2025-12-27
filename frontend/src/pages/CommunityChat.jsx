@@ -1853,7 +1853,11 @@ const CommunityChat = () => {
       {showCreateModal && (
         <CreateGroupModal 
           onClose={() => setShowCreateModal(false)} 
-          onCreated={fetchGroups} 
+          onCreated={() => {
+            // Invalidate cache and force refresh
+            invalidateGroupsCache();
+            fetchGroups(true);
+          }} 
           token={token}
           isAdmin={isAdmin}
           isManager={isManager}
