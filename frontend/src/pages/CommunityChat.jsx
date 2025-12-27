@@ -1679,11 +1679,15 @@ const CommunityChat = () => {
             }}
             onMemberAdded={() => {
               fetchMembers(selectedGroup.id);
-              fetchGroups();
+              // Invalidate cache and force refresh
+              invalidateGroupsCache();
+              fetchGroups(true);
             }}
             onMemberRemoved={() => {
               fetchMembers(selectedGroup.id);
-              fetchGroups();
+              // Invalidate cache and force refresh
+              invalidateGroupsCache();
+              fetchGroups(true);
             }}
             token={token}
             isAdmin={isAdmin}
