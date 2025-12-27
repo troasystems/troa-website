@@ -1101,7 +1101,7 @@ const CommunityChat = () => {
                 <div
                   key={message.id}
                   ref={el => messageRefs.current[message.id] = el}
-                  className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} group transition-colors duration-300`}
+                  className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} group transition-colors duration-300 ${reactions.length > 0 ? 'mb-3' : ''}`}
                   onTouchStart={() => handleTouchStart(message.id)}
                   onTouchEnd={handleTouchEnd}
                   onTouchMove={(e) => handleSwipeMove(e, message)}
@@ -1127,7 +1127,7 @@ const CommunityChat = () => {
                         />
                       ) : (
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-medium">
-                          {message.sender_name?.[0]?.toUpperCase()}
+                          {message.sender_name?.[0]?.toUpperCase()}}
                         </div>
                       )}
                     </div>
