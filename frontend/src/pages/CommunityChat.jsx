@@ -1737,21 +1737,26 @@ const CommunityChat = () => {
             </button>
           </div>
         ) : (
-          groups.map((group) => {
+          getSortedGroups().map((group) => {
             const joined = isMember(group);
             const groupType = group.group_type || (group.is_mc_only ? 'mc_only' : 'public');
+            const unreadCount = unreadCounts[group.id] || 0;
             return (
               <div
                 key={group.id}
-                className="bg-white rounded-xl shadow-sm p-4"
+                className={`bg-white rounded-xl shadow-sm p-4 cursor-pointer hover:shadow-md transition-shadow ${joined ? 'active:bg-gray-50' : ''}`}
+                onClick={() => {
+                  if (joined) {
+                    setSelectedGroup(group);
+                  } else {
+                    handleJoinGroup(group.id, group.name);
+                  }
+                }}
               >
                 <div className="flex items-center justify-between">
-                  <div 
-                    className="flex items-center space-x-3 flex-1 cursor-pointer"
-                    onClick={() => joined && setSelectedGroup(group)}
-                  >
+                  <div className="flex items-center space-x-3 flex-1">
                     {/* Group Icon */}
-                    <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 relative">
                       {group.icon ? (
                         <img 
                           src={group.icon.startsWith('data:') ? group.icon : `data:image/png;base64,${group.icon}`}
@@ -1776,9 +1781,9 @@ const CommunityChat = () => {
                         </div>
                       )}
                     </div>
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2 flex-wrap gap-1">
-                        <h3 className="font-semibold text-gray-900">{group.name}</h3>
+                        <h3 className="font-semibold text-gray-900 truncate">{group.name}</h3>
                         {groupType === 'mc_only' && (
                           <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full">MC Only</span>
                         )}
@@ -1793,22 +1798,23 @@ const CommunityChat = () => {
                       </p>
                     </div>
                   </div>
-                  <div>
+                  <div className="flex items-center space-x-3 ml-2">
                     {joined ? (
-                      <button
-                        onClick={() => setSelectedGroup(group)}
-                        className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium"
-                      >
-                        Open
-                      </button>
+                      <>
+                        {/* Unread count badge */}
+                        {unreadCount > 0 && (
+                          <span className="min-w-[24px] h-6 px-2 flex items-center justify-center bg-gradient-to-r from-purple-600 to-pink-500 text-white text-xs font-bold rounded-full">
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                          </span>
+                        )}
+                        {/* Arrow indicator */}
+                        <ChevronRight className="w-5 h-5 text-gray-400" />
+                      </>
                     ) : (
-                      <button
-                        onClick={() => handleJoinGroup(group.id, group.name)}
-                        className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-lg text-sm font-medium flex items-center justify-center space-x-1"
-                      >
+                      <div className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-lg text-sm font-medium flex items-center space-x-1">
                         <UserPlus className="w-4 h-4" />
                         <span>Join</span>
-                      </button>
+                      </div>
                     )}
                   </div>
                 </div>
