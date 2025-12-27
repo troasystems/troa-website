@@ -454,16 +454,25 @@ async def remove_member_from_group(group_id: str, member_data: RemoveMemberReque
 
 @chat_router.put("/groups/{group_id}")
 async def update_chat_group(group_id: str, group_data: ChatGroupUpdate, request: Request):
-    """Update a chat group name/description/icon - managers and admins only"""
+    """Update a chat group settings - creator or managers/admins can update"""
     try:
-        from auth import require_manager_or_admin
-        user = await require_manager_or_admin(request)
+        from auth import require_auth
+        user = await require_auth(request)
         db = await get_db()
         
         # Get the group
         group = await db.chat_groups.find_one({"id": group_id}, {"_id": 0})
         if not group:
             raise HTTPException(status_code=404, detail="Group not found")
+        
+        # Check permissions - creator or admin/manager can update
+        user_data = await db.users.find_one({"email": user['email']}, {"_id": 0})
+        user_role = user_data.get('role', 'user') if user_data else 'user'
+        is_admin_or_manager = user_role in ['admin', 'manager']
+        is_creator = group.get('created_by') == user['email']
+        
+        if not is_creator and not is_admin_or_manager:
+            raise HTTPException(status_code=403, detail="Only the group creator or admins can update group settings")
         
         # Build update dict
         update_data = {}
@@ -473,6 +482,13 @@ async def update_chat_group(group_id: str, group_data: ChatGroupUpdate, request:
             update_data["description"] = group_data.description
         if group_data.icon is not None:
             update_data["icon"] = group_data.icon
+        if group_data.group_type is not None:
+            # Only admins/managers can change to/from mc_only
+            if group_data.group_type == "mc_only" or group.get('group_type') == "mc_only":
+                if not is_admin_or_manager:
+                    raise HTTPException(status_code=403, detail="Only admins can change MC group settings")
+            update_data["group_type"] = group_data.group_type
+            update_data["is_mc_only"] = group_data.group_type == "mc_only"
         
         if not update_data:
             raise HTTPException(status_code=400, detail="No update data provided")
@@ -486,6 +502,8 @@ async def update_chat_group(group_id: str, group_data: ChatGroupUpdate, request:
         # Get updated group
         updated_group = await db.chat_groups.find_one({"id": group_id}, {"_id": 0})
         updated_group['member_count'] = len(updated_group.get('members', []))
+        if 'group_type' not in updated_group:
+            updated_group['group_type'] = 'mc_only' if updated_group.get('is_mc_only') else 'public'
         
         logger.info(f"Chat group {group_id} updated by {user['email']}")
         return ChatGroup(**updated_group)
