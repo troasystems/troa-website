@@ -197,6 +197,9 @@ async def get_chat_groups(request: Request):
         result = []
         for group in groups:
             group['member_count'] = len(group.get('members', []))
+            # Ensure group_type exists (backward compatibility)
+            if 'group_type' not in group:
+                group['group_type'] = 'mc_only' if group.get('is_mc_only') else 'public'
             result.append(ChatGroup(**group))
         
         return result
