@@ -244,15 +244,23 @@ export const AuthProvider = ({ children }) => {
       await axios.post(`${API}/auth/logout`, {}, {
         withCredentials: true
       });
-      setUser(null);
-      setToken(null);
-      localStorage.removeItem('session_token');
-      window.location.href = '/';
     } catch (error) {
       console.error('Logout error:', error);
-      localStorage.removeItem('session_token');
-      setToken(null);
+    } finally {
+      // Clear all local state
       setUser(null);
+      setToken(null);
+      localStorage.removeItem('session_token');
+      
+      // Clear all caches
+      try {
+        await clearAllChatCache(); // Clear chat IndexedDB and memory cache
+        clearAllCache(); // Clear general memory cache
+        console.log('[Auth] All caches cleared on logout');
+      } catch (cacheError) {
+        console.error('[Auth] Error clearing caches:', cacheError);
+      }
+      
       window.location.href = '/';
     }
   };
