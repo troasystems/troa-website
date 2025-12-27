@@ -719,6 +719,87 @@ const CommunityChat = () => {
     });
   };
 
+  // Reaction handling
+  const addReaction = async (messageId, emoji) => {
+    try {
+      const response = await axios.post(
+        `${getAPI()}/chat/messages/${messageId}/react`,
+        { emoji },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      // Update message reactions locally
+      setMessages(prev => prev.map(m => 
+        m.id === messageId ? { ...m, reactions: response.data.reactions } : m
+      ));
+      setShowEmojiPicker(null);
+    } catch (error) {
+      toast({ 
+        title: 'Error', 
+        description: error.response?.data?.detail || 'Failed to add reaction', 
+        variant: 'destructive' 
+      });
+    }
+  };
+
+  // Long press handler for emoji reactions
+  const handleMessageLongPress = (messageId) => {
+    setShowEmojiPicker(messageId);
+  };
+
+  const handleTouchStart = (messageId) => {
+    const timer = setTimeout(() => {
+      handleMessageLongPress(messageId);
+    }, 500); // 500ms for long press
+    setLongPressTimer(timer);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  };
+
+  // Swipe handling for reply
+  const handleSwipeStart = (e, messageId) => {
+    const touch = e.touches ? e.touches[0] : e;
+    setSwipeStart({ x: touch.clientX, messageId });
+  };
+
+  const handleSwipeMove = (e, message) => {
+    if (!swipeStart) return;
+    const touch = e.touches ? e.touches[0] : e;
+    const diff = touch.clientX - swipeStart.x;
+    
+    // If swiped right more than 50px, trigger reply
+    if (diff > 50) {
+      setReplyingTo(message);
+      setSwipeStart(null);
+    }
+  };
+
+  const handleSwipeEnd = () => {
+    setSwipeStart(null);
+  };
+
+  // Cancel reply
+  const cancelReply = () => {
+    setReplyingTo(null);
+  };
+
+  // Scroll to replied message
+  const scrollToMessage = (messageId) => {
+    const messageEl = messageRefs.current[messageId];
+    if (messageEl) {
+      messageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Highlight briefly
+      messageEl.classList.add('bg-yellow-100');
+      setTimeout(() => {
+        messageEl.classList.remove('bg-yellow-100');
+      }, 1500);
+    }
+  };
+
   const deleteGroup = async (groupId) => {
     try {
       await axios.delete(`${getAPI()}/chat/groups/${groupId}`, {
