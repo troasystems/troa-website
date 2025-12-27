@@ -295,7 +295,7 @@ class ChatTypingUnreadAPITester:
         try:
             response = requests.post(f"{self.base_url}/chat/groups/{self.created_group_id}/mark-read", 
                                    json={},  # Empty body
-                                   headers=self.member_headers,
+                                   headers=self.admin_headers,  # Use admin headers
                                    timeout=10)
             
             if response.status_code == 200:
