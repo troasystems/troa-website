@@ -389,15 +389,14 @@ const CommunityChat = () => {
             message: `Would you like to join "${group.name}"?`,
             confirmText: 'Join',
             confirmColor: 'green',
-            onConfirm: () => {
-              joinGroup(groupIdFromUrl).then(() => {
-                fetchGroups(true).then(() => {
-                  const updatedGroup = groups.find(g => g.id === groupIdFromUrl);
-                  if (updatedGroup) {
-                    setSelectedGroup({...updatedGroup, members: [...(updatedGroup.members || []), user?.email]});
-                  }
-                });
-              });
+            onConfirm: async () => {
+              await joinGroup(groupIdFromUrl);
+              // joinGroup already invalidates cache, fetch updated group
+              const updatedGroups = await fetchGroups(true);
+              const updatedGroup = updatedGroups?.find(g => g.id === groupIdFromUrl);
+              if (updatedGroup) {
+                setSelectedGroup(updatedGroup);
+              }
             }
           });
         }
