@@ -2861,6 +2861,9 @@ class TROAAPITester:
         # Test 8: Test message order (oldest first after reversal)
         if self.test_group_id:
             self.test_message_order()
+        
+        # Test 9: Test WhatsApp-like features
+        self.test_whatsapp_features()
 
     def create_test_group(self):
         """Create a test group for chat testing"""
