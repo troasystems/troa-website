@@ -5,7 +5,8 @@ import {
   MessageSquare, Users, Plus, Send, ArrowLeft, LogOut, LogIn, 
   Crown, Shield, Trash2, X, Loader2, UserPlus, Settings,
   Paperclip, Image, FileText, Download, Eye, UserMinus, Search,
-  Check, CheckCheck, Edit2, Camera, Reply, Lock, Globe, Smile
+  Check, CheckCheck, Edit2, Camera, Reply, Lock, Globe, Smile,
+  ChevronRight
 } from 'lucide-react';
 import axios from 'axios';
 import EmojiPicker from 'emoji-picker-react';
