@@ -466,6 +466,105 @@ const CommunityChat = () => {
     }
   };
 
+  // Fetch unread counts for all groups
+  const fetchUnreadCounts = async () => {
+    if (!token) return;
+    try {
+      const response = await axios.get(`${getAPI()}/chat/groups/unread-counts`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUnreadCounts(response.data.unread_counts || {});
+      setLatestMessageTimes(response.data.latest_message_times || {});
+    } catch (error) {
+      console.error('Error fetching unread counts:', error);
+    }
+  };
+
+  // Mark group as read
+  const markGroupAsRead = async (groupId) => {
+    if (!token) return;
+    try {
+      await axios.post(`${getAPI()}/chat/groups/${groupId}/mark-read`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Clear unread count for this group locally
+      setUnreadCounts(prev => ({ ...prev, [groupId]: 0 }));
+    } catch (error) {
+      console.error('Error marking group as read:', error);
+    }
+  };
+
+  // Update typing status
+  const updateTypingStatus = async (groupId, typing) => {
+    if (!token) return;
+    try {
+      await axios.post(`${getAPI()}/chat/groups/${groupId}/typing`, 
+        { is_typing: typing },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setIsTyping(typing);
+    } catch (error) {
+      console.error('Error updating typing status:', error);
+    }
+  };
+
+  // Fetch who is typing in the group
+  const fetchTypingUsers = async (groupId) => {
+    if (!token) return;
+    try {
+      const response = await axios.get(`${getAPI()}/chat/groups/${groupId}/typing`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTypingUsers(response.data.typing_users || []);
+    } catch (error) {
+      console.error('Error fetching typing users:', error);
+    }
+  };
+
+  // Handle typing - called when user types in the input
+  const handleTyping = () => {
+    if (!selectedGroup) return;
+    
+    // Send typing status
+    if (!isTyping) {
+      updateTypingStatus(selectedGroup.id, true);
+    }
+    
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // Set timeout to clear typing status after 3 seconds of no typing
+    typingTimeoutRef.current = setTimeout(() => {
+      updateTypingStatus(selectedGroup.id, false);
+    }, 3000);
+  };
+
+  // Sort groups by unread count (desc) and latest message time (desc)
+  const getSortedGroups = () => {
+    return [...groups].sort((a, b) => {
+      const aUnread = unreadCounts[a.id] || 0;
+      const bUnread = unreadCounts[b.id] || 0;
+      
+      // First, prioritize groups with unread messages
+      if (aUnread > 0 && bUnread === 0) return -1;
+      if (bUnread > 0 && aUnread === 0) return 1;
+      
+      // Then sort by latest message time (most recent first)
+      const aTime = latestMessageTimes[a.id] || '';
+      const bTime = latestMessageTimes[b.id] || '';
+      
+      if (aTime && bTime) {
+        return bTime.localeCompare(aTime);
+      }
+      if (aTime) return -1;
+      if (bTime) return 1;
+      
+      return 0;
+    });
+  };
+
   // Fetch messages with caching
   const fetchMessages = useCallback(async (groupId, silent = false) => {
     try {
