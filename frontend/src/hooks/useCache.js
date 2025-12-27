@@ -217,6 +217,7 @@ export function useImagePreload() {
 }
 
 // Prefetch common routes data
+// Note: Events are NOT cached as they need real-time data for registrations
 export async function prefetchCommonData() {
   const baseUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
     ? window.location.origin
@@ -224,8 +225,8 @@ export async function prefetchCommonData() {
   
   const endpoints = [
     `${baseUrl}/api/amenities`,
-    `${baseUrl}/api/committee`,
-    `${baseUrl}/api/events`
+    `${baseUrl}/api/committee`
+    // Events removed from prefetch - caching not needed for event-related activities
   ];
 
   const token = localStorage.getItem('session_token');
