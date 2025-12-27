@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { clearAllChatCache } from '../services/chatCache';
+import { clearAllCache } from '../hooks/useCache';
 
 // Use current origin for API calls (works in production with custom domain)
 // Fall back to env variable for local development
