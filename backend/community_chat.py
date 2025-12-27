@@ -516,16 +516,28 @@ async def update_chat_group(group_id: str, group_data: ChatGroupUpdate, request:
 
 @chat_router.delete("/groups/{group_id}")
 async def delete_chat_group(group_id: str, request: Request):
-    """Delete a chat group - managers and admins only"""
+    """Delete a chat group - creator or managers/admins can delete"""
     try:
-        from auth import require_manager_or_admin
-        user = await require_manager_or_admin(request)
+        from auth import require_auth
+        user = await require_auth(request)
         db = await get_db()
         
-        # Delete the group
-        result = await db.chat_groups.delete_one({"id": group_id})
-        if result.deleted_count == 0:
+        # Get the group first to check permissions
+        group = await db.chat_groups.find_one({"id": group_id}, {"_id": 0})
+        if not group:
             raise HTTPException(status_code=404, detail="Group not found")
+        
+        # Check permissions - creator or admin/manager can delete
+        user_data = await db.users.find_one({"email": user['email']}, {"_id": 0})
+        user_role = user_data.get('role', 'user') if user_data else 'user'
+        is_admin_or_manager = user_role in ['admin', 'manager']
+        is_creator = group.get('created_by') == user['email']
+        
+        if not is_creator and not is_admin_or_manager:
+            raise HTTPException(status_code=403, detail="Only the group creator or admins can delete this group")
+        
+        # Delete the group
+        await db.chat_groups.delete_one({"id": group_id})
         
         # Delete all messages in the group
         await db.chat_messages.delete_many({"group_id": group_id})
