@@ -260,7 +260,8 @@ async def create_chat_group(group_data: ChatGroupCreate, request: Request):
             "created_by": user['email'],
             "created_by_name": user['name'],
             "created_at": datetime.now(timezone.utc).isoformat(),
-            "is_mc_only": group_data.is_mc_only,
+            "group_type": group_type,
+            "is_mc_only": group_type == "mc_only",  # Backward compatibility
             "members": members,
             "icon": group_data.icon
         }
@@ -268,7 +269,7 @@ async def create_chat_group(group_data: ChatGroupCreate, request: Request):
         await db.chat_groups.insert_one(group)
         group['member_count'] = len(members)
         
-        logger.info(f"Chat group '{group_data.name}' created by {user['email']} with {len(members)} members")
+        logger.info(f"Chat group '{group_data.name}' ({group_type}) created by {user['email']} with {len(members)} members")
         return ChatGroup(**group)
     except HTTPException:
         raise
