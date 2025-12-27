@@ -221,12 +221,18 @@ const CommunityChat = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [deletingMessage, setDeletingMessage] = useState(null);
+  // New state for reactions and replies
+  const [replyingTo, setReplyingTo] = useState(null); // Message being replied to
+  const [showEmojiPicker, setShowEmojiPicker] = useState(null); // Message ID for emoji picker
+  const [longPressTimer, setLongPressTimer] = useState(null);
+  const [swipeStart, setSwipeStart] = useState(null);
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const pollIntervalRef = useRef(null);
   const groupIdFromUrl = searchParams.get('group');
   const initialLoadRef = useRef(true);
+  const messageRefs = useRef({}); // To store refs for scrolling to replied messages
 
   // Fetch groups
   useEffect(() => {
