@@ -356,7 +356,7 @@ async def leave_chat_group(group_id: str, request: Request):
 
 @chat_router.post("/groups/{group_id}/add-member")
 async def add_member_to_group(group_id: str, member_data: AddMemberRequest, request: Request):
-    """Add a member to a chat group - any authenticated user can add members"""
+    """Add a member to a chat group - permissions depend on group type"""
     try:
         from auth import require_auth
         user = await require_auth(request)
@@ -367,15 +367,25 @@ async def add_member_to_group(group_id: str, member_data: AddMemberRequest, requ
         if not group:
             raise HTTPException(status_code=404, detail="Group not found")
         
-        # Check if the user trying to add is a member themselves
-        if user['email'] not in group.get('members', []):
-            raise HTTPException(status_code=403, detail="You must be a member to add others")
+        group_type = group.get('group_type', 'public')
+        user_data = await db.users.find_one({"email": user['email']}, {"_id": 0})
+        user_role = user_data.get('role', 'user') if user_data else 'user'
+        is_admin_or_manager = user_role in ['admin', 'manager']
+        is_creator = group.get('created_by') == user['email']
         
-        # Check if MC-only group - only managers/admins can add to MC group
-        if group.get('is_mc_only'):
-            user_data = await db.users.find_one({"email": user['email']}, {"_id": 0})
-            if not user_data or user_data.get('role') not in ['admin', 'manager']:
+        # Permission check based on group type
+        if group.get('is_mc_only') or group_type == 'mc_only':
+            # MC-only groups - only managers/admins can add
+            if not is_admin_or_manager:
                 raise HTTPException(status_code=403, detail="Only managers can add members to the MC Group")
+        elif group_type == 'private':
+            # Private groups - only creator or admins can add
+            if not is_creator and not is_admin_or_manager:
+                raise HTTPException(status_code=403, detail="Only the group creator can add members to this private group")
+        else:
+            # Public groups - any member can add others
+            if user['email'] not in group.get('members', []):
+                raise HTTPException(status_code=403, detail="You must be a member to add others")
         
         # Verify the user to add exists
         user_to_add = await db.users.find_one({"email": member_data.email}, {"_id": 0})
