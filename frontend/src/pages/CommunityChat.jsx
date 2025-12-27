@@ -1252,13 +1252,85 @@ const CommunityChat = () => {
                         {!isDeleted && <MessageStatus status={messageStatus} isOwnMessage={isOwnMessage} />}
                       </div>
                     </div>
+                    
+                    {/* Reactions display */}
+                    {!isDeleted && Object.keys(groupedReactions).length > 0 && (
+                      <div className={`flex flex-wrap gap-1 mt-1 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+                        {Object.entries(groupedReactions).map(([emoji, users]) => (
+                          <button
+                            key={emoji}
+                            onClick={() => addReaction(message.id, emoji)}
+                            className={`px-2 py-0.5 rounded-full text-xs flex items-center space-x-1 ${
+                              users.some(u => u.user_email === user?.email)
+                                ? 'bg-purple-100 border border-purple-300'
+                                : 'bg-gray-100 border border-gray-200'
+                            }`}
+                            title={users.map(u => u.user_name).join(', ')}
+                          >
+                            <span>{emoji}</span>
+                            <span className="text-gray-600">{users.length}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Emoji picker modal */}
+                    {showEmojiPicker === message.id && (
+                      <div 
+                        className={`absolute z-50 ${isOwnMessage ? 'right-0' : 'left-0'} top-full mt-1`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="relative">
+                          <button 
+                            onClick={() => setShowEmojiPicker(null)}
+                            className="absolute -top-2 -right-2 z-10 bg-white rounded-full p-1 shadow-md"
+                          >
+                            <X className="w-4 h-4 text-gray-500" />
+                          </button>
+                          <EmojiPicker 
+                            onEmojiClick={(emojiData) => addReaction(message.id, emojiData.emoji)}
+                            width={280}
+                            height={350}
+                            previewConfig={{ showPreview: false }}
+                            skinTonesDisabled
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
+                  
+                  {/* Reply button for other's messages */}
+                  {!isOwnMessage && !isDeleted && (
+                    <button
+                      onClick={() => setReplyingTo(message)}
+                      className="ml-1 p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Reply"
+                    >
+                      <Reply className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               );
             })
           )}
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Reply Preview */}
+        {replyingTo && (
+          <div className="bg-purple-50 border-t border-purple-200 px-4 py-2 flex items-center justify-between">
+            <div className="flex items-center space-x-2 flex-1 min-w-0">
+              <div className="w-1 h-10 bg-purple-500 rounded-full"></div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-purple-600">Replying to {replyingTo.sender_name}</p>
+                <p className="text-xs text-gray-500 truncate">{replyingTo.content || '[Attachment]'}</p>
+              </div>
+            </div>
+            <button onClick={cancelReply} className="p-1 hover:bg-purple-100 rounded-full">
+              <X className="w-4 h-4 text-gray-500" />
+            </button>
+          </div>
+        )}
 
         {/* Selected Files Preview */}
         {selectedFiles.length > 0 && (
