@@ -212,15 +212,32 @@ async def get_chat_groups(request: Request):
 
 @chat_router.post("/groups", response_model=ChatGroup)
 async def create_chat_group(group_data: ChatGroupCreate, request: Request):
-    """Create a new chat group - managers and admins only"""
+    """Create a new chat group - managers and admins can create any type, regular users can create public/private"""
     try:
-        from auth import require_manager_or_admin
-        user = await require_manager_or_admin(request)
+        from auth import require_auth
+        user = await require_auth(request)
         db = await get_db()
         
+        # Get user's role
+        user_data = await db.users.find_one({"email": user['email']}, {"_id": 0})
+        user_role = user_data.get('role', 'user') if user_data else 'user'
+        is_admin_or_manager = user_role in ['admin', 'manager']
+        
+        # Determine group type (prioritize explicit group_type over is_mc_only)
+        group_type = group_data.group_type
+        if group_data.is_mc_only and group_type == "public":
+            group_type = "mc_only"  # Backward compatibility
+        
+        # Only admins/managers can create MC-only groups
+        if group_type == "mc_only" and not is_admin_or_manager:
+            raise HTTPException(status_code=403, detail="Only managers and admins can create MC groups")
+        
         # Check if MC Group already exists if trying to create one
-        if group_data.is_mc_only:
-            existing_mc = await db.chat_groups.find_one({"is_mc_only": True}, {"_id": 0})
+        if group_type == "mc_only":
+            existing_mc = await db.chat_groups.find_one(
+                {"$or": [{"is_mc_only": True}, {"group_type": "mc_only"}]}, 
+                {"_id": 0}
+            )
             if existing_mc:
                 raise HTTPException(status_code=400, detail="MC Group already exists")
         
