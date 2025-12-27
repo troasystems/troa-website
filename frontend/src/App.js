@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, lazy, Suspense } from 'react';
 import './App.css';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
@@ -42,6 +42,23 @@ const PageLoader = () => (
     <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-purple-600"></div>
   </div>
 );
+
+// Chatbot wrapper that hides on community chat page
+const ChatbotWrapper = () => {
+  const location = useLocation();
+  // Hide chatbot when on /chat page with a group selected (has ?group= param)
+  const isCommunityChat = location.pathname === '/chat' && location.search.includes('group=');
+  
+  if (isCommunityChat) return null;
+  
+  return (
+    <Suspense fallback={null}>
+      <div className="md:mb-0 mb-16">
+        <Chatbot />
+      </div>
+    </Suspense>
+  );
+};
 
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
