@@ -167,11 +167,29 @@ async def get_chat_groups(request: Request):
         # Get user's role
         user_role = user.get('role', 'user')
         is_admin_or_manager = user_role in ['admin', 'manager']
+        user_email = user.get('email')
         
-        # Build query - filter out MC-only groups for normal users
-        query = {}
-        if not is_admin_or_manager:
-            query['is_mc_only'] = {'$ne': True}
+        # Build query based on group visibility rules:
+        # - Public groups: visible to all
+        # - Private groups: visible only to members (creator + added members)
+        # - MC-only groups: visible only to managers/admins
+        
+        if is_admin_or_manager:
+            # Admins/managers can see all groups
+            query = {}
+        else:
+            # Regular users can see:
+            # 1. Public groups
+            # 2. Private groups they are a member of
+            query = {
+                '$or': [
+                    {'group_type': 'public'},
+                    {'group_type': {'$exists': False}},  # Legacy groups without group_type
+                    {'group_type': 'private', 'members': user_email}
+                ],
+                # Exclude MC-only groups for non-managers (backward compatibility)
+                'is_mc_only': {'$ne': True}
+            }
         
         # Get groups based on user role
         groups = await db.chat_groups.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
