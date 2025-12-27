@@ -772,6 +772,15 @@ async def send_message_with_files(
         sender_picture = sender_data.get('picture') if sender_data else None
         
         # Create message
+        # Handle reply_to if provided
+        reply_to_data = None
+        if reply_to_message_id:
+            reply_to_data = {
+                "message_id": reply_to_message_id,
+                "sender_name": reply_to_sender_name or "",
+                "content_preview": (reply_to_content_preview or "")[:100]
+            }
+        
         message = {
             "id": str(uuid4()),
             "group_id": group_id,
@@ -782,7 +791,9 @@ async def send_message_with_files(
             "created_at": datetime.now(timezone.utc).isoformat(),
             "attachments": attachments,
             "status": "sent",
-            "read_by": []
+            "read_by": [],
+            "reactions": [],
+            "reply_to": reply_to_data
         }
         
         await db.chat_messages.insert_one(message)
