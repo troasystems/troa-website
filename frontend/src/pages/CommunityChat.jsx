@@ -2004,10 +2004,10 @@ const ManageMembersModal = ({ group, members, onClose, onMemberAdded, onMemberRe
 };
 
 // Create Group Modal Component
-const CreateGroupModal = ({ onClose, onCreated, token }) => {
+const CreateGroupModal = ({ onClose, onCreated, token, isAdmin, isManager }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [isMcOnly, setIsMcOnly] = useState(false);
+  const [groupType, setGroupType] = useState('public'); // 'public', 'private', 'mc_only'
   const [icon, setIcon] = useState(null);
   const [creating, setCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -2015,6 +2015,8 @@ const CreateGroupModal = ({ onClose, onCreated, token }) => {
   const [selectedMembers, setSelectedMembers] = useState([]);
   const [searching, setSearching] = useState(false);
   const iconInputRef = useRef(null);
+  
+  const canCreateMcGroup = isAdmin || isManager;
 
   const handleIconSelect = (e) => {
     const file = e.target.files[0];
