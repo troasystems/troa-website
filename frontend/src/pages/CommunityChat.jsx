@@ -746,6 +746,14 @@ const CommunityChat = () => {
     e.preventDefault();
     if ((!newMessage.trim() && selectedFiles.length === 0) || !selectedGroup) return;
 
+    // Clear typing status when sending
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    if (isTyping) {
+      updateTypingStatus(selectedGroup.id, false);
+    }
+
     // Add optimistic message with 'sending' status
     const tempId = `temp-${Date.now()}`;
     const optimisticMessage = {
