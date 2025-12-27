@@ -918,6 +918,7 @@ async def get_group_members(group_id: str, request: Request):
 
 
 @chat_router.get("/users/search")
+@chat_router.get("/users/search")
 async def search_users(request: Request, q: str = ""):
     """Search users by name or email for adding to groups"""
     try:
@@ -945,6 +946,122 @@ async def search_users(request: Request, q: str = ""):
     except Exception as e:
         logger.error(f"Error searching users: {e}")
         raise HTTPException(status_code=500, detail="Failed to search users")
+
+
+@chat_router.post("/messages/{message_id}/react")
+async def add_reaction_to_message(message_id: str, reaction_data: AddReactionRequest, request: Request):
+    """Add or toggle a reaction to a message"""
+    try:
+        from auth import require_auth
+        user = await require_auth(request)
+        db = await get_db()
+        
+        # Get the message
+        message = await db.chat_messages.find_one({"id": message_id}, {"_id": 0})
+        if not message:
+            raise HTTPException(status_code=404, detail="Message not found")
+        
+        # Check if user is a member of the group
+        group = await db.chat_groups.find_one({"id": message["group_id"]}, {"_id": 0})
+        if not group or user['email'] not in group.get('members', []):
+            raise HTTPException(status_code=403, detail="You must be a group member to react to messages")
+        
+        # Get existing reactions
+        reactions = message.get('reactions', [])
+        
+        # Check if user already has this emoji reaction
+        existing_reaction_idx = None
+        for idx, r in enumerate(reactions):
+            if r.get('user_email') == user['email'] and r.get('emoji') == reaction_data.emoji:
+                existing_reaction_idx = idx
+                break
+        
+        if existing_reaction_idx is not None:
+            # Remove the reaction (toggle off)
+            reactions.pop(existing_reaction_idx)
+            action = "removed"
+        else:
+            # Add new reaction
+            new_reaction = {
+                "emoji": reaction_data.emoji,
+                "user_email": user['email'],
+                "user_name": user['name'],
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            reactions.append(new_reaction)
+            action = "added"
+        
+        # Update the message
+        await db.chat_messages.update_one(
+            {"id": message_id},
+            {"$set": {"reactions": reactions}}
+        )
+        
+        logger.info(f"User {user['email']} {action} reaction {reaction_data.emoji} to message {message_id}")
+        return {"message": f"Reaction {action}", "reactions": reactions}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error adding reaction: {e}")
+        raise HTTPException(status_code=500, detail="Failed to add reaction")
+
+
+@chat_router.delete("/messages/{message_id}/react/{emoji}")
+async def remove_reaction_from_message(message_id: str, emoji: str, request: Request):
+    """Remove a specific reaction from a message"""
+    try:
+        from auth import require_auth
+        user = await require_auth(request)
+        db = await get_db()
+        
+        # Get the message
+        message = await db.chat_messages.find_one({"id": message_id}, {"_id": 0})
+        if not message:
+            raise HTTPException(status_code=404, detail="Message not found")
+        
+        # Get existing reactions and remove user's reaction with this emoji
+        reactions = message.get('reactions', [])
+        reactions = [r for r in reactions if not (r.get('user_email') == user['email'] and r.get('emoji') == emoji)]
+        
+        # Update the message
+        await db.chat_messages.update_one(
+            {"id": message_id},
+            {"$set": {"reactions": reactions}}
+        )
+        
+        logger.info(f"User {user['email']} removed reaction {emoji} from message {message_id}")
+        return {"message": "Reaction removed", "reactions": reactions}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error removing reaction: {e}")
+        raise HTTPException(status_code=500, detail="Failed to remove reaction")
+
+
+@chat_router.get("/messages/{message_id}/reactions")
+async def get_message_reactions(message_id: str, request: Request):
+    """Get all reactions for a message"""
+    try:
+        from auth import require_auth
+        user = await require_auth(request)
+        db = await get_db()
+        
+        # Get the message
+        message = await db.chat_messages.find_one({"id": message_id}, {"_id": 0})
+        if not message:
+            raise HTTPException(status_code=404, detail="Message not found")
+        
+        # Check if user is a member of the group
+        group = await db.chat_groups.find_one({"id": message["group_id"]}, {"_id": 0})
+        if not group or user['email'] not in group.get('members', []):
+            raise HTTPException(status_code=403, detail="You must be a group member to view reactions")
+        
+        return {"reactions": message.get('reactions', [])}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching reactions: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch reactions")
 
 
 # Initialize MC Group on startup
