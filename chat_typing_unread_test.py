@@ -308,7 +308,7 @@ class ChatTypingUnreadAPITester:
                     time.sleep(1)
                     
                     response = requests.get(f"{self.base_url}/chat/groups/unread-counts", 
-                                          headers=self.member_headers,
+                                          headers=self.admin_headers,
                                           timeout=10)
                     
                     if response.status_code == 200:
