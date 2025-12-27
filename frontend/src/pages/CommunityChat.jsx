@@ -1251,28 +1251,31 @@ const CommunityChat = () => {
                         </p>
                         {!isDeleted && <MessageStatus status={messageStatus} isOwnMessage={isOwnMessage} />}
                       </div>
+                      
+                      {/* Reactions display - WhatsApp style pill at bottom corner */}
+                      {!isDeleted && Object.keys(groupedReactions).length > 0 && (
+                        <div 
+                          className={`absolute -bottom-3 ${isOwnMessage ? 'left-2' : 'left-2'} flex items-center bg-white dark:bg-gray-800 rounded-full px-1.5 py-0.5 shadow-md border border-gray-100 cursor-pointer`}
+                          onClick={() => setShowEmojiPicker(message.id)}
+                          title={Object.entries(groupedReactions).map(([emoji, users]) => 
+                            `${emoji} ${users.map(u => u.user_name).join(', ')}`
+                          ).join('\n')}
+                        >
+                          {/* Show top 5 unique emojis */}
+                          <div className="flex items-center -space-x-0.5">
+                            {Object.keys(groupedReactions).slice(0, 5).map((emoji, idx) => (
+                              <span key={emoji} className="text-sm" style={{ zIndex: 5 - idx }}>
+                                {emoji}
+                              </span>
+                            ))}
+                          </div>
+                          {/* Total count */}
+                          <span className="ml-1 text-xs font-medium text-gray-600">
+                            {reactions.length}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    
-                    {/* Reactions display */}
-                    {!isDeleted && Object.keys(groupedReactions).length > 0 && (
-                      <div className={`flex flex-wrap gap-1 mt-1 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-                        {Object.entries(groupedReactions).map(([emoji, users]) => (
-                          <button
-                            key={emoji}
-                            onClick={() => addReaction(message.id, emoji)}
-                            className={`px-2 py-0.5 rounded-full text-xs flex items-center space-x-1 ${
-                              users.some(u => u.user_email === user?.email)
-                                ? 'bg-purple-100 border border-purple-300'
-                                : 'bg-gray-100 border border-gray-200'
-                            }`}
-                            title={users.map(u => u.user_name).join(', ')}
-                          >
-                            <span>{emoji}</span>
-                            <span className="text-gray-600">{users.length}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
                     
                     {/* Emoji picker modal */}
                     {showEmojiPicker === message.id && (
