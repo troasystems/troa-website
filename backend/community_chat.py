@@ -291,12 +291,17 @@ async def join_chat_group(group_id: str, request: Request):
         if not group:
             raise HTTPException(status_code=404, detail="Group not found")
         
-        # Check if MC-only group
-        if group.get('is_mc_only'):
+        group_type = group.get('group_type', 'public')
+        
+        # Check group type restrictions
+        if group.get('is_mc_only') or group_type == 'mc_only':
             # Only managers/admins can join MC group
             user_data = await db.users.find_one({"email": user['email']}, {"_id": 0})
             if not user_data or user_data.get('role') not in ['admin', 'manager']:
                 raise HTTPException(status_code=403, detail="Only managers can join the MC Group")
+        elif group_type == 'private':
+            # Private groups - users cannot self-join, must be added by creator/admin
+            raise HTTPException(status_code=403, detail="This is a private group. You must be invited to join.")
         
         # Check if already a member
         if user['email'] in group.get('members', []):
