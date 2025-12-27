@@ -1166,7 +1166,7 @@ const CommunityChat = () => {
                     )}
                     
                     <div
-                      className={`px-4 py-2 rounded-2xl ${
+                      className={`px-4 py-2 rounded-2xl relative ${
                         isDeleted
                           ? 'bg-gray-100 border border-gray-200 rounded-lg'
                           : isOwnMessage
@@ -1174,6 +1174,25 @@ const CommunityChat = () => {
                             : 'bg-white shadow-sm rounded-bl-md'
                       }`}
                     >
+                      {/* Reply preview - if this message is a reply */}
+                      {message.reply_to && !isDeleted && (
+                        <div 
+                          onClick={() => scrollToMessage(message.reply_to.message_id)}
+                          className={`mb-2 p-2 rounded-lg cursor-pointer border-l-2 ${
+                            isOwnMessage 
+                              ? 'bg-white/20 border-white/50' 
+                              : 'bg-gray-100 border-purple-400'
+                          }`}
+                        >
+                          <p className={`text-xs font-medium ${isOwnMessage ? 'text-white/90' : 'text-purple-600'}`}>
+                            {message.reply_to.sender_name}
+                          </p>
+                          <p className={`text-xs truncate ${isOwnMessage ? 'text-white/70' : 'text-gray-500'}`}>
+                            {message.reply_to.content_preview || '[Attachment]'}
+                          </p>
+                        </div>
+                      )}
+                      
                       {/* Deleted message indicator */}
                       {isDeleted ? (
                         <p className="text-sm text-gray-400 italic flex items-center space-x-1">
