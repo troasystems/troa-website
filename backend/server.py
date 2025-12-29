@@ -51,7 +51,6 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
         '/api/amenities',
         '/api/committee',
         '/api/gallery',
-        '/api/events',
     ]
     
     # Endpoints that should never be cached
@@ -64,6 +63,7 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
         '/api/membership',
         '/api/push',
         '/api/users',
+        '/api/events',
     ]
     
     async def dispatch(self, request: Request, call_next):
