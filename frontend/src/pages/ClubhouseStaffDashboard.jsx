@@ -142,6 +142,57 @@ const ClubhouseStaffDashboard = () => {
     }
   };
 
+  const handleDownloadReport = async () => {
+    if (!reportForm.amenity_id) {
+      toast({
+        title: 'Error',
+        description: 'Please select an amenity',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    setDownloadingReport(true);
+    try {
+      const token = localStorage.getItem('session_token');
+      const response = await axios.get(
+        `${getAPI()}/staff/reports/bookings?amenity_id=${reportForm.amenity_id}&month=${reportForm.month}&year=${reportForm.year}`,
+        {
+          responseType: 'blob',
+          withCredentials: true,
+          headers: { ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {}) }
+        }
+      );
+      
+      const amenity = amenities.find(a => a.id === reportForm.amenity_id);
+      const amenityName = amenity?.name?.replace(/\s+/g, '_') || 'Amenity';
+      const filename = `TROA_Booking_Report_${amenityName}_${reportForm.year}_${String(reportForm.month).padStart(2, '0')}.pdf`;
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: 'Success',
+        description: 'Report downloaded'
+      });
+      setShowReportModal(false);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.detail || 'Failed to download report',
+        variant: 'destructive'
+      });
+    } finally {
+      setDownloadingReport(false);
+    }
+  };
+
   const getGuestTypeIcon = (type) => {
     switch (type) {
       case 'resident': return <Home className="w-3 h-3" />;
