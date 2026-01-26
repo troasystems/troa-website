@@ -724,6 +724,7 @@ const UserManagement = () => {
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 >
                   <option value="user">User</option>
+                  <option value="clubhouse_staff">Clubhouse Staff</option>
                   <option value="manager">Manager</option>
                   <option value="admin">Admin</option>
                 </select>
