@@ -35,6 +35,7 @@ const ProfileSettings = lazy(() => import('./pages/ProfileSettings'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const CommunityChat = lazy(() => import('./pages/CommunityChat'));
 const Chatbot = lazy(() => import('./components/Chatbot'));
+const ClubhouseStaffDashboard = lazy(() => import('./pages/ClubhouseStaffDashboard'));
 
 // Loading fallback component
 const PageLoader = () => (
