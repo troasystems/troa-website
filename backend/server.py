@@ -1001,6 +1001,192 @@ async def cancel_booking(booking_id: str, request: Request):
         logger.error(f"Error cancelling booking: {e}")
         raise HTTPException(status_code=500, detail="Failed to cancel booking")
 
+
+# ============ CLUBHOUSE STAFF ROUTES ============
+
+@api_router.get("/staff/bookings/today")
+async def get_todays_bookings_for_staff(request: Request):
+    """Get today's bookings for clubhouse staff"""
+    try:
+        user = await require_clubhouse_staff(request)
+        
+        today = datetime.now().strftime("%Y-%m-%d")
+        
+        bookings = await db.bookings.find({
+            "booking_date": today,
+            "status": "confirmed"
+        }, {"_id": 0}).sort("start_time", 1).to_list(100)
+        
+        # Enrich with amenity details
+        for booking in bookings:
+            amenity = await db.amenities.find_one({"id": booking['amenity_id']}, {"_id": 0, "name": 1, "image": 1})
+            if amenity:
+                booking['amenity_image'] = amenity.get('image')
+        
+        return bookings
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching today's bookings for staff: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch bookings")
+
+@api_router.get("/staff/bookings/date/{date}")
+async def get_bookings_by_date_for_staff(date: str, request: Request):
+    """Get bookings for a specific date for clubhouse staff"""
+    try:
+        user = await require_clubhouse_staff(request)
+        
+        bookings = await db.bookings.find({
+            "booking_date": date,
+            "status": "confirmed"
+        }, {"_id": 0}).sort("start_time", 1).to_list(100)
+        
+        # Enrich with amenity details
+        for booking in bookings:
+            amenity = await db.amenities.find_one({"id": booking['amenity_id']}, {"_id": 0, "name": 1, "image": 1})
+            if amenity:
+                booking['amenity_image'] = amenity.get('image')
+        
+        return bookings
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching bookings by date for staff: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch bookings")
+
+@api_router.put("/staff/bookings/{booking_id}/availed")
+async def mark_booking_availed(booking_id: str, update: BookingAvailedUpdate, request: Request):
+    """Mark a booking as availed or not availed - clubhouse staff only"""
+    try:
+        user = await require_clubhouse_staff(request)
+        
+        # Find booking
+        booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        
+        if update.availed_status not in ['availed', 'not_availed']:
+            raise HTTPException(status_code=400, detail="Invalid availed status")
+        
+        # Create audit log entry
+        audit_entry = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'action': update.availed_status,
+            'by_email': user['email'],
+            'by_name': user['name'],
+            'by_role': user.get('role', 'clubhouse_staff'),
+            'details': f"Marked as {update.availed_status}" + (f" - {update.notes}" if update.notes else ""),
+            'changes': {'availed_status': {'from': booking.get('availed_status', 'pending'), 'to': update.availed_status}}
+        }
+        
+        # Update booking
+        await db.bookings.update_one(
+            {"id": booking_id},
+            {
+                "$set": {
+                    "availed_status": update.availed_status,
+                    "availed_at": datetime.utcnow(),
+                    "availed_by_email": user['email'],
+                    "availed_by_name": user['name'],
+                    "updated_at": datetime.utcnow()
+                },
+                "$push": {"audit_log": audit_entry}
+            }
+        )
+        
+        logger.info(f"Booking {booking_id} marked as {update.availed_status} by {user['email']}")
+        
+        return {"message": f"Booking marked as {update.availed_status}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error marking booking availed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update booking")
+
+@api_router.put("/staff/bookings/{booking_id}/amend")
+async def amend_booking(booking_id: str, amendment: BookingAmendment, request: Request):
+    """Add amendment to a booking - clubhouse staff only"""
+    try:
+        user = await require_clubhouse_staff(request)
+        
+        # Find booking
+        booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        
+        # Calculate expected attendees (booker + guests)
+        expected_attendees = 1 + len(booking.get('guests', []))
+        
+        # Create audit log entry
+        audit_entry = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'action': 'amendment',
+            'by_email': user['email'],
+            'by_name': user['name'],
+            'by_role': user.get('role', 'clubhouse_staff'),
+            'details': amendment.amendment_notes,
+            'changes': {
+                'expected_attendees': expected_attendees,
+                'actual_attendees': amendment.actual_attendees,
+                'additional_charges': amendment.additional_charges,
+                'difference': amendment.actual_attendees - expected_attendees
+            }
+        }
+        
+        # Calculate total charges update
+        new_total_charges = booking.get('total_guest_charges', 0) + (amendment.additional_charges or 0)
+        
+        # Update booking
+        await db.bookings.update_one(
+            {"id": booking_id},
+            {
+                "$set": {
+                    "actual_attendees": amendment.actual_attendees,
+                    "amendment_notes": amendment.amendment_notes,
+                    "total_guest_charges": new_total_charges,
+                    "updated_at": datetime.utcnow()
+                },
+                "$push": {"audit_log": audit_entry}
+            }
+        )
+        
+        logger.info(f"Booking {booking_id} amended by {user['email']}: {amendment.amendment_notes}")
+        
+        return {"message": "Booking amended successfully", "additional_charges": amendment.additional_charges}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error amending booking: {e}")
+        raise HTTPException(status_code=500, detail="Failed to amend booking")
+
+@api_router.get("/staff/bookings/{booking_id}/audit-log")
+async def get_booking_audit_log(booking_id: str, request: Request):
+    """Get audit log for a booking - staff, manager, admin, or booking owner"""
+    try:
+        user = await require_auth(request)
+        
+        # Find booking
+        booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        
+        # Check access - booking owner, staff, manager, or admin
+        is_owner = booking['booked_by_email'] == user['email']
+        is_staff_or_above = user.get('role') in ['admin', 'manager', 'clubhouse_staff']
+        
+        if not is_owner and not is_staff_or_above:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        return {
+            "booking_id": booking_id,
+            "audit_log": booking.get('audit_log', [])
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching audit log: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch audit log")
+
 # Include routers in the main app
 app.include_router(api_router)
 app.include_router(auth_router, prefix="/api")
