@@ -1203,6 +1203,565 @@ async def get_booking_audit_log(booking_id: str, request: Request):
         logger.error(f"Error fetching audit log: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch audit log")
 
+
+# ============ PDF REPORT ROUTES ============
+
+from fastapi.responses import Response
+
+@api_router.get("/staff/reports/bookings")
+async def download_booking_report(
+    request: Request,
+    amenity_id: str,
+    month: int,
+    year: int
+):
+    """Download PDF report of bookings for an amenity in a month"""
+    try:
+        user = await require_clubhouse_staff(request)
+        
+        # Validate month
+        if month < 1 or month > 12:
+            raise HTTPException(status_code=400, detail="Invalid month")
+        
+        # Get amenity
+        amenity = await db.amenities.find_one({"id": amenity_id}, {"_id": 0})
+        if not amenity:
+            raise HTTPException(status_code=404, detail="Amenity not found")
+        
+        # Get bookings for the month
+        start_date = f"{year}-{month:02d}-01"
+        if month == 12:
+            end_date = f"{year + 1}-01-01"
+        else:
+            end_date = f"{year}-{month + 1:02d}-01"
+        
+        bookings = await db.bookings.find({
+            "amenity_id": amenity_id,
+            "booking_date": {"$gte": start_date, "$lt": end_date},
+            "status": "confirmed"
+        }, {"_id": 0}).sort("booking_date", 1).to_list(1000)
+        
+        # Generate PDF
+        pdf_bytes = await generate_booking_report_pdf(
+            amenity_name=amenity['name'],
+            month=month,
+            year=year,
+            bookings=bookings,
+            generated_by=user['name']
+        )
+        
+        filename = f"TROA_Booking_Report_{amenity['name'].replace(' ', '_')}_{year}_{month:02d}.pdf"
+        
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating booking report: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate report")
+
+
+# ============ INVOICE ROUTES ============
+
+INVOICE_RATE = 50.0  # ₹50 per person per session
+RESIDENT_MONTHLY_CAP = 300.0  # ₹300 cap per amenity per month
+
+def generate_invoice_number(year: int, month: int) -> str:
+    """Generate unique invoice number"""
+    import random
+    import string
+    random_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+    return f"TROA-INV-{year}{month:02d}-{random_suffix}"
+
+
+@api_router.post("/invoices")
+async def create_invoice(invoice_data: InvoiceCreate, request: Request):
+    """Create invoice for a user's amenity usage - Manager only"""
+    try:
+        user = await require_manager_or_admin(request)
+        
+        # Validate month
+        if invoice_data.month < 1 or invoice_data.month > 12:
+            raise HTTPException(status_code=400, detail="Invalid month")
+        
+        # Check if invoice already exists
+        existing = await db.invoices.find_one({
+            "user_email": invoice_data.user_email,
+            "amenity_id": invoice_data.amenity_id,
+            "month": invoice_data.month,
+            "year": invoice_data.year,
+            "payment_status": {"$ne": "cancelled"}
+        }, {"_id": 0})
+        
+        if existing:
+            raise HTTPException(status_code=409, detail="Invoice already exists for this user/amenity/period")
+        
+        # Get user details
+        target_user = await db.users.find_one({"email": invoice_data.user_email}, {"_id": 0})
+        if not target_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get amenity
+        amenity = await db.amenities.find_one({"id": invoice_data.amenity_id}, {"_id": 0})
+        if not amenity:
+            raise HTTPException(status_code=404, detail="Amenity not found")
+        
+        # Get bookings for the user in this month
+        start_date = f"{invoice_data.year}-{invoice_data.month:02d}-01"
+        if invoice_data.month == 12:
+            end_date = f"{invoice_data.year + 1}-01-01"
+        else:
+            end_date = f"{invoice_data.year}-{invoice_data.month + 1:02d}-01"
+        
+        bookings = await db.bookings.find({
+            "amenity_id": invoice_data.amenity_id,
+            "booked_by_email": invoice_data.user_email,
+            "booking_date": {"$gte": start_date, "$lt": end_date},
+            "status": "confirmed"
+        }, {"_id": 0}).to_list(100)
+        
+        if not bookings:
+            raise HTTPException(status_code=400, detail="No bookings found for this user/amenity/period")
+        
+        # Calculate amounts
+        line_items = []
+        resident_sessions = 0
+        resident_amount_raw = 0.0
+        guest_amount = 0.0
+        coach_amount = 0.0
+        
+        for booking in bookings:
+            # Count the booker as resident
+            resident_sessions += 1
+            resident_amount_raw += INVOICE_RATE
+            
+            line_items.append({
+                'booking_id': booking['id'],
+                'booking_date': booking['booking_date'],
+                'start_time': booking['start_time'],
+                'end_time': booking['end_time'],
+                'attendee_type': 'resident',
+                'attendee_count': 1,
+                'rate': INVOICE_RATE,
+                'amount': INVOICE_RATE,
+                'audit_log': booking.get('audit_log', [])
+            })
+            
+            # Process guests
+            for guest in booking.get('guests', []):
+                guest_type = guest.get('guest_type', 'external')
+                charge = INVOICE_RATE
+                
+                if guest_type == 'resident':
+                    resident_sessions += 1
+                    resident_amount_raw += charge
+                    line_items.append({
+                        'booking_id': booking['id'],
+                        'booking_date': booking['booking_date'],
+                        'start_time': booking['start_time'],
+                        'end_time': booking['end_time'],
+                        'attendee_type': 'resident',
+                        'attendee_count': 1,
+                        'rate': charge,
+                        'amount': charge,
+                        'audit_log': []
+                    })
+                elif guest_type == 'external':
+                    guest_amount += charge
+                    line_items.append({
+                        'booking_id': booking['id'],
+                        'booking_date': booking['booking_date'],
+                        'start_time': booking['start_time'],
+                        'end_time': booking['end_time'],
+                        'attendee_type': 'external',
+                        'attendee_count': 1,
+                        'rate': charge,
+                        'amount': charge,
+                        'audit_log': []
+                    })
+                elif guest_type == 'coach':
+                    coach_amount += charge
+                    line_items.append({
+                        'booking_id': booking['id'],
+                        'booking_date': booking['booking_date'],
+                        'start_time': booking['start_time'],
+                        'end_time': booking['end_time'],
+                        'attendee_type': 'coach',
+                        'attendee_count': 1,
+                        'rate': charge,
+                        'amount': charge,
+                        'audit_log': []
+                    })
+        
+        # Apply resident cap
+        resident_amount_capped = min(resident_amount_raw, RESIDENT_MONTHLY_CAP)
+        
+        # Calculate totals
+        subtotal = resident_amount_capped + guest_amount + coach_amount
+        total_amount = subtotal
+        
+        # Create invoice
+        due_date = datetime.utcnow() + timedelta(days=20)
+        
+        invoice = Invoice(
+            invoice_number=generate_invoice_number(invoice_data.year, invoice_data.month),
+            user_email=invoice_data.user_email,
+            user_name=target_user.get('name', ''),
+            user_villa=target_user.get('villa_number'),
+            amenity_id=invoice_data.amenity_id,
+            amenity_name=amenity['name'],
+            month=invoice_data.month,
+            year=invoice_data.year,
+            line_items=line_items,
+            resident_sessions_count=resident_sessions,
+            resident_amount_raw=resident_amount_raw,
+            resident_amount_capped=resident_amount_capped,
+            guest_amount=guest_amount,
+            coach_amount=coach_amount,
+            subtotal=subtotal,
+            total_amount=total_amount,
+            due_date=due_date,
+            created_by_email=user['email'],
+            created_by_name=user['name']
+        )
+        
+        await db.invoices.insert_one(invoice.dict())
+        logger.info(f"Invoice {invoice.invoice_number} created for {invoice_data.user_email}")
+        
+        # Send email notification
+        try:
+            month_name = datetime(invoice_data.year, invoice_data.month, 1).strftime("%B %Y")
+            await email_service.send_invoice_raised(
+                recipient_email=invoice_data.user_email,
+                user_name=target_user.get('name', ''),
+                invoice_number=invoice.invoice_number,
+                amenity_name=amenity['name'],
+                month_year=month_name,
+                total_amount=total_amount,
+                due_date=due_date.strftime("%d %b %Y")
+            )
+        except Exception as email_error:
+            logger.error(f"Failed to send invoice email: {email_error}")
+        
+        return invoice.dict()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating invoice: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create invoice")
+
+
+@api_router.get("/invoices")
+async def get_invoices(request: Request, status: Optional[str] = None):
+    """Get invoices - managers see all, users see their own"""
+    try:
+        user = await require_auth(request)
+        
+        query = {}
+        is_manager = user.get('role') in ['admin', 'manager']
+        
+        if not is_manager:
+            query['user_email'] = user['email']
+        
+        if status:
+            query['payment_status'] = status
+        
+        invoices = await db.invoices.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+        
+        return invoices
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching invoices: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch invoices")
+
+
+@api_router.get("/invoices/pending/count")
+async def get_pending_invoice_count(request: Request):
+    """Get count of pending invoices for current user"""
+    try:
+        user = await require_auth(request)
+        
+        count = await db.invoices.count_documents({
+            "user_email": user['email'],
+            "payment_status": "pending"
+        })
+        
+        return {"count": count}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error counting pending invoices: {e}")
+        raise HTTPException(status_code=500, detail="Failed to count invoices")
+
+
+@api_router.get("/invoices/{invoice_id}")
+async def get_invoice(invoice_id: str, request: Request):
+    """Get invoice details"""
+    try:
+        user = await require_auth(request)
+        
+        invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+        if not invoice:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        
+        # Check access
+        is_manager = user.get('role') in ['admin', 'manager']
+        is_owner = invoice['user_email'] == user['email']
+        
+        if not is_manager and not is_owner:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        return invoice
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching invoice: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch invoice")
+
+
+@api_router.get("/invoices/{invoice_id}/pdf")
+async def download_invoice_pdf(invoice_id: str, request: Request):
+    """Download invoice as PDF"""
+    try:
+        user = await require_auth(request)
+        
+        invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+        if not invoice:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        
+        # Check access
+        is_manager = user.get('role') in ['admin', 'manager']
+        is_owner = invoice['user_email'] == user['email']
+        
+        if not is_manager and not is_owner:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Get bookings for audit log
+        booking_ids = [item.get('booking_id') for item in invoice.get('line_items', []) if item.get('booking_id')]
+        bookings = await db.bookings.find({"id": {"$in": list(set(booking_ids))}}, {"_id": 0}).to_list(100)
+        
+        pdf_bytes = await generate_invoice_pdf(invoice, bookings)
+        
+        filename = f"TROA_Invoice_{invoice['invoice_number']}.pdf"
+        
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating invoice PDF: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate PDF")
+
+
+@api_router.put("/invoices/{invoice_id}")
+async def update_invoice(invoice_id: str, update: InvoiceUpdate, request: Request):
+    """Update invoice (adjustment) - Manager only, before payment"""
+    try:
+        user = await require_manager_or_admin(request)
+        
+        invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+        if not invoice:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        
+        if invoice['payment_status'] != 'pending':
+            raise HTTPException(status_code=400, detail="Cannot modify paid or cancelled invoice")
+        
+        # Apply adjustment
+        update_fields = {"updated_at": datetime.utcnow()}
+        
+        if update.adjustment is not None:
+            update_fields['adjustment'] = update.adjustment
+            update_fields['adjustment_reason'] = update.adjustment_reason or ''
+            update_fields['total_amount'] = invoice['subtotal'] + update.adjustment
+        
+        await db.invoices.update_one(
+            {"id": invoice_id},
+            {"$set": update_fields}
+        )
+        
+        logger.info(f"Invoice {invoice_id} updated by {user['email']}")
+        
+        return {"message": "Invoice updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating invoice: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update invoice")
+
+
+@api_router.post("/invoices/{invoice_id}/create-order")
+async def create_invoice_payment_order(invoice_id: str, request: Request):
+    """Create Razorpay order for invoice payment"""
+    try:
+        user = await require_auth(request)
+        
+        invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+        if not invoice:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        
+        # Check ownership
+        if invoice['user_email'] != user['email']:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        if invoice['payment_status'] != 'pending':
+            raise HTTPException(status_code=400, detail="Invoice is not pending payment")
+        
+        # Create Razorpay order
+        import razorpay
+        razorpay_key_id = os.getenv('RAZORPAY_KEY_ID')
+        razorpay_key_secret = os.getenv('RAZORPAY_KEY_SECRET')
+        
+        if not razorpay_key_id or not razorpay_key_secret:
+            raise HTTPException(status_code=500, detail="Payment gateway not configured")
+        
+        client = razorpay.Client(auth=(razorpay_key_id, razorpay_key_secret))
+        
+        order_data = {
+            'amount': int(invoice['total_amount'] * 100),  # Convert to paise
+            'currency': 'INR',
+            'receipt': invoice['invoice_number'],
+            'notes': {
+                'invoice_id': invoice['id'],
+                'user_email': user['email']
+            }
+        }
+        
+        order = client.order.create(data=order_data)
+        
+        return {
+            'order_id': order['id'],
+            'amount': invoice['total_amount'],
+            'currency': 'INR',
+            'key_id': razorpay_key_id,
+            'invoice_number': invoice['invoice_number']
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating payment order: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create payment order")
+
+
+@api_router.post("/invoices/{invoice_id}/verify-payment")
+async def verify_invoice_payment(invoice_id: str, request: Request):
+    """Verify Razorpay payment for invoice"""
+    try:
+        user = await require_auth(request)
+        body = await request.json()
+        
+        invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+        if not invoice:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        
+        # Check ownership
+        if invoice['user_email'] != user['email']:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Verify payment signature
+        import razorpay
+        import hmac
+        import hashlib
+        
+        razorpay_key_secret = os.getenv('RAZORPAY_KEY_SECRET')
+        
+        order_id = body.get('razorpay_order_id')
+        payment_id = body.get('razorpay_payment_id')
+        signature = body.get('razorpay_signature')
+        
+        if not all([order_id, payment_id, signature]):
+            raise HTTPException(status_code=400, detail="Missing payment details")
+        
+        # Verify signature
+        message = f"{order_id}|{payment_id}"
+        expected_signature = hmac.new(
+            razorpay_key_secret.encode(),
+            message.encode(),
+            hashlib.sha256
+        ).hexdigest()
+        
+        if signature != expected_signature:
+            raise HTTPException(status_code=400, detail="Invalid payment signature")
+        
+        # Update invoice
+        payment_date = datetime.utcnow()
+        await db.invoices.update_one(
+            {"id": invoice_id},
+            {
+                "$set": {
+                    "payment_status": "paid",
+                    "payment_method": "razorpay",
+                    "payment_id": payment_id,
+                    "payment_date": payment_date,
+                    "updated_at": payment_date
+                }
+            }
+        )
+        
+        logger.info(f"Invoice {invoice_id} paid via Razorpay: {payment_id}")
+        
+        # Send payment receipt email
+        try:
+            month_name = datetime(invoice['year'], invoice['month'], 1).strftime("%B %Y")
+            await email_service.send_invoice_payment_receipt(
+                recipient_email=user['email'],
+                user_name=user['name'],
+                invoice_number=invoice['invoice_number'],
+                amenity_name=invoice['amenity_name'],
+                month_year=month_name,
+                total_amount=invoice['total_amount'],
+                payment_id=payment_id,
+                payment_date=payment_date.strftime("%d %b %Y %H:%M")
+            )
+        except Exception as email_error:
+            logger.error(f"Failed to send payment receipt email: {email_error}")
+        
+        return {"message": "Payment verified successfully", "payment_id": payment_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error verifying payment: {e}")
+        raise HTTPException(status_code=500, detail="Failed to verify payment")
+
+
+@api_router.delete("/invoices/{invoice_id}")
+async def cancel_invoice(invoice_id: str, request: Request):
+    """Cancel invoice - Manager only, before payment"""
+    try:
+        user = await require_manager_or_admin(request)
+        
+        invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+        if not invoice:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        
+        if invoice['payment_status'] != 'pending':
+            raise HTTPException(status_code=400, detail="Cannot cancel paid invoice")
+        
+        await db.invoices.update_one(
+            {"id": invoice_id},
+            {"$set": {"payment_status": "cancelled", "updated_at": datetime.utcnow()}}
+        )
+        
+        logger.info(f"Invoice {invoice_id} cancelled by {user['email']}")
+        
+        return {"message": "Invoice cancelled"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error cancelling invoice: {e}")
+        raise HTTPException(status_code=500, detail="Failed to cancel invoice")
+
+
 # Include routers in the main app
 app.include_router(api_router)
 app.include_router(auth_router, prefix="/api")
