@@ -1,10 +1,9 @@
-import boto3
+import resend
 import logging
 import os
 import asyncio
 from typing import Optional, List
 from datetime import datetime
-from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -20,86 +19,48 @@ SUPER_ADMIN_EMAIL = 'troa.systems@gmail.com'
 
 class EmailService:
     def __init__(self):
-        """Initialize AWS SES client with credentials"""
-        self.access_key = os.getenv('AWS_ACCESS_KEY_ID')
-        self.secret_key = os.getenv('AWS_SECRET_ACCESS_KEY')
-        self.region = os.getenv('AWS_SES_REGION', 'ap-south-2')
-        self.sender_email = os.getenv('AWS_SES_SENDER_EMAIL', 'noreply@troa.in')
-        self.reply_to_email = os.getenv('AWS_SES_REPLY_TO_EMAIL', 'troa.systems@gmail.com')
+        """Initialize Resend client with credentials"""
+        self.api_key = os.getenv('RESEND_API_KEY')
+        self.sender_email = os.getenv('SENDER_EMAIL', 'noreply@troa.in')
+        self.reply_to_email = os.getenv('REPLY_TO_EMAIL', 'troa.systems@gmail.com')
         self.frontend_url = os.getenv('REACT_APP_BACKEND_URL', 'https://emailbuzz.preview.emergentagent.com')
         
-        if not self.access_key or not self.secret_key:
-            logger.warning("AWS credentials not configured. Email sending will be disabled.")
-            self.ses_client = None
+        if not self.api_key:
+            logger.warning("Resend API key not configured. Email sending will be disabled.")
         else:
-            self.ses_client = boto3.client(
-                'ses',
-                region_name=self.region,
-                aws_access_key_id=self.access_key,
-                aws_secret_access_key=self.secret_key
-            )
+            resend.api_key = self.api_key
+            logger.info("Resend email service initialized successfully")
 
     async def _send_email(self, recipient_email: str, subject: str, html_body: str, text_body: str) -> dict:
-        """Base method to send an email"""
-        if not self.ses_client:
-            logger.error("SES client not initialized. Cannot send email.")
+        """Base method to send an email using Resend"""
+        if not self.api_key:
+            logger.error("Resend API key not configured. Cannot send email.")
             return {'status': 'error', 'message': 'Email service not configured'}
 
         try:
             params = {
-                'Source': self.sender_email,
-                'Destination': {
-                    'ToAddresses': [recipient_email]
-                },
-                'Message': {
-                    'Subject': {
-                        'Data': subject,
-                        'Charset': 'UTF-8'
-                    },
-                    'Body': {
-                        'Text': {
-                            'Data': text_body,
-                            'Charset': 'UTF-8'
-                        },
-                        'Html': {
-                            'Data': html_body,
-                            'Charset': 'UTF-8'
-                        }
-                    }
-                },
-                'ReplyToAddresses': [self.reply_to_email]
+                "from": self.sender_email,
+                "to": [recipient_email],
+                "subject": subject,
+                "html": html_body,
+                "text": text_body,
+                "reply_to": self.reply_to_email
             }
 
             # Run sync SDK in thread to keep FastAPI non-blocking
-            response = await asyncio.to_thread(self.ses_client.send_email, **params)
+            response = await asyncio.to_thread(resend.Emails.send, params)
 
-            logger.info(f"Email sent to {recipient_email}, MessageId: {response.get('MessageId')}")
+            logger.info(f"Email sent to {recipient_email}, ID: {response.get('id')}")
 
             return {
                 'status': 'sent',
-                'message_id': response.get('MessageId'),
+                'message_id': response.get('id'),
                 'recipient_email': recipient_email,
                 'sent_at': datetime.utcnow().isoformat()
             }
 
-        except ClientError as e:
-            error_code = e.response['Error']['Code']
-            error_message = e.response['Error']['Message']
-            
-            logger.error(f"Failed to send email to {recipient_email}: {error_code} - {error_message}")
-            
-            if 'not verified' in error_message.lower():
-                logger.warning(
-                    f"AWS SES Sandbox Mode: Cannot send to {recipient_email}. "
-                    "Request production access in AWS SES console to send to any email."
-                )
-            
-            return {
-                'status': 'error',
-                'message': f"Email sending failed: {error_message}"
-            }
         except Exception as e:
-            logger.error(f"Unexpected error sending email: {str(e)}")
+            logger.error(f"Failed to send email to {recipient_email}: {str(e)}")
             return {
                 'status': 'error',
                 'message': f"Email sending failed: {str(e)}"
