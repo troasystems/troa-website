@@ -33,6 +33,7 @@ const BottomNavigation = () => {
     { name: 'My Bookings', path: '/my-bookings', icon: Calendar },
     { name: 'My Events', path: '/my-events', icon: PartyPopper },
     ...(isAdmin || isManager ? [{ name: isAdmin ? 'Admin Portal' : 'Manager Portal', path: '/admin', icon: Shield }] : []),
+    ...(role === 'clubhouse_staff' || isAdmin || isManager ? [{ name: 'Staff Dashboard', path: '/staff', icon: ClipboardList }] : []),
     { name: 'Settings', path: '/profile', icon: Settings },
   ] : [];
 
