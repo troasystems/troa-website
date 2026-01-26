@@ -263,9 +263,18 @@ const ClubhouseStaffDashboard = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white p-6">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-2xl font-bold">Clubhouse Staff Dashboard</h1>
-          <p className="text-sm opacity-90">Manage amenity bookings and track attendance</p>
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Clubhouse Staff Dashboard</h1>
+            <p className="text-sm opacity-90">Manage amenity bookings and track attendance</p>
+          </div>
+          <button
+            onClick={() => setShowReportModal(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg font-medium transition-colors"
+          >
+            <FileText className="w-5 h-5" />
+            <span>Download Report</span>
+          </button>
         </div>
       </div>
 
