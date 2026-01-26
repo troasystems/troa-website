@@ -803,6 +803,25 @@ const UserManagement = () => {
         </div>
       </div>
 
+      {/* Clubhouse Staff */}
+      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-4 sm:p-6 border-2 border-blue-200">
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <UserCog className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 flex-shrink-0" />
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Clubhouse Staff</h3>
+          <span className="bg-blue-200 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-full">
+            {groupedUsers.clubhouse_staff.length}
+          </span>
+        </div>
+        <p className="text-xs text-blue-600 mb-3">Staff can view amenity bookings and mark attendance</p>
+        <div className="space-y-3">
+          {groupedUsers.clubhouse_staff.length === 0 ? (
+            <p className="text-gray-500 italic text-sm">No clubhouse staff</p>
+          ) : (
+            groupedUsers.clubhouse_staff.map(user => renderUserCard(user, 'blue'))
+          )}
+        </div>
+      </div>
+
       {/* Regular Users */}
       <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg p-4 sm:p-6 border-2 border-gray-200">
         <div className="flex items-center gap-2 mb-4 flex-wrap">
