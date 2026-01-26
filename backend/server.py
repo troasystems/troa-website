@@ -15,7 +15,8 @@ from models import (
     MembershipApplication, MembershipApplicationCreate, MembershipApplicationUpdate,
     User, UserCreate, UserUpdate,
     Feedback, FeedbackCreate,
-    AmenityBooking, AmenityBookingCreate
+    AmenityBooking, AmenityBookingCreate,
+    BookingGuest, AuditLogEntry, BookingAvailedUpdate, BookingAmendment
 )
 from auth import auth_router, require_admin, require_manager_or_admin, require_auth
 from basic_auth import basic_auth_middleware
