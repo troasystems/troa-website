@@ -100,17 +100,47 @@ class UserUpdate(BaseModel):
     new_password: Optional[str] = None  # For password reset by admin
     email_verified: Optional[bool] = None  # Admin can manually verify/unverify
 
+# Guest type for amenity bookings
+class BookingGuest(BaseModel):
+    name: str
+    guest_type: str  # "resident", "external", "coach"
+    villa_number: Optional[str] = None  # Required for resident guests
+    charge: float = 0.0  # ₹50 for external guests and coaches
+
+class AuditLogEntry(BaseModel):
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    action: str  # "created", "modified", "availed", "not_availed", "amendment"
+    by_email: str
+    by_name: str
+    by_role: str
+    details: str
+    changes: Optional[dict] = None  # For amendments, store what changed
+
 class AmenityBooking(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     amenity_id: str
     amenity_name: str
     booked_by_email: str
     booked_by_name: str
+    booked_by_villa: Optional[str] = None  # Booker's villa number
     booking_date: str  # YYYY-MM-DD format
     start_time: str  # HH:MM format (24-hour)
     end_time: str  # HH:MM format (24-hour)
     duration_minutes: int  # 30 or 60
-    additional_guests: list = []  # List of guest names (1-3 users)
+    # Enhanced guest tracking
+    guests: list = []  # List of BookingGuest objects
+    additional_guests: list = []  # Legacy: List of guest names (kept for backward compatibility)
+    total_guest_charges: float = 0.0  # Total charges for external guests/coaches
+    # Availed status (for clubhouse staff)
+    availed_status: str = "pending"  # "pending", "availed", "not_availed"
+    availed_at: Optional[datetime] = None
+    availed_by_email: Optional[str] = None
+    availed_by_name: Optional[str] = None
+    # Actual attendance (for amendments)
+    actual_attendees: Optional[int] = None  # Actual number who showed up
+    amendment_notes: Optional[str] = None
+    # Audit log
+    audit_log: list = []  # List of AuditLogEntry objects
     status: str = "confirmed"  # confirmed, cancelled
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -121,7 +151,8 @@ class AmenityBookingCreate(BaseModel):
     booking_date: str  # YYYY-MM-DD
     start_time: str  # HH:MM (24-hour)
     duration_minutes: int  # 30 or 60 minutes
-    additional_guests: Optional[list] = []  # Optional list of guest names
+    guests: Optional[list] = []  # List of BookingGuest objects
+    additional_guests: Optional[list] = []  # Legacy: Optional list of guest names
 
 class Feedback(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
