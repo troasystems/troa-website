@@ -595,6 +595,104 @@ Visit our website: {self.frontend_url}
         
         return await self._send_to_multiple(admin_emails, f"[TROA] New Feedback ({rating}/5 stars)", html_body, text_body)
 
+    # ============ INVOICE EMAILS ============
+
+    async def send_invoice_raised(
+        self,
+        recipient_email: str,
+        user_name: str,
+        invoice_number: str,
+        amenity_name: str,
+        month_year: str,
+        total_amount: float,
+        due_date: str
+    ) -> dict:
+        """Send invoice raised notification to user"""
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="UTF-8"></head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; line-height: 1.6; color: #333;">
+        {self._get_email_header()}
+                        <tr>
+                            <td style="padding: 40px;">
+                                <p style="margin: 0 0 20px 0; font-size: 16px;">Hi {user_name},</p>
+                                <h2 style="color: #9333ea; margin: 0 0 20px 0;">📄 New Invoice Raised</h2>
+                                
+                                <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Invoice Number:</strong> {invoice_number}</p>
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Amenity:</strong> {amenity_name}</p>
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Period:</strong> {month_year}</p>
+                                    <p style="margin: 15px 0 5px 0; font-size: 20px;"><strong>Amount Due:</strong> ₹{total_amount:.0f}</p>
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Due Date:</strong> {due_date}</p>
+                                </div>
+                                
+                                <div style="background-color: #fef3c7; border: 1px solid #fcd34d; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                                    <p style="margin: 0; font-size: 14px; color: #92400e;">⚠️ Please pay this invoice by the due date to avoid any inconvenience.</p>
+                                </div>
+                                
+                                <table width="100%" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td align="center" style="padding: 20px 0;">
+                                            <a href="{self.frontend_url}/my-invoices" style="display: inline-block; background: linear-gradient(to right, #9333ea, #ec4899, #f97316); color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px;">Pay Now</a>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+        {self._get_email_footer()}
+        </body></html>
+        """
+        
+        text_body = f"Hi {user_name},\n\nA new invoice has been raised:\n\nInvoice: {invoice_number}\nAmenity: {amenity_name}\nPeriod: {month_year}\nAmount: ₹{total_amount:.0f}\nDue Date: {due_date}\n\nPay now: {self.frontend_url}/my-invoices"
+        
+        return await self._send_email(recipient_email, f"[TROA] Invoice #{invoice_number} - ₹{total_amount:.0f} Due", html_body, text_body)
+
+    async def send_invoice_payment_receipt(
+        self,
+        recipient_email: str,
+        user_name: str,
+        invoice_number: str,
+        amenity_name: str,
+        month_year: str,
+        total_amount: float,
+        payment_id: str,
+        payment_date: str
+    ) -> dict:
+        """Send payment receipt to user"""
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="UTF-8"></head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; line-height: 1.6; color: #333;">
+        {self._get_email_header()}
+                        <tr>
+                            <td style="padding: 40px;">
+                                <p style="margin: 0 0 20px 0; font-size: 16px;">Hi {user_name},</p>
+                                <h2 style="color: #22c55e; margin: 0 0 20px 0;">✅ Payment Received</h2>
+                                
+                                <p style="margin: 0 0 20px 0; font-size: 16px;">Thank you! Your payment has been successfully processed.</p>
+                                
+                                <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Invoice Number:</strong> {invoice_number}</p>
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Amenity:</strong> {amenity_name}</p>
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Period:</strong> {month_year}</p>
+                                    <p style="margin: 15px 0 5px 0; font-size: 20px;"><strong>Amount Paid:</strong> ₹{total_amount:.0f}</p>
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Payment ID:</strong> {payment_id}</p>
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Payment Date:</strong> {payment_date}</p>
+                                </div>
+                                
+                                <p style="margin: 20px 0; font-size: 14px;">View all your invoices: <a href="{self.frontend_url}/my-invoices" style="color: #9333ea;">My Invoices</a></p>
+                            </td>
+                        </tr>
+        {self._get_email_footer()}
+        </body></html>
+        """
+        
+        text_body = f"Hi {user_name},\n\nPayment received!\n\nInvoice: {invoice_number}\nAmenity: {amenity_name}\nPeriod: {month_year}\nAmount: ₹{total_amount:.0f}\nPayment ID: {payment_id}\nDate: {payment_date}"
+        
+        return await self._send_email(recipient_email, f"[TROA] Payment Receipt - Invoice #{invoice_number}", html_body, text_body)
+
 
 # Helper function to get admin and manager emails
 async def get_admin_manager_emails() -> List[str]:
