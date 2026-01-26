@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Calendar, PartyPopper, User, Menu, X, Info, Image, Phone, HelpCircle, MessageSquare, Shield, Settings, LogOut, ClipboardList } from 'lucide-react';
+import { Home, Calendar, PartyPopper, User, Menu, X, Info, Image, Phone, HelpCircle, MessageSquare, Shield, Settings, LogOut, ClipboardList, Receipt } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const BottomNavigation = () => {
