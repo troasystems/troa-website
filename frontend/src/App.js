@@ -130,6 +130,7 @@ function App() {
                   <Route path="/admin" element={<AdminPortal />} />
                   <Route path="/verify-email" element={<VerifyEmail />} />
                   <Route path="/chat" element={<CommunityChat />} />
+                  <Route path="/staff" element={<ClubhouseStaffDashboard />} />
                 </Routes>
               </Suspense>
             </div>
