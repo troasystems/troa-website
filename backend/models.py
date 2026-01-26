@@ -247,3 +247,64 @@ class EventRegistrationCreate(BaseModel):
     event_id: str
     registrants: list  # List of registrant objects with name and preferences
     payment_method: str = "online"  # "online" or "offline"
+
+
+# ============ INVOICE MODELS ============
+
+class InvoiceLineItem(BaseModel):
+    booking_id: str
+    booking_date: str
+    start_time: str
+    end_time: str
+    attendee_type: str  # "resident", "external", "coach"
+    attendee_count: int
+    rate: float  # ₹50 per person per session
+    amount: float
+    audit_log: list = []  # Copy of booking audit log for proof
+
+class Invoice(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    invoice_number: str  # Format: TROA-INV-YYYYMM-XXXXX
+    # User details
+    user_email: str
+    user_name: str
+    user_villa: Optional[str] = None
+    # Amenity details
+    amenity_id: str
+    amenity_name: str
+    # Period
+    month: int  # 1-12
+    year: int
+    # Amounts
+    line_items: list = []  # List of InvoiceLineItem dicts
+    resident_sessions_count: int = 0
+    resident_amount_raw: float = 0.0  # Before cap
+    resident_amount_capped: float = 0.0  # After ₹300 cap per amenity
+    guest_amount: float = 0.0
+    coach_amount: float = 0.0
+    subtotal: float = 0.0  # resident_amount_capped + guest_amount + coach_amount
+    adjustment: float = 0.0  # Manual adjustment by manager (can be negative)
+    adjustment_reason: Optional[str] = None
+    total_amount: float = 0.0  # subtotal + adjustment
+    # Payment
+    payment_status: str = "pending"  # pending, paid, cancelled
+    payment_method: Optional[str] = None  # razorpay, offline
+    payment_id: Optional[str] = None
+    payment_date: Optional[datetime] = None
+    # Dates
+    due_date: datetime  # 20 days from creation
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    # Created by
+    created_by_email: str
+    created_by_name: str
+
+class InvoiceCreate(BaseModel):
+    user_email: str
+    amenity_id: str
+    month: int  # 1-12
+    year: int
+
+class InvoiceUpdate(BaseModel):
+    adjustment: Optional[float] = None
+    adjustment_reason: Optional[str] = None
