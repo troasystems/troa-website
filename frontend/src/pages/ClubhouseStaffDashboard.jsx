@@ -570,6 +570,106 @@ const ClubhouseStaffDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Report Download Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Download Booking Report</h3>
+              <button 
+                onClick={() => setShowReportModal(false)} 
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Select Amenity
+                </label>
+                <select
+                  value={reportForm.amenity_id}
+                  onChange={(e) => setReportForm({ ...reportForm, amenity_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">Choose amenity...</option>
+                  {amenities.map((amenity) => (
+                    <option key={amenity.id} value={amenity.id}>
+                      {amenity.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Month
+                  </label>
+                  <select
+                    value={reportForm.month}
+                    onChange={(e) => setReportForm({ ...reportForm, month: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  >
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <option key={i + 1} value={i + 1}>
+                        {new Date(2000, i, 1).toLocaleDateString('en-IN', { month: 'long' })}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                  <select
+                    value={reportForm.year}
+                    onChange={(e) => setReportForm({ ...reportForm, year: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  >
+                    {[2024, 2025, 2026].map((year) => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              <div className="bg-purple-50 rounded-lg p-3 text-sm">
+                <p className="text-purple-900">
+                  The report will include all booking details, guest information, availed status, and audit logs.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex space-x-3 mt-6">
+              <button
+                onClick={() => setShowReportModal(false)}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDownloadReport}
+                disabled={downloadingReport || !reportForm.amenity_id}
+                className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:shadow-lg disabled:opacity-50"
+              >
+                {downloadingReport ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    <span>Download PDF</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
