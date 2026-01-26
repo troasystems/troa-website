@@ -102,6 +102,7 @@ function App() {
             <div className="fixed top-14 md:top-20 left-0 right-0 z-40">
               <FeedbackBanner onVisibilityChange={handleFeedbackVisibility} />
               <EmailVerificationBanner onVisibilityChange={handleEmailVisibility} />
+              <PendingInvoiceBanner />
             </div>
             
             {/* Main Content - with dynamic padding based on visible banners */}
@@ -133,6 +134,7 @@ function App() {
                   <Route path="/verify-email" element={<VerifyEmail />} />
                   <Route path="/chat" element={<CommunityChat />} />
                   <Route path="/staff" element={<ClubhouseStaffDashboard />} />
+                  <Route path="/my-invoices" element={<MyInvoices />} />
                 </Routes>
               </Suspense>
             </div>
