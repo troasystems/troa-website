@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Calendar, PartyPopper, User, Menu, X, Info, Image, Phone, HelpCircle, MessageSquare, Shield, Settings, LogOut } from 'lucide-react';
+import { Home, Calendar, PartyPopper, User, Menu, X, Info, Image, Phone, HelpCircle, MessageSquare, Shield, Settings, LogOut, ClipboardList } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const BottomNavigation = () => {
   const location = useLocation();
-  const { isAuthenticated, user, logout, isAdmin, isManager } = useAuth();
+  const { isAuthenticated, user, logout, isAdmin, isManager, role } = useAuth();
   const [showMore, setShowMore] = useState(false);
 
   const isActive = (path) => location.pathname === path;
