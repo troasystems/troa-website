@@ -721,6 +721,8 @@ async def delete_feedback(feedback_id: str, request: Request):
         raise HTTPException(status_code=500, detail="Failed to delete feedback")
 
 # Amenity Booking Routes
+GUEST_CHARGE = 50.0  # ₹50 per session for external guests and coaches
+
 @api_router.post("/bookings", response_model=AmenityBooking)
 async def create_booking(booking: AmenityBookingCreate, request: Request):
     """Create amenity booking - authenticated users only"""
@@ -731,9 +733,52 @@ async def create_booking(booking: AmenityBookingCreate, request: Request):
         if booking.duration_minutes not in [30, 60]:
             raise HTTPException(status_code=400, detail="Duration must be 30 or 60 minutes")
         
-        # Validate additional guests count
-        if len(booking.additional_guests) > 3:
+        # Process guests with proper validation and charges
+        processed_guests = []
+        total_guest_charges = 0.0
+        
+        for guest in (booking.guests or []):
+            guest_type = guest.get('guest_type', 'external')
+            guest_name = guest.get('name', '').strip()
+            villa_number = guest.get('villa_number', '').strip() if guest.get('villa_number') else None
+            
+            if not guest_name:
+                continue
+            
+            # Validate resident guests have villa number
+            if guest_type == 'resident' and not villa_number:
+                raise HTTPException(status_code=400, detail=f"Villa number is required for resident guest: {guest_name}")
+            
+            # Calculate charges for external guests and coaches
+            charge = 0.0
+            if guest_type in ['external', 'coach']:
+                charge = GUEST_CHARGE
+                total_guest_charges += charge
+            
+            processed_guests.append({
+                'name': guest_name,
+                'guest_type': guest_type,
+                'villa_number': villa_number,
+                'charge': charge
+            })
+        
+        # Validate max guests (3)
+        if len(processed_guests) > 3:
             raise HTTPException(status_code=400, detail="Maximum 3 additional guests allowed")
+        
+        # Legacy support: convert additional_guests strings to guest objects
+        legacy_guests = []
+        if booking.additional_guests and not booking.guests:
+            for name in booking.additional_guests[:3]:
+                if name.strip():
+                    legacy_guests.append({
+                        'name': name.strip(),
+                        'guest_type': 'external',
+                        'villa_number': None,
+                        'charge': GUEST_CHARGE
+                    })
+                    total_guest_charges += GUEST_CHARGE
+            processed_guests = legacy_guests
         
         # Calculate end time
         from datetime import datetime, timedelta
@@ -761,21 +806,36 @@ async def create_booking(booking: AmenityBookingCreate, request: Request):
                     detail=f"Time slot conflicts with existing booking ({existing['start_time']}-{existing['end_time']})"
                 )
         
+        # Create audit log entry
+        audit_entry = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'action': 'created',
+            'by_email': user['email'],
+            'by_name': user['name'],
+            'by_role': user.get('role', 'user'),
+            'details': f"Booking created with {len(processed_guests)} guest(s)",
+            'changes': None
+        }
+        
         # Create booking
         booking_obj = AmenityBooking(
             amenity_id=booking.amenity_id,
             amenity_name=booking.amenity_name,
             booked_by_email=user['email'],
             booked_by_name=user['name'],
+            booked_by_villa=user.get('villa_number'),
             booking_date=booking.booking_date,
             start_time=booking.start_time,
             end_time=end_time,
             duration_minutes=booking.duration_minutes,
-            additional_guests=booking.additional_guests or []
+            guests=processed_guests,
+            additional_guests=[g['name'] for g in processed_guests],  # Legacy compatibility
+            total_guest_charges=total_guest_charges,
+            audit_log=[audit_entry]
         )
         
         await db.bookings.insert_one(booking_obj.dict())
-        logger.info(f"Booking created by {user['email']} for {booking.amenity_name}")
+        logger.info(f"Booking created by {user['email']} for {booking.amenity_name} with {len(processed_guests)} guests, charges: ₹{total_guest_charges}")
         
         # Send booking confirmation email to user
         try:
