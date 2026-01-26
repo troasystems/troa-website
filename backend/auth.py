@@ -170,6 +170,13 @@ async def require_manager_or_admin(request: Request):
         raise HTTPException(status_code=403, detail="Manager or Admin access required")
     return user
 
+async def require_clubhouse_staff(request: Request):
+    """Require clubhouse staff, manager, or admin authentication"""
+    user = await require_auth(request)
+    if user.get('role') not in ['admin', 'manager', 'clubhouse_staff']:
+        raise HTTPException(status_code=403, detail="Clubhouse Staff access required")
+    return user
+
 
 # Google OAuth - Frontend Token Verification
 class GoogleTokenRequest(BaseModel):
