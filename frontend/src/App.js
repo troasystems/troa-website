@@ -8,6 +8,7 @@ import Navbar from './components/Navbar';
 import BottomNavigation from './components/BottomNavigation';
 import FeedbackBanner from './components/FeedbackBanner';
 import EmailVerificationBanner from './components/EmailVerificationBanner';
+import PendingInvoiceBanner from './components/PendingInvoiceBanner';
 import VillaNumberModalWrapper from './components/VillaNumberModalWrapper';
 import Footer from './components/Footer';
 import InstallPWA from './components/InstallPWA';
@@ -36,6 +37,7 @@ const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const CommunityChat = lazy(() => import('./pages/CommunityChat'));
 const Chatbot = lazy(() => import('./components/Chatbot'));
 const ClubhouseStaffDashboard = lazy(() => import('./pages/ClubhouseStaffDashboard'));
+const MyInvoices = lazy(() => import('./pages/MyInvoices'));
 
 // Loading fallback component
 const PageLoader = () => (
