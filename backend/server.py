@@ -16,13 +16,15 @@ from models import (
     User, UserCreate, UserUpdate,
     Feedback, FeedbackCreate,
     AmenityBooking, AmenityBookingCreate,
-    BookingGuest, AuditLogEntry, BookingAvailedUpdate, BookingAmendment
+    BookingGuest, AuditLogEntry, BookingAvailedUpdate, BookingAmendment,
+    Invoice, InvoiceCreate, InvoiceUpdate, InvoiceLineItem
 )
 from auth import auth_router, require_admin, require_manager_or_admin, require_auth, require_clubhouse_staff
 from basic_auth import basic_auth_middleware
 from instagram import instagram_router
 from gridfs_upload import gridfs_router  # GridFS-based upload for production
 from payment import payment_router
+from pdf_service import generate_booking_report_pdf, generate_invoice_pdf
 from chatbot import chatbot_router
 from events import events_router
 from email_service import email_service, get_admin_manager_emails
