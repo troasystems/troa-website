@@ -154,6 +154,16 @@ class AmenityBookingCreate(BaseModel):
     guests: Optional[list] = []  # List of BookingGuest objects
     additional_guests: Optional[list] = []  # Legacy: Optional list of guest names
 
+# Staff operations models
+class BookingAvailedUpdate(BaseModel):
+    availed_status: str  # "availed" or "not_availed"
+    notes: Optional[str] = None
+
+class BookingAmendment(BaseModel):
+    actual_attendees: int
+    amendment_notes: str
+    additional_charges: Optional[float] = 0.0  # For extra guests
+
 class Feedback(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_email: str
