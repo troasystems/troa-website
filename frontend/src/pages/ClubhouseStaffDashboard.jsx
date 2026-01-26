@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Calendar, Clock, Users, Check, X, AlertCircle, Home, UserPlus, Award, Edit, History, ChevronDown, ChevronUp, ShieldAlert } from 'lucide-react';
+import { Calendar, Clock, Users, Check, X, AlertCircle, Home, UserPlus, Award, Edit, History, ChevronDown, ChevronUp, ShieldAlert, Download, FileText } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 import { useAuth } from '../context/AuthContext';
 import { getBackendUrl } from '../utils/api';
@@ -13,11 +13,21 @@ const ClubhouseStaffDashboard = () => {
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [bookings, setBookings] = useState([]);
+  const [amenities, setAmenities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedBooking, setExpandedBooking] = useState(null);
   const [amendmentModal, setAmendmentModal] = useState(null);
   const [amendmentData, setAmendmentData] = useState({ actual_attendees: 0, amendment_notes: '', additional_charges: 0 });
   const [accessDenied, setAccessDenied] = useState(false);
+  
+  // Report download state
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportForm, setReportForm] = useState({
+    amenity_id: '',
+    month: new Date().getMonth() + 1,
+    year: new Date().getFullYear()
+  });
+  const [downloadingReport, setDownloadingReport] = useState(false);
 
   // Check access permissions
   const hasAccess = ['admin', 'manager', 'clubhouse_staff'].includes(role);
@@ -34,8 +44,22 @@ const ClubhouseStaffDashboard = () => {
     }
     if (!authLoading && hasAccess) {
       fetchBookings();
+      fetchAmenities();
     }
   }, [selectedDate, authLoading, isAuthenticated, hasAccess]);
+
+  const fetchAmenities = async () => {
+    try {
+      const token = localStorage.getItem('session_token');
+      const response = await axios.get(`${getAPI()}/amenities`, {
+        withCredentials: true,
+        headers: { ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {}) }
+      });
+      setAmenities(response.data);
+    } catch (error) {
+      console.error('Error fetching amenities:', error);
+    }
+  };
 
   const fetchBookings = async () => {
     setLoading(true);
