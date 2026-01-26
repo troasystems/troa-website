@@ -949,10 +949,24 @@ async def cancel_booking(booking_id: str, request: Request):
         if booking['booked_by_email'] != user['email']:
             raise HTTPException(status_code=403, detail="You can only cancel your own bookings")
         
+        # Create audit log entry
+        audit_entry = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'action': 'cancelled',
+            'by_email': user['email'],
+            'by_name': user['name'],
+            'by_role': user.get('role', 'user'),
+            'details': 'Booking cancelled by user',
+            'changes': {'status': {'from': 'confirmed', 'to': 'cancelled'}}
+        }
+        
         # Update status to cancelled
         await db.bookings.update_one(
             {"id": booking_id},
-            {"$set": {"status": "cancelled", "updated_at": datetime.utcnow()}}
+            {
+                "$set": {"status": "cancelled", "updated_at": datetime.utcnow()},
+                "$push": {"audit_log": audit_entry}
+            }
         )
         
         # Send cancellation email to user
