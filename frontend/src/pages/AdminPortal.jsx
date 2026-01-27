@@ -107,66 +107,6 @@ const AdminPortal = () => {
     return null;
   }
 
-  const tabs = [
-    {
-      id: 'villas',
-      name: 'Villas',
-      fullName: 'Villa Management',
-      icon: Home,
-      component: VillaManagement,
-      roles: ['admin', 'manager']
-    },
-    {
-      id: 'membership',
-      name: 'Membership',
-      fullName: 'Membership Applications',
-      icon: FileText,
-      component: MembershipManagement,
-      roles: ['admin', 'manager']
-    },
-    {
-      id: 'payments',
-      name: 'Payments',
-      fullName: 'Offline Payments',
-      icon: Banknote,
-      component: OfflinePaymentsManagement,
-      roles: ['admin', 'manager']
-    },
-    {
-      id: 'events',
-      name: 'Events',
-      fullName: 'Events Management',
-      icon: PartyPopper,
-      component: EventsManagement,
-      roles: ['admin', 'manager']
-    },
-    {
-      id: 'invoices',
-      name: 'Invoices',
-      fullName: 'Invoice Management',
-      icon: Receipt,
-      component: InvoiceManagement,
-      roles: ['admin', 'manager', 'clubhouse_staff', 'accountant']
-    },
-    {
-      id: 'feedback',
-      name: 'Feedback',
-      fullName: 'User Feedback',
-      icon: MessageSquare,
-      component: FeedbackManagement,
-      roles: ['admin']
-    },
-    {
-      id: 'users',
-      name: 'Users',
-      fullName: 'User Management',
-      icon: Users,
-      component: UserManagement,
-      roles: ['admin']
-    }
-  ];
-
-  const availableTabs = tabs.filter(tab => tab.roles.includes(role));
   const activeTabData = availableTabs.find(tab => tab.id === activeTab);
 
   return (
