@@ -518,8 +518,8 @@ async def update_user(user_id: str, update: UserUpdate, request: Request):
         
         # Validate and add role if provided
         if update.role is not None:
-            if update.role not in ['admin', 'manager', 'user']:
-                raise HTTPException(status_code=400, detail="Invalid role. Must be: admin, manager, or user")
+            if update.role not in ['admin', 'manager', 'clubhouse_staff', 'user']:
+                raise HTTPException(status_code=400, detail="Invalid role. Must be: admin, manager, clubhouse_staff, or user")
             update_data["role"] = update.role
             update_data["is_admin"] = update.role == 'admin'
         
