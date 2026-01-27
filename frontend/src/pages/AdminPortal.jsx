@@ -3,18 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from '../hooks/use-toast';
 import { Toaster } from '../components/ui/toaster';
-import { Users, FileText, Shield, MessageSquare, PartyPopper, Banknote, Menu, X, Receipt } from 'lucide-react';
+import { Users, FileText, Shield, MessageSquare, PartyPopper, Banknote, Menu, X, Receipt, Home } from 'lucide-react';
 import MembershipManagement from '../components/MembershipManagement';
 import UserManagement from '../components/UserManagement';
 import FeedbackManagement from '../components/FeedbackManagement';
 import EventsManagement from '../components/EventsManagement';
 import OfflinePaymentsManagement from '../components/OfflinePaymentsManagement';
 import InvoiceManagement from '../components/InvoiceManagement';
+import VillaManagement from '../components/VillaManagement';
 
 const AdminPortal = () => {
   const { isAdmin, isManager, role, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('membership');
+  const [activeTab, setActiveTab] = useState('villas');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -41,6 +42,14 @@ const AdminPortal = () => {
   }
 
   const tabs = [
+    {
+      id: 'villas',
+      name: 'Villas',
+      fullName: 'Villa Management',
+      icon: Home,
+      component: VillaManagement,
+      roles: ['admin', 'manager']
+    },
     {
       id: 'membership',
       name: 'Membership',
@@ -71,7 +80,7 @@ const AdminPortal = () => {
       fullName: 'Invoice Management',
       icon: Receipt,
       component: InvoiceManagement,
-      roles: ['admin', 'manager']
+      roles: ['admin', 'manager', 'clubhouse_staff', 'accountant']
     },
     {
       id: 'feedback',
