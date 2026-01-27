@@ -1726,16 +1726,48 @@ async def download_invoice_pdf(invoice_id: str, request: Request):
     """Download invoice as PDF"""
     try:
         user = await require_auth(request)
+        user_email = user.get('email')
+        user_role = user.get('role')
         
         invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
         if not invoice:
             raise HTTPException(status_code=404, detail="Invoice not found")
         
         # Check access
-        is_manager = user.get('role') in ['admin', 'manager']
-        is_owner = invoice['user_email'] == user['email']
+        is_admin_or_manager = user_role in ['admin', 'manager']
+        is_accountant = user_role == 'accountant'
+        is_clubhouse_staff = user_role == 'clubhouse_staff'
+        is_direct_owner = invoice.get('user_email') == user_email
+        is_creator = invoice.get('created_by_email') == user_email
         
-        if not is_manager and not is_owner:
+        # Check if user's email is in the villa's email list
+        is_villa_member = False
+        if invoice.get('villa_number'):
+            villa = await db.villas.find_one(
+                {"villa_number": invoice['villa_number']},
+                {"_id": 0, "emails": 1}
+            )
+            if villa and villa.get('emails'):
+                is_villa_member = any(
+                    email.lower() == user_email.lower() 
+                    for email in villa.get('emails', [])
+                )
+        
+        # Access rules:
+        # - Admin/Manager: Can access all
+        # - Accountant: Can access maintenance invoices they created
+        # - Clubhouse staff: Can access clubhouse invoices
+        # - Direct owner: Can access invoices assigned to their email
+        # - Villa member: Can access invoices for their villa
+        has_access = (
+            is_admin_or_manager or
+            is_direct_owner or
+            is_villa_member or
+            (is_accountant and invoice.get('invoice_type') == INVOICE_TYPE_MAINTENANCE and is_creator) or
+            (is_clubhouse_staff and invoice.get('invoice_type') == INVOICE_TYPE_CLUBHOUSE)
+        )
+        
+        if not has_access:
             raise HTTPException(status_code=403, detail="Access denied")
         
         # Get bookings for audit log
