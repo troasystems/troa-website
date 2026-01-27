@@ -1566,29 +1566,25 @@ async def create_maintenance_invoice(invoice_data: MaintenanceInvoiceCreate, req
 
 
 @api_router.get("/invoices")
-async def get_invoices(request: Request, status: Optional[str] = None, invoice_type: Optional[str] = None):
-    """Get invoices - managers/accountants see based on role, users see their own"""
+async def get_invoices(request: Request, status: Optional[str] = None, invoice_type: Optional[str] = None, view: Optional[str] = None):
+    """Get invoices - managers/accountants see based on role, users see their own
+    
+    view parameter:
+    - 'my': Force personal view (only show invoices for user's villa) - used by My Invoices page
+    - 'manage': Management view (based on role permissions) - used by Invoice Management
+    - None/default: Auto-detect based on role (backward compatible)
+    """
     try:
         user = await require_auth(request)
         user_role = user.get('role')
         user_email = user.get('email')
+        user_villa = user.get('villa_number')
         
         query = {}
         
-        # Role-based access
-        if user_role in ['admin', 'manager']:
-            # Admin and Manager see all invoices
-            pass
-        elif user_role == 'accountant':
-            # Accountant sees only maintenance invoices they created
-            query['invoice_type'] = INVOICE_TYPE_MAINTENANCE
-            query['created_by_email'] = user_email
-        elif user_role == 'clubhouse_staff':
-            # Clubhouse staff sees only clubhouse subscription invoices
-            query['invoice_type'] = INVOICE_TYPE_CLUBHOUSE
-        else:
-            # Regular users see invoices where their email is in the villa's email list OR directly assigned
-            # First, get villas associated with this user's email
+        # If view='my', always show only user's personal invoices (villa-based)
+        if view == 'my':
+            # Get villas associated with this user's email
             user_villas = await db.villas.find(
                 {"emails": {"$elemMatch": {"$regex": f"^{user_email}$", "$options": "i"}}},
                 {"_id": 0, "villa_number": 1}
@@ -1602,7 +1598,51 @@ async def get_invoices(request: Request, status: Optional[str] = None, invoice_t
                     {'villa_number': {'$in': villa_numbers}}
                 ]
             else:
+                # No villa associated - only show invoices directly assigned to user's email
                 query['user_email'] = user_email
+        
+        # Management view - role-based access
+        elif view == 'manage':
+            if user_role in ['admin', 'manager']:
+                # Admin and Manager see all invoices
+                pass
+            elif user_role == 'accountant':
+                # Accountant sees only maintenance invoices (all maintenance invoices for management view)
+                query['invoice_type'] = INVOICE_TYPE_MAINTENANCE
+            elif user_role == 'clubhouse_staff':
+                # Clubhouse staff sees only clubhouse subscription invoices
+                query['invoice_type'] = INVOICE_TYPE_CLUBHOUSE
+            else:
+                # Regular users shouldn't access management view, return empty
+                return []
+        
+        # Default behavior (backward compatible) - auto-detect based on role
+        else:
+            if user_role in ['admin', 'manager']:
+                # Admin and Manager see all invoices
+                pass
+            elif user_role == 'accountant':
+                # Accountant sees only maintenance invoices they created (backward compatible)
+                query['invoice_type'] = INVOICE_TYPE_MAINTENANCE
+                query['created_by_email'] = user_email
+            elif user_role == 'clubhouse_staff':
+                # Clubhouse staff sees only clubhouse subscription invoices
+                query['invoice_type'] = INVOICE_TYPE_CLUBHOUSE
+            else:
+                # Regular users see invoices where their email is in the villa's email list OR directly assigned
+                user_villas = await db.villas.find(
+                    {"emails": {"$elemMatch": {"$regex": f"^{user_email}$", "$options": "i"}}},
+                    {"_id": 0, "villa_number": 1}
+                ).to_list(100)
+                villa_numbers = [v['villa_number'] for v in user_villas]
+                
+                if villa_numbers:
+                    query['$or'] = [
+                        {'user_email': user_email},
+                        {'villa_number': {'$in': villa_numbers}}
+                    ]
+                else:
+                    query['user_email'] = user_email
         
         # Filter by status if provided
         if status:
