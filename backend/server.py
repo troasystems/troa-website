@@ -1566,7 +1566,7 @@ async def download_invoice_pdf(invoice_id: str, request: Request):
 
 @api_router.put("/invoices/{invoice_id}")
 async def update_invoice(invoice_id: str, update: InvoiceUpdate, request: Request):
-    """Update invoice (adjustment) - Manager only, before payment"""
+    """Update invoice (override total amount) - Manager only, before payment"""
     try:
         user = await require_manager_or_admin(request)
         
@@ -1577,13 +1577,39 @@ async def update_invoice(invoice_id: str, update: InvoiceUpdate, request: Reques
         if invoice['payment_status'] != 'pending':
             raise HTTPException(status_code=400, detail="Cannot modify paid or cancelled invoice")
         
-        # Apply adjustment
+        # Apply new total amount as override
         update_fields = {"updated_at": datetime.utcnow()}
         
-        if update.adjustment is not None:
-            update_fields['adjustment'] = update.adjustment
+        if update.new_total_amount is not None:
+            if update.new_total_amount < 0:
+                raise HTTPException(status_code=400, detail="Total amount cannot be negative")
+            
+            previous_amount = invoice.get('total_amount', invoice.get('subtotal', 0))
+            new_amount = update.new_total_amount
+            
+            # Calculate the adjustment from subtotal
+            subtotal = invoice.get('subtotal', 0)
+            adjustment = new_amount - subtotal
+            
+            update_fields['total_amount'] = new_amount
+            update_fields['adjustment'] = adjustment
             update_fields['adjustment_reason'] = update.adjustment_reason or ''
-            update_fields['total_amount'] = invoice['subtotal'] + update.adjustment
+            
+            # Add audit log entry
+            audit_entry = {
+                "action": "amount_modified",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "by_email": user['email'],
+                "by_name": user['name'],
+                "details": f"Amount changed from ₹{previous_amount:.0f} to ₹{new_amount:.0f}. Reason: {update.adjustment_reason or 'No reason provided'}",
+                "previous_amount": previous_amount,
+                "new_amount": new_amount
+            }
+            
+            # Append to existing audit log
+            existing_audit_log = invoice.get('audit_log', [])
+            existing_audit_log.append(audit_entry)
+            update_fields['audit_log'] = existing_audit_log
         
         await db.invoices.update_one(
             {"id": invoice_id},
