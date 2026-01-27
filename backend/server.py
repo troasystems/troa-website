@@ -5,6 +5,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
+import uuid
 from pathlib import Path
 from typing import List, Optional
 from datetime import datetime, timedelta, timezone
