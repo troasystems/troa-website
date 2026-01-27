@@ -1579,7 +1579,6 @@ async def get_invoices(request: Request, status: Optional[str] = None, invoice_t
         user = await require_auth(request)
         user_role = user.get('role')
         user_email = user.get('email')
-        user_villa = user.get('villa_number')
         
         query = {}
         
