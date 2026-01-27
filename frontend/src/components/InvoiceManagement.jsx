@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { FileText, Plus, Download, Edit2, X, Search, Calendar, User, CheckCircle, XCircle, Clock, Trash2, History, Home, Tag } from 'lucide-react';
+import { FileText, Plus, Download, Edit2, X, Search, Calendar, User, CheckCircle, XCircle, Clock, Trash2, History, Home, Tag, Upload, FileSpreadsheet } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 import { getBackendUrl } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -38,6 +38,12 @@ const InvoiceManagement = () => {
     due_days: 20
   });
   const [creatingMaintenance, setCreatingMaintenance] = useState(false);
+  
+  // Bulk upload modal
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState(null);
+  const fileInputRef = useRef(null);
   
   // Edit invoice modal
   const [editModal, setEditModal] = useState(null);
