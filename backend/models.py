@@ -298,6 +298,8 @@ class Invoice(BaseModel):
     # Created by
     created_by_email: str
     created_by_name: str
+    # Audit log
+    audit_log: list = []  # List of InvoiceAuditEntry dicts
 
 class InvoiceCreate(BaseModel):
     user_email: str
