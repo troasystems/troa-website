@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FileText, Download, CreditCard, Calendar, CheckCircle, XCircle, Clock, AlertCircle, Receipt, Home, CheckSquare, Square, Tag } from 'lucide-react';
+import { FileText, Download, CreditCard, Calendar, CheckCircle, XCircle, Clock, AlertCircle, Receipt, Home, CheckSquare, Square, Tag, QrCode, Banknote, Hourglass } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 import { useAuth } from '../context/AuthContext';
 import { getBackendUrl } from '../utils/api';
