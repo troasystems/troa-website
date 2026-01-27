@@ -1623,14 +1623,29 @@ async def get_invoices(request: Request, status: Optional[str] = None, invoice_t
 
 @api_router.get("/invoices/pending/count")
 async def get_pending_invoice_count(request: Request):
-    """Get count of pending invoices for current user"""
+    """Get count of pending invoices for current user (including villa-based invoices)"""
     try:
         user = await require_auth(request)
+        user_email = user.get('email')
         
-        count = await db.invoices.count_documents({
-            "user_email": user['email'],
-            "payment_status": "pending"
-        })
+        # Get villas associated with this user's email
+        user_villas = await db.villas.find(
+            {"emails": {"$elemMatch": {"$regex": f"^{user_email}$", "$options": "i"}}},
+            {"_id": 0, "villa_number": 1}
+        ).to_list(100)
+        villa_numbers = [v['villa_number'] for v in user_villas]
+        
+        # Count invoices where user is directly assigned OR their villa is assigned
+        query = {"payment_status": "pending"}
+        if villa_numbers:
+            query['$or'] = [
+                {'user_email': user_email},
+                {'villa_number': {'$in': villa_numbers}}
+            ]
+        else:
+            query['user_email'] = user_email
+        
+        count = await db.invoices.count_documents(query)
         
         return {"count": count}
     except HTTPException:
