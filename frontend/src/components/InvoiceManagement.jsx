@@ -27,10 +27,13 @@ const InvoiceManagement = () => {
   // Edit invoice modal
   const [editModal, setEditModal] = useState(null);
   const [editForm, setEditForm] = useState({
-    adjustment: 0,
+    new_total_amount: 0,
     adjustment_reason: ''
   });
   const [editing, setEditing] = useState(false);
+  
+  // Audit log modal
+  const [auditModal, setAuditModal] = useState(null);
 
   useEffect(() => {
     fetchData();
