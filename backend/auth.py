@@ -269,6 +269,16 @@ async def verify_google_token(token_request: GoogleTokenRequest, request: Reques
         else:
             user_role = 'user'
         
+        # For regular users (non-privileged roles), check if email exists in any villa
+        if not is_privileged_role(user_role):
+            villa = await check_email_in_villas(email)
+            if not villa:
+                mongo_client.close()
+                raise HTTPException(
+                    status_code=403, 
+                    detail="Your email is not associated with any villa in TROA. Please contact troa.systems@gmail.com for assistance."
+                )
+        
         needs_villa_number = False
         
         if not existing_user:
@@ -316,6 +326,7 @@ async def verify_google_token(token_request: GoogleTokenRequest, request: Reques
             'picture': picture,
             'role': user_role,
             'is_admin': user_role == 'admin',
+            'is_staff': is_staff_role(user_role),
             'needs_villa_number': needs_villa_number,
             'villa_number': existing_user.get('villa_number', '') if existing_user else '',
             'provider': 'google',
