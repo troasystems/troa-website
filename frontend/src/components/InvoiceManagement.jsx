@@ -342,7 +342,19 @@ const InvoiceManagement = () => {
     });
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (invoice) => {
+    const status = typeof invoice === 'string' ? invoice : invoice.payment_status;
+    const offlineStatus = typeof invoice === 'object' ? invoice.offline_payment_status : null;
+    
+    if (offlineStatus === 'pending_approval') {
+      return (
+        <span className="flex items-center space-x-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">
+          <Hourglass className="w-3 h-3" />
+          <span>Pending Approval</span>
+        </span>
+      );
+    }
+    
     switch (status) {
       case 'paid':
         return (
