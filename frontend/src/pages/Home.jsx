@@ -46,9 +46,9 @@ const Home = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
+      {/* Hero Section - Full viewport height minus bottom nav on mobile */}
       <section
-        className="relative h-screen flex items-center justify-center overflow-hidden"
+        className="relative h-screen md:h-screen flex items-center justify-center overflow-hidden"
         style={{
           backgroundImage: `url('https://images.unsplash.com/photo-1761158497393-53ac42b57bb8?w=1920&q=80')`,
           backgroundSize: 'cover',
@@ -101,8 +101,8 @@ const Home = () => {
           </div>
         </div>
         
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+        {/* Scroll Indicator - hide on mobile */}
+        <div className="absolute bottom-24 md:bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce hidden md:block">
           <div className="w-8 h-12 border-2 border-white/50 rounded-full flex items-start justify-center p-2">
             <div className="w-1 h-3 bg-white rounded-full"></div>
           </div>

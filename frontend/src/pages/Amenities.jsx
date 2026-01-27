@@ -11,7 +11,7 @@ import { getImageUrl, getBackendUrl } from '../utils/api';
 const getAPI = () => `${getBackendUrl()}/api`;
 
 // Amenities that cannot be booked
-const NON_BOOKABLE_AMENITIES = ['Landscaped Gardens', 'Children\'s Play Area'];
+const NON_BOOKABLE_AMENITIES = ['Landscaped Gardens', 'Children\'s Play Area', 'Swimming Pool', 'Club House', 'Fitness Center'];
 
 const Amenities = () => {
   const [amenities, setAmenities] = useState([]);
@@ -162,9 +162,10 @@ const Amenities = () => {
     try {
       const token = localStorage.getItem('session_token');
       const response = await axios.post(`${getAPI()}/upload/image`, formData, {
+        withCredentials: true,
         headers: {
           'Content-Type': 'multipart/form-data',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
         }
       });
       

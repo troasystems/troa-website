@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
-// Basic auth removed
 import axios from 'axios';
-import { Calendar, Clock, Users, X, Check, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, Users, X, Check, AlertCircle, Home, UserPlus, Award, Info } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 
 import { getBackendUrl } from '../utils/api';
 const getAPI = () => `${getBackendUrl()}/api`;
 
+const GUEST_CHARGE = 50; // ₹50 per session for external guests and coaches
+
 const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedTime, setSelectedTime] = useState('');
   const [duration, setDuration] = useState(30);
-  const [additionalUsers, setAdditionalUsers] = useState(['']);
+  const [guests, setGuests] = useState([]);
   const [existingBookings, setExistingBookings] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -25,7 +26,6 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
     try {
       const token = localStorage.getItem('session_token');
       
-      
       const response = await axios.get(`${getAPI()}/bookings`, {
         params: {
           amenity_id: amenity.id,
@@ -33,7 +33,6 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
         },
         withCredentials: true,
         headers: {
-          
           ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
         }
       });
@@ -67,10 +66,10 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
     
     if (isToday) {
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
-      const minimumBookingTime = currentMinutes + 60; // At least 1 hour from now
+      const minimumBookingTime = currentMinutes + 60;
       
       if (slotStart < minimumBookingTime) {
-        return false; // Slot is too soon
+        return false;
       }
     }
 
@@ -84,7 +83,6 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
     });
   };
 
-  // Check if a slot is in the past or too soon (for display purposes)
   const isSlotTooSoon = (time) => {
     const [hours, minutes] = time.split(':').map(Number);
     const slotStart = hours * 60 + minutes;
@@ -95,7 +93,7 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
     
     if (isToday) {
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
-      const minimumBookingTime = currentMinutes + 60; // At least 1 hour from now
+      const minimumBookingTime = currentMinutes + 60;
       
       if (slotStart < minimumBookingTime) {
         return true;
@@ -105,20 +103,25 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
     return false;
   };
 
-  const handleAddUser = () => {
-    if (additionalUsers.length < 3) {
-      setAdditionalUsers([...additionalUsers, '']);
+  const handleAddGuest = (type) => {
+    if (guests.length < 3) {
+      setGuests([...guests, { name: '', guest_type: type, villa_number: '' }]);
     }
   };
 
-  const handleRemoveUser = (index) => {
-    setAdditionalUsers(additionalUsers.filter((_, i) => i !== index));
+  const handleRemoveGuest = (index) => {
+    setGuests(guests.filter((_, i) => i !== index));
   };
 
-  const handleUserChange = (index, value) => {
-    const newUsers = [...additionalUsers];
-    newUsers[index] = value;
-    setAdditionalUsers(newUsers);
+  const handleGuestChange = (index, field, value) => {
+    const newGuests = [...guests];
+    newGuests[index] = { ...newGuests[index], [field]: value };
+    setGuests(newGuests);
+  };
+
+  const calculateTotalCharges = () => {
+    return guests.filter(g => g.name.trim() && (g.guest_type === 'external' || g.guest_type === 'coach'))
+      .length * GUEST_CHARGE;
   };
 
   const handleBooking = async () => {
@@ -131,13 +134,22 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
       return;
     }
 
-    // Filter out empty names
-    const validGuests = additionalUsers.filter(name => name.trim() !== '');
+    // Validate guests
+    const validGuests = guests.filter(g => g.name.trim() !== '');
+    for (const guest of validGuests) {
+      if (guest.guest_type === 'resident' && !guest.villa_number.trim()) {
+        toast({
+          title: 'Error',
+          description: `Please enter villa number for resident guest: ${guest.name}`,
+          variant: 'destructive'
+        });
+        return;
+      }
+    }
 
     setLoading(true);
     try {
       const token = localStorage.getItem('session_token');
-      
 
       await axios.post(
         `${getAPI()}/bookings`,
@@ -147,20 +159,26 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
           booking_date: selectedDate,
           start_time: selectedTime,
           duration_minutes: duration,
-          additional_guests: validGuests
+          guests: validGuests.map(g => ({
+            name: g.name.trim(),
+            guest_type: g.guest_type,
+            villa_number: g.guest_type === 'resident' ? g.villa_number.trim() : null
+          }))
         },
         {
           withCredentials: true,
           headers: {
-            
             ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
           }
         }
       );
 
+      const totalCharges = calculateTotalCharges();
       toast({
         title: 'Success',
-        description: 'Amenity booked successfully!'
+        description: totalCharges > 0 
+          ? `Amenity booked! Guest charges: ₹${totalCharges}` 
+          : 'Amenity booked successfully!'
       });
 
       if (onBookingCreated) onBookingCreated();
@@ -177,6 +195,34 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
   };
 
   const timeSlots = generateTimeSlots();
+  const totalCharges = calculateTotalCharges();
+
+  const getGuestTypeIcon = (type) => {
+    switch (type) {
+      case 'resident': return <Home className="w-4 h-4" />;
+      case 'external': return <UserPlus className="w-4 h-4" />;
+      case 'coach': return <Award className="w-4 h-4" />;
+      default: return <Users className="w-4 h-4" />;
+    }
+  };
+
+  const getGuestTypeLabel = (type) => {
+    switch (type) {
+      case 'resident': return 'Other Resident';
+      case 'external': return 'External Guest';
+      case 'coach': return 'Coach';
+      default: return 'Guest';
+    }
+  };
+
+  const getGuestTypeBadgeColor = (type) => {
+    switch (type) {
+      case 'resident': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'external': return 'bg-orange-100 text-orange-700 border-orange-200';
+      case 'coach': return 'bg-purple-100 text-purple-700 border-purple-200';
+      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -185,7 +231,7 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
         <div className="sticky top-0 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white p-6 rounded-t-2xl flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold">Book {amenity.name}</h2>
-            <p className="text-sm opacity-90">Select date, time, and duration</p>
+            <p className="text-sm opacity-90">Select date, time, and add guests</p>
           </div>
           <button onClick={onClose} className="hover:bg-white hover:bg-opacity-20 p-2 rounded-lg transition-colors">
             <X className="w-6 h-6" />
@@ -272,40 +318,109 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
             </div>
           </div>
 
-          {/* Additional Users */}
+          {/* Additional Guests Section */}
           <div>
             <label className="flex items-center space-x-2 text-lg font-semibold text-gray-900 mb-3">
               <Users className="w-5 h-5 text-purple-600" />
               <span>Additional Guests (Optional - Max 3)</span>
             </label>
-            <div className="space-y-2">
-              {additionalUsers.map((user, index) => (
-                <div key={index} className="flex space-x-2">
-                  <input
-                    type="text"
-                    value={user}
-                    onChange={(e) => handleUserChange(index, e.target.value)}
-                    placeholder={`Guest name ${index + 1}`}
-                    className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                  <button
-                    onClick={() => handleRemoveUser(index)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+            
+            {/* Guest Type Buttons */}
+            {guests.length < 3 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                <button
+                  onClick={() => handleAddGuest('resident')}
+                  className="flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                >
+                  <Home className="w-4 h-4" />
+                  <span>Add Resident</span>
+                </button>
+                <button
+                  onClick={() => handleAddGuest('external')}
+                  className="flex items-center space-x-2 px-4 py-2 bg-orange-50 text-orange-700 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Add External Guest</span>
+                </button>
+                <button
+                  onClick={() => handleAddGuest('coach')}
+                  className="flex items-center space-x-2 px-4 py-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors"
+                >
+                  <Award className="w-4 h-4" />
+                  <span>Add Coach</span>
+                </button>
+              </div>
+            )}
+
+            {/* Info boxes for charges */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              <div className="flex items-center space-x-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                <Info className="w-3 h-3" />
+                <span>External Guest: ₹{GUEST_CHARGE}/session</span>
+              </div>
+              <div className="flex items-center space-x-1 text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded">
+                <Info className="w-3 h-3" />
+                <span>Coach: ₹{GUEST_CHARGE}/session</span>
+              </div>
+            </div>
+
+            {/* Guest List */}
+            <div className="space-y-3">
+              {guests.map((guest, index) => (
+                <div key={index} className={`p-4 rounded-lg border ${getGuestTypeBadgeColor(guest.guest_type)}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="flex items-center space-x-2 font-medium text-sm">
+                      {getGuestTypeIcon(guest.guest_type)}
+                      <span>{getGuestTypeLabel(guest.guest_type)}</span>
+                      {(guest.guest_type === 'external' || guest.guest_type === 'coach') && (
+                        <span className="text-xs bg-white px-2 py-0.5 rounded">₹{GUEST_CHARGE}</span>
+                      )}
+                    </span>
+                    <button
+                      onClick={() => handleRemoveGuest(index)}
+                      className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      value={guest.name}
+                      onChange={(e) => handleGuestChange(index, 'name', e.target.value)}
+                      placeholder="Guest name"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                    />
+                    {guest.guest_type === 'resident' && (
+                      <input
+                        type="text"
+                        value={guest.villa_number}
+                        onChange={(e) => handleGuestChange(index, 'villa_number', e.target.value)}
+                        placeholder="Villa No."
+                        className="w-28 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                      />
+                    )}
+                  </div>
                 </div>
               ))}
-              {additionalUsers.length < 3 && (
-                <button
-                  onClick={handleAddUser}
-                  className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-purple-500 hover:text-purple-600 transition-colors"
-                >
-                  + Add Another User
-                </button>
-              )}
             </div>
           </div>
+
+          {/* Total Charges Display */}
+          {totalCharges > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="w-5 h-5 text-amber-600" />
+                  <span className="font-semibold text-amber-900">Guest Charges</span>
+                </div>
+                <span className="text-xl font-bold text-amber-900">₹{totalCharges}</span>
+              </div>
+              <p className="text-sm text-amber-700 mt-1">
+                {guests.filter(g => g.name.trim() && (g.guest_type === 'external' || g.guest_type === 'coach')).length} guest(s) @ ₹{GUEST_CHARGE} per session
+              </p>
+            </div>
+          )}
 
           {/* Existing Bookings Info */}
           {existingBookings.length > 0 && (
@@ -340,7 +455,7 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated }) => {
               className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Check className="w-5 h-5" />
-              <span>{loading ? 'Booking...' : 'Confirm Booking'}</span>
+              <span>{loading ? 'Booking...' : totalCharges > 0 ? `Confirm (₹${totalCharges})` : 'Confirm Booking'}</span>
             </button>
           </div>
         </div>

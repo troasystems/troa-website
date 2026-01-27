@@ -7,7 +7,7 @@ A full-stack web application for managing a residential community association. B
 ## Features
 
 - 🏠 **Public Website** - Home, About, Committee, Amenities, Gallery, Contact pages
-- 🔐 **Google OAuth Authentication** - Secure login with Google
+- 🔐 **Dual Authentication** - Google OAuth + Email/Password with email verification
 - 👥 **Role-Based Access Control** - Admin, Manager, and User roles
 - 📅 **Amenity Booking System** - Book community amenities with calendar view
 - 🎉 **Events Management** - Create events, register with online/offline payments
@@ -15,247 +15,315 @@ A full-stack web application for managing a residential community association. B
 - 🤖 **AI Chatbot** - Answer visitor queries about the community
 - 📝 **Feedback System** - Collect and manage user feedback
 - 📊 **Admin Portal** - Manage users, events, bookings, and approvals
+- 📧 **Email Notifications** - AWS SES integration for transactional emails
+- ✉️ **Email Verification** - 2-week grace period for new email registrations
+- 📸 **Instagram Gallery** - Integrated Instagram feed display
+- 🏘️ **Membership Applications** - New resident application workflow
 
 ## Tech Stack
 
 - **Frontend**: React 18, Tailwind CSS, Shadcn UI
-- **Backend**: FastAPI (Python)
+- **Backend**: FastAPI (Python 3.9+)
 - **Database**: MongoDB
-- **Authentication**: Google OAuth 2.0
+- **Authentication**: Google OAuth 2.0 + Email/Password
 - **Payments**: Razorpay
+- **Email Service**: AWS SES (Simple Email Service)
+- **AI/LLM**: OpenAI (via Emergent Integrations)
 
 ---
 
-## 🐳 Docker Setup (Recommended)
-
-The easiest way to run TROA is using Docker. This will set up the entire stack (Frontend, Backend, MongoDB) with a single command.
+## 🚀 Quick Start (Local Development)
 
 ### Prerequisites
 
-- [Docker](https://docs.docker.com/get-docker/) (v20.10 or higher)
-- [Docker Compose](https://docs.docker.com/compose/install/) (v2.0 or higher)
+- [Node.js](https://nodejs.org/) v18 or higher
+- [Python](https://www.python.org/) v3.9 or higher
+- [MongoDB](https://www.mongodb.com/try/download/community) v6.0 or higher
+- [Yarn](https://yarnpkg.com/) package manager
 
-### Quick Start with Docker
+### Step 1: Clone the Repository
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/your-username/troa.git
-cd troa
+git clone https://github.com/troasystems/troa-website.git
+cd troa-website
+```
 
-# 2. Configure environment variables
-# Option A: If backend/.env exists, edit it with your API keys
-# Option B: If not, create it from the example:
+### Step 2: Backend Setup
+
+```bash
+cd backend
+
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies (includes emergentintegrations from private registry)
+pip install --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/ -r requirements.txt
+
+# Create .env file (see Environment Variables section below)
+cp .env.example .env
+# Edit .env with your credentials
+
+# Start MongoDB (if not already running)
+mongod --dbpath ./data/db &
+
+# Run the backend server
+uvicorn server:app --host 0.0.0.0 --port 8001 --reload
+```
+
+### Step 3: Frontend Setup
+
+```bash
+cd frontend
+
+# Install dependencies (use yarn, NOT npm)
+yarn install
+
+# Create .env file
+cp .env.example .env
+# Edit .env with your settings
+
+# Run the development server
+yarn start
+```
+
+### Step 4: Access the Application
+
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8001
+- **API Docs (Swagger)**: http://localhost:8001/docs
+- **API Docs (ReDoc)**: http://localhost:8001/redoc
+
+---
+
+## 🐳 Docker Setup (Alternative)
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) v20.10 or higher
+- [Docker Compose](https://docs.docker.com/compose/install/) v2.0 or higher
+
+### Quick Start
+
+```bash
+# 1. Clone and navigate
+git clone https://github.com/troasystems/troa-website.git
+cd troa-website
+
+# 2. Configure environment files
 cp backend/.env.example backend/.env
-# Then edit backend/.env with your API keys (see Configuration section below)
+cp frontend/.env.example frontend/.env
+# Edit both .env files with your credentials
 
-# 3. Start the application
+# 3. Build and start
 docker-compose up -d --build
 
 # 4. View logs (optional)
 docker-compose logs -f
 ```
 
-**That's it!** The application will be available at:
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8001
-- **API Docs**: http://localhost:8001/docs
-
 ### Docker Commands
 
 ```bash
-# Start all services
+# Start services
 docker-compose up -d
 
-# Stop all services
+# Stop services
 docker-compose down
 
-# Restart all services
+# Restart services
 docker-compose restart
 
 # View logs
-docker-compose logs -f
-
-# View logs for specific service
 docker-compose logs -f backend
 docker-compose logs -f frontend
 docker-compose logs -f mongodb
 
-# Rebuild images (after code changes)
+# Rebuild after code changes
 docker-compose up -d --build
 
-# Remove all containers and volumes (clean slate)
+# Reset everything (removes all data!)
 docker-compose down -v
-
-# Check service status
-docker-compose ps
 ```
 
-### Configuration
+---
 
-Before starting, ensure `backend/.env` exists with your credentials. If it doesn't exist, create it from the example:
+## ⚙️ Environment Variables
 
-```bash
-cp backend/.env.example backend/.env
-```
-
-Then edit `backend/.env` with your credentials:
+### Backend (`backend/.env`)
 
 ```env
-# Google OAuth (Required)
+# Database Configuration
+MONGO_URL=mongodb://localhost:27017
+DB_NAME=troa_residence
+
+# CORS Configuration
+CORS_ORIGINS=*
+
+# Application URL (for email links)
+REACT_APP_BACKEND_URL=http://localhost:3000
+
+# ===========================================
+# GOOGLE OAUTH (Required for Google login)
+# ===========================================
 # Get from: https://console.cloud.google.com/apis/credentials
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 
-# Razorpay (Required for payments)
+# Session Secret (Change in production!)
+SECRET_KEY=your-super-secret-key-change-this
+
+# ===========================================
+# INSTAGRAM INTEGRATION (Optional)
+# ===========================================
+# Get from: https://developers.facebook.com/apps/
+INSTAGRAM_APP_ID=your_instagram_app_id
+INSTAGRAM_APP_SECRET=your_instagram_app_secret
+
+# ===========================================
+# RAZORPAY PAYMENTS (Required for payments)
+# ===========================================
 # Get from: https://dashboard.razorpay.com/app/keys
 RAZORPAY_KEY_ID=your_razorpay_key_id
 RAZORPAY_KEY_SECRET=your_razorpay_key_secret
 
-# Session Secret (Change this!)
-SECRET_KEY=generate-a-random-secret-key-here
+# ===========================================
+# BASIC AUTH (Optional - for staging)
+# ===========================================
+BASIC_AUTH_USERNAME=admin
+BASIC_AUTH_PASSWORD=your-secure-password
 
-# OpenAI for Chatbot (Optional)
-EMERGENT_LLM_KEY=your_openai_api_key
+# ===========================================
+# AI CHATBOT (Optional)
+# ===========================================
+# Emergent LLM Key for AI features
+EMERGENT_LLM_KEY=your_emergent_llm_key
+
+# ===========================================
+# AWS SES EMAIL (Required for email features)
+# ===========================================
+# Get from: https://console.aws.amazon.com/ses/
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+AWS_SES_REGION=eu-west-3
+AWS_SES_SENDER_EMAIL=noreply@yourdomain.com
+AWS_SES_REPLY_TO_EMAIL=support@yourdomain.com
 ```
 
-Also create the frontend environment file:
-
-```bash
-cp frontend/.env.example frontend/.env
-```
-
-Then edit `frontend/.env`:
+### Frontend (`frontend/.env`)
 
 ```env
-# For local Docker setup
+# Backend API URL
 REACT_APP_BACKEND_URL=http://localhost:8001
+
+# WebSocket Configuration (for development)
+WDS_SOCKET_PORT=443
+
+# Feature Flags
+REACT_APP_ENABLE_VISUAL_EDITS=false
+ENABLE_HEALTH_CHECK=false
+
+# Basic Auth (if enabled on backend)
 REACT_APP_BASIC_AUTH_USERNAME=admin
 REACT_APP_BASIC_AUTH_PASSWORD=your-secure-password
-```
 
-### Production Deployment with Docker
-
-For production, create a `docker-compose.prod.yml`:
-
-```bash
-# Build and deploy for production
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Google Client ID (for frontend Google Sign-In button)
+REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id
 ```
 
 ---
 
-## 💻 Manual Setup (Without Docker)
+## 🔑 Third-Party Service Setup
 
-If you prefer to run without Docker:
-
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) (v18 or higher)
-- [Python](https://www.python.org/) (v3.9 or higher)
-- [MongoDB](https://www.mongodb.com/try/download/community) (v6.0 or higher)
-- [Yarn](https://yarnpkg.com/) package manager
-
-### Option 1: Using the Start Script
-
-```bash
-# Clone the repository
-git clone https://github.com/your-username/troa.git
-cd troa
-
-# Make the script executable and run
-chmod +x start.sh
-./start.sh
-```
-
-### Option 2: Manual Setup
-
-#### Backend Setup
-
-```bash
-cd backend
-
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies (note: emergentintegrations requires extra index URL)
-pip install --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/ -r requirements.txt
-
-# Create .env file
-cat << EOF > .env
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=troa_db
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-RAZORPAY_KEY_ID=your_razorpay_key_id
-RAZORPAY_KEY_SECRET=your_razorpay_key_secret
-SESSION_SECRET=your-super-secret-key
-EOF
-
-# Start MongoDB (if not running)
-mongod --dbpath ./data/db &
-
-# Run the server
-uvicorn server:app --host 0.0.0.0 --port 8001 --reload
-```
-
-#### Frontend Setup
-
-```bash
-cd frontend
-
-# Install dependencies
-yarn install
-
-# Create .env file
-echo "REACT_APP_BACKEND_URL=http://localhost:8001" > .env
-
-# Run the development server
-yarn start
-```
-
----
-
-## 🔧 Setting Up Google OAuth
+### 1. Google OAuth Setup
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select existing
 3. Navigate to **APIs & Services** > **Credentials**
 4. Click **Create Credentials** > **OAuth 2.0 Client IDs**
 5. Set Application type to **Web application**
-6. Add Authorized redirect URIs:
-   - Development: `http://localhost:8001/api/auth/google/callback`
-   - Docker: `http://localhost:8001/api/auth/google/callback`
-   - Production: `https://yourdomain.com/api/auth/google/callback`
-7. Copy the Client ID and Client Secret to your `.env` file
+6. Add Authorized JavaScript origins:
+   - `http://localhost:3000` (development)
+   - `https://yourdomain.com` (production)
+7. Add Authorized redirect URIs:
+   - `http://localhost:8001/api/auth/google/callback` (development)
+   - `https://yourdomain.com/api/auth/google/callback` (production)
+8. Copy Client ID and Client Secret to your `.env` files
+
+### 2. AWS SES Setup (Email Service)
+
+1. Go to [AWS SES Console](https://console.aws.amazon.com/ses/)
+2. Verify your sender domain or email address
+3. Create IAM credentials with SES permissions:
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": ["ses:SendEmail", "ses:SendRawEmail"],
+         "Resource": "*"
+       }
+     ]
+   }
+   ```
+4. **Important**: Request production access to send emails to any address (sandbox mode only allows verified addresses)
+5. Copy credentials to `backend/.env`
+
+### 3. Razorpay Setup (Payments)
+
+1. Go to [Razorpay Dashboard](https://dashboard.razorpay.com/)
+2. Navigate to **Settings** > **API Keys**
+3. Generate API keys (use Test keys for development)
+4. Copy Key ID and Key Secret to `backend/.env`
+
+### 4. Instagram Integration (Optional)
+
+1. Go to [Facebook Developers](https://developers.facebook.com/)
+2. Create an app with Instagram Basic Display
+3. Configure OAuth redirect URIs
+4. Copy App ID and App Secret to `backend/.env`
 
 ---
 
 ## 📁 Project Structure
 
 ```
-troa/
+troa-website/
 ├── backend/
-│   ├── server.py          # Main FastAPI application
-│   ├── auth.py            # Authentication & OAuth
+│   ├── server.py          # Main FastAPI application & routes
+│   ├── auth.py            # Authentication (Google OAuth + Email/Password)
+│   ├── email_service.py   # AWS SES email service
 │   ├── events.py          # Events management API
 │   ├── chatbot.py         # AI chatbot logic
 │   ├── models.py          # Pydantic models
-│   ├── upload.py          # File upload handling
 │   ├── payment.py         # Razorpay integration
+│   ├── instagram.py       # Instagram API integration
+│   ├── upload.py          # File upload handling
+│   ├── gridfs_upload.py   # GridFS file storage
+│   ├── basic_auth.py      # Basic auth middleware
+│   ├── tests/             # Backend tests
+│   ├── uploads/           # Uploaded files storage
 │   ├── Dockerfile         # Backend Docker image
 │   └── requirements.txt   # Python dependencies
 │
 ├── frontend/
 │   ├── src/
 │   │   ├── components/    # Reusable UI components
+│   │   │   ├── ui/        # Shadcn UI components
+│   │   │   └── EmailVerificationBanner.jsx
 │   │   ├── pages/         # Page components
-│   │   ├── context/       # React context (Auth)
+│   │   │   ├── Login.jsx
+│   │   │   ├── VerifyEmail.jsx
+│   │   │   ├── Events.jsx
+│   │   │   ├── Amenities.jsx
+│   │   │   └── ...
+│   │   ├── context/       # React context
+│   │   │   └── AuthContext.jsx
 │   │   ├── hooks/         # Custom hooks
-│   │   └── utils/         # Utility functions
+│   │   └── App.js         # Main application router
 │   ├── public/            # Static assets
 │   ├── Dockerfile         # Frontend Docker image
-│   ├── nginx.conf         # Nginx config for production
 │   └── package.json       # Node dependencies
 │
 ├── docker-compose.yml     # Docker orchestration
@@ -265,72 +333,69 @@ troa/
 
 ---
 
-## 👤 Admin Setup
+## 👤 User Roles & Permissions
 
-After first login with Google OAuth, make yourself an admin:
+| Role | Permissions |
+|------|-------------|
+| **Admin** | Full access - manage users, events, bookings, settings, approve applications |
+| **Manager** | Manage events and bookings, view reports, approve registrations |
+| **User** | Book amenities, register for events, submit feedback, view own bookings |
 
-### Using Docker:
+### Setting Up Admin User
 
-```bash
-# Connect to MongoDB container
-docker exec -it troa-mongodb mongosh
-
-# In mongosh:
-use troa_db
-db.users.updateOne(
-  { email: "your-email@gmail.com" },
-  { $set: { role: "admin" } }
-)
-exit
-```
-
-### Without Docker:
+The super admin email is hardcoded as `troa.systems@gmail.com`. To add additional admins:
 
 ```bash
+# Connect to MongoDB
 mongosh
-use troa_db
+
+# Select database
+use troa_residence
+
+# Promote user to admin
 db.users.updateOne(
-  { email: "your-email@gmail.com" },
-  { $set: { role: "admin" } }
+  { email: "user@example.com" },
+  { $set: { role: "admin", is_admin: true } }
+)
+
+# Promote user to manager
+db.users.updateOne(
+  { email: "manager@example.com" },
+  { $set: { role: "manager" } }
 )
 ```
 
 ---
 
-## 📚 API Documentation
+## 📧 Email Features
 
-Once running, visit:
-- **Swagger UI**: http://localhost:8001/docs
-- **ReDoc**: http://localhost:8001/redoc
+### Email Verification Flow
+
+1. User registers with email/password
+2. Verification email sent with unique token (valid for 2 weeks)
+3. User can access the app during grace period (banner shown)
+4. After 2 weeks without verification, login is blocked
+5. User can request new verification email from login page
+
+**Note**: Google OAuth users are automatically verified.
+
+### Email Notifications
+
+The system sends emails for:
+- **Welcome Email** - On new user registration
+- **Email Verification** - Registration verification link
+- **Booking Confirmations** - Amenity booking created/modified/cancelled
+- **Event Registrations** - Event registration pending/confirmed/withdrawn
+- **Membership Applications** - New applications (to admin)
+- **Feedback Submissions** - New feedback (to admin)
 
 ---
 
 ## 🔍 Troubleshooting
 
-### Docker Issues
+### Common Issues
 
-```bash
-# Check if containers are running
-docker-compose ps
-
-# Check container logs
-docker-compose logs backend
-docker-compose logs frontend
-docker-compose logs mongodb
-
-# Restart a specific service
-docker-compose restart backend
-
-# Rebuild after code changes
-docker-compose up -d --build
-
-# Reset everything (removes data!)
-docker-compose down -v
-docker-compose up -d --build
-```
-
-### Port Already in Use
-
+#### Port Already in Use
 ```bash
 # Kill process on port 3000
 lsof -ti:3000 | xargs kill -9
@@ -339,44 +404,112 @@ lsof -ti:3000 | xargs kill -9
 lsof -ti:8001 | xargs kill -9
 ```
 
-### MongoDB Connection Error
-
+#### MongoDB Connection Error
 ```bash
 # Check if MongoDB is running
-docker-compose ps mongodb
+systemctl status mongod
 
-# Or for manual setup:
+# Start MongoDB
+sudo systemctl start mongod
+
+# Or run manually
 mongod --dbpath ./data/db
 ```
 
-### Google OAuth Not Working
-
-- Ensure redirect URIs match exactly in Google Console
-- For Docker: Use `http://localhost:8001/api/auth/google/callback`
-- Check that GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are correct
-- Clear browser cookies and try again
-
-### emergentintegrations Package Not Found
-
-If you see `ERROR: No matching distribution found for emergentintegrations`, it means the private package registry is not being used. This is already configured in the Dockerfile, but if you're installing manually:
-
+#### emergentintegrations Package Not Found
 ```bash
+# Use the extra index URL
 pip install --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/ -r requirements.txt
 ```
 
-### Missing .env Files
+#### Google OAuth Not Working
+- Verify redirect URIs match exactly in Google Console
+- Check GOOGLE_CLIENT_ID is set in both backend and frontend `.env`
+- Clear browser cookies and try again
 
-The `.env` files are gitignored for security. You need to create them from the examples:
+#### AWS SES Emails Not Sending
+- Check if SES is in sandbox mode (only sends to verified emails)
+- Verify IAM credentials have correct permissions
+- Check AWS_SES_REGION matches your SES region
+- Request production access for sending to any email
+
+#### Email Verification Banner Showing for Google Users
+- This is fixed - Google users are automatically verified
+- If issue persists, clear browser cache and re-login
+
+### Viewing Logs
 
 ```bash
-# Backend
-cp backend/.env.example backend/.env
-# Edit backend/.env with your credentials
+# Backend logs (if using uvicorn directly)
+# Logs appear in terminal
 
-# Frontend
-cp frontend/.env.example frontend/.env
-# Edit frontend/.env with your credentials
+# Docker logs
+docker-compose logs -f backend
+docker-compose logs -f frontend
+
+# Check MongoDB
+docker-compose logs mongodb
 ```
+
+---
+
+## 🧪 Running Tests
+
+### Backend Tests
+
+```bash
+cd backend
+source venv/bin/activate
+
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=. --cov-report=html
+
+# Run specific test file
+pytest tests/test_user_whitelist.py -v
+```
+
+### Frontend Tests
+
+```bash
+cd frontend
+
+# Run tests
+yarn test
+
+# Run with coverage
+yarn test --coverage
+```
+
+---
+
+## 🚀 Deployment
+
+### Production Checklist
+
+1. **Environment Variables**
+   - Change `SECRET_KEY` to a strong random value
+   - Update `REACT_APP_BACKEND_URL` to production domain
+   - Use production API keys (not test keys)
+
+2. **AWS SES**
+   - Move out of sandbox mode
+   - Verify production domain
+
+3. **Google OAuth**
+   - Add production domain to authorized origins/redirects
+
+4. **Security**
+   - Enable HTTPS
+   - Configure proper CORS origins
+   - Set secure session cookies
+
+5. **Database**
+   - Use MongoDB Atlas or production MongoDB instance
+   - Enable authentication
+   - Set up backups
 
 ---
 

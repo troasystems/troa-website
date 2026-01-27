@@ -1,10 +1,9 @@
-import boto3
+import resend
 import logging
 import os
 import asyncio
 from typing import Optional, List
 from datetime import datetime
-from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -20,86 +19,48 @@ SUPER_ADMIN_EMAIL = 'troa.systems@gmail.com'
 
 class EmailService:
     def __init__(self):
-        """Initialize AWS SES client with credentials"""
-        self.access_key = os.getenv('AWS_ACCESS_KEY_ID')
-        self.secret_key = os.getenv('AWS_SECRET_ACCESS_KEY')
-        self.region = os.getenv('AWS_SES_REGION', 'ap-south-2')
-        self.sender_email = os.getenv('AWS_SES_SENDER_EMAIL', 'noreply@troa.in')
-        self.reply_to_email = os.getenv('AWS_SES_REPLY_TO_EMAIL', 'troa.systems@gmail.com')
+        """Initialize Resend client with credentials"""
+        self.api_key = os.getenv('RESEND_API_KEY')
+        self.sender_email = os.getenv('SENDER_EMAIL', 'noreply@troa.in')
+        self.reply_to_email = os.getenv('REPLY_TO_EMAIL', 'troa.systems@gmail.com')
         self.frontend_url = os.getenv('REACT_APP_BACKEND_URL', 'https://emailbuzz.preview.emergentagent.com')
         
-        if not self.access_key or not self.secret_key:
-            logger.warning("AWS credentials not configured. Email sending will be disabled.")
-            self.ses_client = None
+        if not self.api_key:
+            logger.warning("Resend API key not configured. Email sending will be disabled.")
         else:
-            self.ses_client = boto3.client(
-                'ses',
-                region_name=self.region,
-                aws_access_key_id=self.access_key,
-                aws_secret_access_key=self.secret_key
-            )
+            resend.api_key = self.api_key
+            logger.info("Resend email service initialized successfully")
 
     async def _send_email(self, recipient_email: str, subject: str, html_body: str, text_body: str) -> dict:
-        """Base method to send an email"""
-        if not self.ses_client:
-            logger.error("SES client not initialized. Cannot send email.")
+        """Base method to send an email using Resend"""
+        if not self.api_key:
+            logger.error("Resend API key not configured. Cannot send email.")
             return {'status': 'error', 'message': 'Email service not configured'}
 
         try:
             params = {
-                'Source': self.sender_email,
-                'Destination': {
-                    'ToAddresses': [recipient_email]
-                },
-                'Message': {
-                    'Subject': {
-                        'Data': subject,
-                        'Charset': 'UTF-8'
-                    },
-                    'Body': {
-                        'Text': {
-                            'Data': text_body,
-                            'Charset': 'UTF-8'
-                        },
-                        'Html': {
-                            'Data': html_body,
-                            'Charset': 'UTF-8'
-                        }
-                    }
-                },
-                'ReplyToAddresses': [self.reply_to_email]
+                "from": self.sender_email,
+                "to": [recipient_email],
+                "subject": subject,
+                "html": html_body,
+                "text": text_body,
+                "reply_to": self.reply_to_email
             }
 
             # Run sync SDK in thread to keep FastAPI non-blocking
-            response = await asyncio.to_thread(self.ses_client.send_email, **params)
+            response = await asyncio.to_thread(resend.Emails.send, params)
 
-            logger.info(f"Email sent to {recipient_email}, MessageId: {response.get('MessageId')}")
+            logger.info(f"Email sent to {recipient_email}, ID: {response.get('id')}")
 
             return {
                 'status': 'sent',
-                'message_id': response.get('MessageId'),
+                'message_id': response.get('id'),
                 'recipient_email': recipient_email,
                 'sent_at': datetime.utcnow().isoformat()
             }
 
-        except ClientError as e:
-            error_code = e.response['Error']['Code']
-            error_message = e.response['Error']['Message']
-            
-            logger.error(f"Failed to send email to {recipient_email}: {error_code} - {error_message}")
-            
-            if 'not verified' in error_message.lower():
-                logger.warning(
-                    f"AWS SES Sandbox Mode: Cannot send to {recipient_email}. "
-                    "Request production access in AWS SES console to send to any email."
-                )
-            
-            return {
-                'status': 'error',
-                'message': f"Email sending failed: {error_message}"
-            }
         except Exception as e:
-            logger.error(f"Unexpected error sending email: {str(e)}")
+            logger.error(f"Failed to send email to {recipient_email}: {str(e)}")
             return {
                 'status': 'error',
                 'message': f"Email sending failed: {str(e)}"
@@ -633,6 +594,212 @@ Visit our website: {self.frontend_url}
             text_body += f"\nSuggestions: {feature_suggestions}"
         
         return await self._send_to_multiple(admin_emails, f"[TROA] New Feedback ({rating}/5 stars)", html_body, text_body)
+
+    # ============ INVOICE EMAILS ============
+
+    async def send_invoice_raised(
+        self,
+        recipient_email: str,
+        user_name: str,
+        invoice_number: str,
+        amenity_name: str,
+        month_year: str,
+        total_amount: float,
+        due_date: str
+    ) -> dict:
+        """Send invoice raised notification to user"""
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="UTF-8"></head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; line-height: 1.6; color: #333;">
+        {self._get_email_header()}
+                        <tr>
+                            <td style="padding: 40px;">
+                                <p style="margin: 0 0 20px 0; font-size: 16px;">Hi {user_name},</p>
+                                <h2 style="color: #9333ea; margin: 0 0 20px 0;">📄 New Invoice Raised</h2>
+                                
+                                <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Invoice Number:</strong> {invoice_number}</p>
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Amenity:</strong> {amenity_name}</p>
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Period:</strong> {month_year}</p>
+                                    <p style="margin: 15px 0 5px 0; font-size: 20px;"><strong>Amount Due:</strong> ₹{total_amount:.0f}</p>
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Due Date:</strong> {due_date}</p>
+                                </div>
+                                
+                                <div style="background-color: #fef3c7; border: 1px solid #fcd34d; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                                    <p style="margin: 0; font-size: 14px; color: #92400e;">⚠️ Please pay this invoice by the due date to avoid any inconvenience.</p>
+                                </div>
+                                
+                                <table width="100%" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td align="center" style="padding: 20px 0;">
+                                            <a href="{self.frontend_url}/my-invoices" style="display: inline-block; background: linear-gradient(to right, #9333ea, #ec4899, #f97316); color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px;">Pay Now</a>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+        {self._get_email_footer()}
+        </body></html>
+        """
+        
+        text_body = f"Hi {user_name},\n\nA new invoice has been raised:\n\nInvoice: {invoice_number}\nAmenity: {amenity_name}\nPeriod: {month_year}\nAmount: ₹{total_amount:.0f}\nDue Date: {due_date}\n\nPay now: {self.frontend_url}/my-invoices"
+        
+        return await self._send_email(recipient_email, f"[TROA] Invoice #{invoice_number} - ₹{total_amount:.0f} Due", html_body, text_body)
+
+    async def send_invoice_payment_receipt(
+        self,
+        recipient_email: str,
+        user_name: str,
+        invoice_number: str,
+        amenity_name: str,
+        month_year: str,
+        total_amount: float,
+        payment_id: str,
+        payment_date: str
+    ) -> dict:
+        """Send payment receipt to user"""
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="UTF-8"></head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; line-height: 1.6; color: #333;">
+        {self._get_email_header()}
+                        <tr>
+                            <td style="padding: 40px;">
+                                <p style="margin: 0 0 20px 0; font-size: 16px;">Hi {user_name},</p>
+                                <h2 style="color: #22c55e; margin: 0 0 20px 0;">✅ Payment Received</h2>
+                                
+                                <p style="margin: 0 0 20px 0; font-size: 16px;">Thank you! Your payment has been successfully processed.</p>
+                                
+                                <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Invoice Number:</strong> {invoice_number}</p>
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Amenity:</strong> {amenity_name}</p>
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Period:</strong> {month_year}</p>
+                                    <p style="margin: 15px 0 5px 0; font-size: 20px;"><strong>Amount Paid:</strong> ₹{total_amount:.0f}</p>
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Payment ID:</strong> {payment_id}</p>
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Payment Date:</strong> {payment_date}</p>
+                                </div>
+                                
+                                <p style="margin: 20px 0; font-size: 14px;">View all your invoices: <a href="{self.frontend_url}/my-invoices" style="color: #9333ea;">My Invoices</a></p>
+                            </td>
+                        </tr>
+        {self._get_email_footer()}
+        </body></html>
+        """
+        
+        text_body = f"Hi {user_name},\n\nPayment received!\n\nInvoice: {invoice_number}\nAmenity: {amenity_name}\nPeriod: {month_year}\nAmount: ₹{total_amount:.0f}\nPayment ID: {payment_id}\nDate: {payment_date}"
+        
+        return await self._send_email(recipient_email, f"[TROA] Payment Receipt - Invoice #{invoice_number}", html_body, text_body)
+
+    async def send_maintenance_invoice_raised(
+        self,
+        recipient_email: str,
+        user_name: str,
+        invoice_number: str,
+        villa_number: str,
+        total_amount: float,
+        due_date: str,
+        line_items: list
+    ) -> dict:
+        """Send maintenance invoice raised notification"""
+        
+        # Build line items HTML
+        line_items_html = ""
+        for item in line_items:
+            line_items_html += f"""
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">{item.get('description', '')}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">{item.get('quantity', 1)}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">₹{item.get('rate', 0):.2f}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">₹{item.get('amount', 0):.2f}</td>
+            </tr>
+            """
+        
+        html_body = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #2c5530 0%, #1a3a1f 100%); color: white; padding: 20px; text-align: center;">
+                <h1 style="margin: 0;">TROA</h1>
+                <p style="margin: 5px 0 0 0; font-size: 14px;">The Retreat Owners Association</p>
+            </div>
+            <div style="padding: 30px; background: #f9f9f9;">
+                <h2 style="color: #333;">Maintenance Invoice Raised</h2>
+                <p>Hi{' ' + user_name if user_name else ''},</p>
+                <p>A maintenance invoice has been raised for your villa. Please find the details below:</p>
+                
+                <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 8px 0;"><strong>Invoice Number:</strong></td>
+                            <td style="padding: 8px 0;">{invoice_number}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0;"><strong>Villa Number:</strong></td>
+                            <td style="padding: 8px 0;">{villa_number}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0;"><strong>Due Date:</strong></td>
+                            <td style="padding: 8px 0;">{due_date}</td>
+                        </tr>
+                    </table>
+                    
+                    <h3 style="margin-top: 20px; border-bottom: 2px solid #2c5530; padding-bottom: 10px;">Line Items</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f5f5f5;">
+                                <th style="padding: 10px; text-align: left;">Description</th>
+                                <th style="padding: 10px; text-align: center;">Qty</th>
+                                <th style="padding: 10px; text-align: right;">Rate</th>
+                                <th style="padding: 10px; text-align: right;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {line_items_html}
+                        </tbody>
+                        <tfoot>
+                            <tr style="font-weight: bold; background: #f5f5f5;">
+                                <td colspan="3" style="padding: 10px; text-align: right;">Total Amount:</td>
+                                <td style="padding: 10px; text-align: right; color: #2c5530;">₹{total_amount:.2f}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="{self.frontend_url}/my-invoices" style="background: #2c5530; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Pay Now</a>
+                </div>
+                
+                <p style="color: #666; font-size: 12px; margin-top: 20px;">
+                    Please make the payment before the due date to avoid any inconvenience. 
+                    If you have any questions, please contact us at {self.reply_to_email}.
+                </p>
+            </div>
+            <div style="background: #333; color: white; padding: 15px; text-align: center; font-size: 12px;">
+                <p style="margin: 0;">© {datetime.now().year} TROA - The Retreat Owners Association</p>
+            </div>
+        </div>
+        """
+        
+        text_body = f"""Hi {user_name if user_name else ''},
+
+A maintenance invoice has been raised for your villa.
+
+Invoice Number: {invoice_number}
+Villa Number: {villa_number}
+Total Amount: ₹{total_amount:.2f}
+Due Date: {due_date}
+
+Please log in to pay this invoice: {self.frontend_url}/my-invoices
+
+For any queries, contact {self.reply_to_email}"""
+        
+        return await self._send_email(
+            recipient_email, 
+            f"[TROA] Maintenance Invoice #{invoice_number} - Villa {villa_number}", 
+            html_body, 
+            text_body
+        )
 
 
 # Helper function to get admin and manager emails
