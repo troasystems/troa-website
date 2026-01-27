@@ -184,14 +184,14 @@ const Navbar = () => {
                       <Receipt className="w-4 h-4" />
                       <span>My Invoices</span>
                     </Link>
-                    {(isAdmin || isManager) && (
+                    {(isAdmin || isManager || role === 'accountant') && (
                       <Link
                         to="/admin"
                         onClick={() => setProfileOpen(false)}
                         className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 transition-colors"
                       >
                         <Shield className="w-4 h-4" />
-                        <span>{isAdmin ? 'Admin Portal' : 'Manager Portal'}</span>
+                        <span>{isAdmin ? 'Admin Portal' : isManager ? 'Manager Portal' : 'Accountant Portal'}</span>
                       </Link>
                     )}
                     {(role === 'clubhouse_staff' || isAdmin || isManager) && (
