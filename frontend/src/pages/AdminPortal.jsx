@@ -15,10 +15,9 @@ import VillaManagement from '../components/VillaManagement';
 const AdminPortal = () => {
   const { isAdmin, isManager, role, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Define tabs first so we can use them in useEffect
+  // Define tabs
   const tabs = [
     {
       id: 'villas',
@@ -79,6 +78,17 @@ const AdminPortal = () => {
   ];
 
   const availableTabs = tabs.filter(tab => tab.roles.includes(role));
+  
+  // Initialize activeTab to the first available tab for the user's role
+  const [activeTab, setActiveTab] = useState(() => {
+    // This will be re-evaluated when role changes via the useEffect below
+    return null;
+  });
+  
+  // Compute effective active tab - use first available if activeTab is not set or invalid
+  const effectiveActiveTab = activeTab && availableTabs.some(t => t.id === activeTab) 
+    ? activeTab 
+    : availableTabs[0]?.id;
 
   useEffect(() => {
     if (!authLoading && role === 'user') {
@@ -89,11 +99,7 @@ const AdminPortal = () => {
         variant: 'destructive'
       });
     }
-    // Set the default active tab to the first available tab for the user's role
-    if (!authLoading && role && role !== 'user' && !activeTab && availableTabs.length > 0) {
-      setActiveTab(availableTabs[0].id);
-    }
-  }, [role, authLoading, navigate, activeTab, availableTabs]);
+  }, [role, authLoading, navigate]);
 
   if (authLoading) {
     return (
