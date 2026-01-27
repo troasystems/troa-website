@@ -2262,6 +2262,133 @@ app.add_middleware(
 async def shutdown_db_client():
     client.close()
 
+
+# Background task for invoice reminders
+async def send_invoice_reminders():
+    """Background task to send invoice payment reminders.
+    
+    Reminder schedule:
+    - Before due date: Every 5 days
+    - After due date (overdue): Every day
+    """
+    logger.info("Starting invoice reminder background task")
+    
+    while True:
+        try:
+            today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            
+            # Find all pending invoices
+            pending_invoices = await db.invoices.find(
+                {"payment_status": "pending"},
+                {"_id": 0}
+            ).to_list(1000)
+            
+            for invoice in pending_invoices:
+                try:
+                    due_date = invoice.get('due_date')
+                    if not due_date:
+                        continue
+                    
+                    # Parse due date if it's a string
+                    if isinstance(due_date, str):
+                        due_date = datetime.fromisoformat(due_date.replace('Z', '+00:00'))
+                    
+                    due_date_normalized = due_date.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
+                    days_until_due = (due_date_normalized - today).days
+                    is_overdue = days_until_due < 0
+                    
+                    # Determine if we should send a reminder
+                    last_reminder = invoice.get('last_reminder_sent')
+                    should_send = False
+                    
+                    if last_reminder:
+                        if isinstance(last_reminder, str):
+                            last_reminder = datetime.fromisoformat(last_reminder.replace('Z', '+00:00'))
+                        last_reminder_normalized = last_reminder.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
+                        days_since_last_reminder = (today - last_reminder_normalized).days
+                        
+                        if is_overdue:
+                            # Overdue: send reminder daily
+                            should_send = days_since_last_reminder >= 1
+                        else:
+                            # Before due date: send reminder every 5 days
+                            should_send = days_since_last_reminder >= 5
+                    else:
+                        # No reminder sent yet - send if invoice is at least 1 day old
+                        created_at = invoice.get('created_at')
+                        if created_at:
+                            if isinstance(created_at, str):
+                                created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                            created_at_normalized = created_at.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
+                            days_since_creation = (today - created_at_normalized).days
+                            
+                            if is_overdue:
+                                should_send = days_since_creation >= 1
+                            else:
+                                # Send first reminder 5 days after creation (initial email was sent on creation)
+                                should_send = days_since_creation >= 5
+                    
+                    if should_send:
+                        villa_number = invoice.get('villa_number', '')
+                        invoice_number = invoice.get('invoice_number', '')
+                        total_amount = invoice.get('total_amount', 0)
+                        due_date_str = due_date.strftime("%d %b %Y") if due_date else ''
+                        
+                        # Get all emails to notify
+                        emails_to_notify = []
+                        
+                        # Add user_email if present
+                        if invoice.get('user_email'):
+                            emails_to_notify.append(invoice['user_email'])
+                        
+                        # Add villa emails if villa_number is present
+                        if villa_number:
+                            villa = await db.villas.find_one(
+                                {"villa_number": villa_number},
+                                {"_id": 0, "emails": 1}
+                            )
+                            if villa and villa.get('emails'):
+                                for email in villa['emails']:
+                                    if email and email not in emails_to_notify:
+                                        emails_to_notify.append(email)
+                        
+                        # Send reminders to all relevant emails
+                        for email in emails_to_notify:
+                            try:
+                                # Get user name if available
+                                user = await db.users.find_one({"email": email}, {"_id": 0, "name": 1})
+                                user_name = user.get('name', '') if user else ''
+                                
+                                await email_service.send_invoice_reminder(
+                                    recipient_email=email,
+                                    user_name=user_name,
+                                    invoice_number=invoice_number,
+                                    villa_number=villa_number,
+                                    total_amount=total_amount,
+                                    due_date=due_date_str,
+                                    days_until_due=days_until_due,
+                                    is_overdue=is_overdue
+                                )
+                                logger.info(f"Sent invoice reminder for {invoice_number} to {email}")
+                            except Exception as email_error:
+                                logger.error(f"Failed to send reminder to {email}: {email_error}")
+                        
+                        # Update last_reminder_sent timestamp
+                        await db.invoices.update_one(
+                            {"id": invoice['id']},
+                            {"$set": {"last_reminder_sent": datetime.utcnow()}}
+                        )
+                        
+                except Exception as invoice_error:
+                    logger.error(f"Error processing reminder for invoice {invoice.get('invoice_number', 'unknown')}: {invoice_error}")
+            
+        except Exception as e:
+            logger.error(f"Error in invoice reminder task: {e}")
+        
+        # Run every hour (check hourly, but actual sending is based on day calculations)
+        await asyncio.sleep(3600)  # 1 hour
+
+
 @app.on_event("startup")
 async def startup_event():
     # Initialize MC Group
@@ -2269,3 +2396,6 @@ async def startup_event():
         await init_mc_group()
     except Exception as e:
         logging.error(f"Error initializing MC Group: {e}")
+    
+    # Start invoice reminder background task
+    asyncio.create_task(send_invoice_reminders())
