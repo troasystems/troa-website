@@ -213,7 +213,7 @@ const AdminPortal = () => {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center space-x-2 px-3 lg:px-6 py-4 font-medium border-b-2 transition-all whitespace-nowrap ${
-                      activeTab === tab.id
+                      effectiveActiveTab === tab.id
                         ? 'border-purple-600 text-purple-600 bg-purple-50'
                         : 'border-transparent text-gray-600 hover:text-purple-600 hover:bg-gray-50'
                     }`}
