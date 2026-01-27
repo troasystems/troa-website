@@ -394,6 +394,83 @@ const InvoiceManagement = () => {
     return { subtotal, discount, total: Math.max(subtotal - discount, 0) };
   };
 
+  // Bulk upload functions
+  const downloadTemplate = async () => {
+    try {
+      const token = localStorage.getItem('session_token');
+      const response = await axios.get(`${getAPI()}/bulk/invoices/template`, {
+        responseType: 'blob',
+        withCredentials: true,
+        headers: { ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {}) }
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'TROA_Invoice_Upload_Template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to download template',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleBulkUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.xlsx')) {
+      toast({
+        title: 'Error',
+        description: 'Only .xlsx files are supported',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setUploading(true);
+    setUploadResult(null);
+
+    try {
+      const token = localStorage.getItem('session_token');
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await axios.post(`${getAPI()}/bulk/invoices/upload`, formData, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
+        }
+      });
+
+      setUploadResult(response.data);
+      toast({
+        title: 'Success',
+        description: response.data.message
+      });
+      fetchData();
+    } catch (error) {
+      const errorMsg = error.response?.data?.detail || 'Failed to upload invoices';
+      setUploadResult({ success: false, error: errorMsg });
+      toast({
+        title: 'Error',
+        description: errorMsg,
+        variant: 'destructive'
+      });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
