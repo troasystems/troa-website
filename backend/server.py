@@ -2302,14 +2302,14 @@ async def reject_offline_invoice_payment(invoice_id: str, request: Request):
 async def get_payment_qr_info(request: Request):
     """Get QR code info for offline payments"""
     # This returns the UPI/bank details for offline payments
-    # The QR code image can be stored in GridFS or as a static URL
+    # Using the same QR code as event offline payments
     return {
         "upi_id": "troa@upi",
         "bank_name": "HDFC Bank",
         "account_name": "The Retreat Owners Association",
         "account_number": "50100XXXXXXXXX",
         "ifsc_code": "HDFC0001234",
-        "qr_image_url": "/api/static/payment-qr.png",
+        "qr_image_url": "https://customer-assets.emergentagent.com/job_troaresidents/artifacts/kfeb4dc1_Screenshot%202025-12-13%20at%201.15.41%E2%80%AFPM.png",
         "instructions": [
             "Scan the QR code using any UPI app (GPay, PhonePe, Paytm, etc.)",
             "Enter the exact invoice amount",
