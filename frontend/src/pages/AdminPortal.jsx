@@ -15,8 +15,70 @@ import VillaManagement from '../components/VillaManagement';
 const AdminPortal = () => {
   const { isAdmin, isManager, role, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('villas');
+  const [activeTab, setActiveTab] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Define tabs first so we can use them in useEffect
+  const tabs = [
+    {
+      id: 'villas',
+      name: 'Villas',
+      fullName: 'Villa Management',
+      icon: Home,
+      component: VillaManagement,
+      roles: ['admin', 'manager']
+    },
+    {
+      id: 'membership',
+      name: 'Membership',
+      fullName: 'Membership Applications',
+      icon: FileText,
+      component: MembershipManagement,
+      roles: ['admin', 'manager']
+    },
+    {
+      id: 'payments',
+      name: 'Payments',
+      fullName: 'Offline Payments',
+      icon: Banknote,
+      component: OfflinePaymentsManagement,
+      roles: ['admin', 'manager']
+    },
+    {
+      id: 'events',
+      name: 'Events',
+      fullName: 'Events Management',
+      icon: PartyPopper,
+      component: EventsManagement,
+      roles: ['admin', 'manager']
+    },
+    {
+      id: 'invoices',
+      name: 'Invoices',
+      fullName: 'Invoice Management',
+      icon: Receipt,
+      component: InvoiceManagement,
+      roles: ['admin', 'manager', 'clubhouse_staff', 'accountant']
+    },
+    {
+      id: 'feedback',
+      name: 'Feedback',
+      fullName: 'User Feedback',
+      icon: MessageSquare,
+      component: FeedbackManagement,
+      roles: ['admin']
+    },
+    {
+      id: 'users',
+      name: 'Users',
+      fullName: 'User Management',
+      icon: Users,
+      component: UserManagement,
+      roles: ['admin']
+    }
+  ];
+
+  const availableTabs = tabs.filter(tab => tab.roles.includes(role));
 
   useEffect(() => {
     if (!authLoading && role === 'user') {
@@ -27,7 +89,11 @@ const AdminPortal = () => {
         variant: 'destructive'
       });
     }
-  }, [role, authLoading, navigate]);
+    // Set the default active tab to the first available tab for the user's role
+    if (!authLoading && role && role !== 'user' && !activeTab && availableTabs.length > 0) {
+      setActiveTab(availableTabs[0].id);
+    }
+  }, [role, authLoading, navigate, activeTab, availableTabs]);
 
   if (authLoading) {
     return (
