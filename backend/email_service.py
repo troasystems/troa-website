@@ -1,4 +1,5 @@
-import resend
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail, Email, To, Content, ReplyTo
 import logging
 import os
 import asyncio
@@ -19,42 +20,42 @@ SUPER_ADMIN_EMAIL = 'troa.systems@gmail.com'
 
 class EmailService:
     def __init__(self):
-        """Initialize Resend client with credentials"""
-        self.api_key = os.getenv('RESEND_API_KEY')
+        """Initialize SendGrid client with credentials"""
+        self.api_key = os.getenv('SENDGRID_API_KEY')
         self.sender_email = os.getenv('SENDER_EMAIL', 'noreply@troa.in')
         self.reply_to_email = os.getenv('REPLY_TO_EMAIL', 'troa.systems@gmail.com')
         self.frontend_url = os.getenv('REACT_APP_BACKEND_URL', 'https://emailbuzz.preview.emergentagent.com')
         
         if not self.api_key:
-            logger.warning("Resend API key not configured. Email sending will be disabled.")
+            logger.warning("SendGrid API key not configured. Email sending will be disabled.")
         else:
-            resend.api_key = self.api_key
-            logger.info("Resend email service initialized successfully")
+            self.sg_client = SendGridAPIClient(self.api_key)
+            logger.info("SendGrid email service initialized successfully")
 
     async def _send_email(self, recipient_email: str, subject: str, html_body: str, text_body: str) -> dict:
-        """Base method to send an email using Resend"""
+        """Base method to send an email using SendGrid"""
         if not self.api_key:
-            logger.error("Resend API key not configured. Cannot send email.")
+            logger.error("SendGrid API key not configured. Cannot send email.")
             return {'status': 'error', 'message': 'Email service not configured'}
 
         try:
-            params = {
-                "from": self.sender_email,
-                "to": [recipient_email],
-                "subject": subject,
-                "html": html_body,
-                "text": text_body,
-                "reply_to": self.reply_to_email
-            }
+            message = Mail(
+                from_email=Email(self.sender_email),
+                to_emails=To(recipient_email),
+                subject=subject,
+                html_content=Content("text/html", html_body),
+                plain_text_content=Content("text/plain", text_body)
+            )
+            message.reply_to = ReplyTo(self.reply_to_email)
 
             # Run sync SDK in thread to keep FastAPI non-blocking
-            response = await asyncio.to_thread(resend.Emails.send, params)
+            response = await asyncio.to_thread(self.sg_client.send, message)
 
-            logger.info(f"Email sent to {recipient_email}, ID: {response.get('id')}")
+            logger.info(f"Email sent to {recipient_email}, Status: {response.status_code}")
 
             return {
                 'status': 'sent',
-                'message_id': response.get('id'),
+                'status_code': response.status_code,
                 'recipient_email': recipient_email,
                 'sent_at': datetime.utcnow().isoformat()
             }
