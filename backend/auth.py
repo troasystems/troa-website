@@ -9,7 +9,7 @@ import logging
 from typing import Optional
 from datetime import datetime, timedelta
 import secrets
-from models import User, UserCreate
+from models import User, UserCreate, STAFF_ROLES, VALID_ROLES, PRIVILEGED_ROLES
 from motor.motor_asyncio import AsyncIOMotorClient
 
 # Load environment variables
@@ -36,6 +36,34 @@ ADMIN_EMAILS = [ADMIN_EMAIL]
 # Note: Manager roles are now stored in the database and managed via User Management
 # The hardcoded MANAGER_EMAILS list has been removed - use the database instead
 
+
+def is_staff_role(role: str) -> bool:
+    """Check if a role is part of the staff group"""
+    return role in STAFF_ROLES
+
+
+def is_privileged_role(role: str) -> bool:
+    """Check if a role bypasses villa email check on login"""
+    return role in PRIVILEGED_ROLES
+
+
+async def check_email_in_villas(email: str) -> dict:
+    """Check if an email exists in any villa's email list"""
+    mongo_url = os.getenv('MONGO_URL', 'mongodb://localhost:27017')
+    db_name = os.getenv('DB_NAME', 'test_database')
+    client = AsyncIOMotorClient(mongo_url)
+    db = client[db_name]
+    
+    try:
+        villa = await db.villas.find_one(
+            {"emails": {"$elemMatch": {"$regex": f"^{email}$", "$options": "i"}}},
+            {"_id": 0}
+        )
+        return villa
+    finally:
+        client.close()
+
+
 async def get_user_role_from_db(email: str) -> str:
     """Get user role from database, with super admin override"""
     # Super admin always gets admin role
@@ -58,6 +86,7 @@ async def get_user_role_from_db(email: str) -> str:
     
     # Default role for new users
     return 'user'
+
 
 def get_user_role(email: str) -> str:
     """Synchronous version - only checks super admin, returns 'user' for others
