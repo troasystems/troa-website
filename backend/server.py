@@ -1270,18 +1270,27 @@ INVOICE_RATE = 50.0  # ₹50 per person per session
 RESIDENT_MONTHLY_CAP = 300.0  # ₹300 cap per amenity per month
 
 def generate_invoice_number(year: int, month: int) -> str:
-    """Generate unique invoice number"""
+    """Generate unique invoice number for clubhouse subscription"""
     import random
     import string
     random_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
     return f"TROA-INV-{year}{month:02d}-{random_suffix}"
 
 
+def generate_maintenance_invoice_number() -> str:
+    """Generate unique invoice number for maintenance"""
+    import random
+    import string
+    now = datetime.utcnow()
+    random_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+    return f"TROA-MAINT-{now.year}{now.month:02d}-{random_suffix}"
+
+
 @api_router.post("/invoices")
 async def create_invoice(invoice_data: InvoiceCreate, request: Request):
-    """Create invoice for a user's amenity usage - Manager only"""
+    """Create clubhouse subscription invoice for a user's amenity usage - Clubhouse Staff, Manager, or Admin"""
     try:
-        user = await require_manager_or_admin(request)
+        user = await require_clubhouse_staff(request)
         
         # Validate month
         if invoice_data.month < 1 or invoice_data.month > 12:
@@ -1293,6 +1302,7 @@ async def create_invoice(invoice_data: InvoiceCreate, request: Request):
             "amenity_id": invoice_data.amenity_id,
             "month": invoice_data.month,
             "year": invoice_data.year,
+            "invoice_type": INVOICE_TYPE_CLUBHOUSE,
             "payment_status": {"$ne": "cancelled"}
         }, {"_id": 0})
         
