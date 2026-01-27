@@ -1442,6 +1442,131 @@ const InvoiceManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Approval Modal */}
+      {approvalModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b bg-gradient-to-r from-orange-50 to-amber-50">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center">
+                  <Hourglass className="w-5 h-5 mr-2 text-orange-600" />
+                  Review Offline Payment
+                </h3>
+                <button onClick={() => setApprovalModal(null)} className="p-2 hover:bg-white/50 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Invoice Details */}
+              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Invoice</span>
+                  <span className="font-mono font-medium">#{approvalModal.invoice_number}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">User</span>
+                  <span className="font-medium">{approvalModal.user_name}</span>
+                </div>
+                {approvalModal.villa_number && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Villa</span>
+                    <span>{approvalModal.villa_number}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Type</span>
+                  <span className="capitalize">{approvalModal.invoice_type?.replace('_', ' ')}</span>
+                </div>
+                <div className="flex justify-between text-lg font-bold border-t pt-2 mt-2">
+                  <span>Amount</span>
+                  <span className="text-green-600">₹{approvalModal.total_amount?.toFixed(0)}</span>
+                </div>
+              </div>
+
+              {/* Payment Details */}
+              <div className="bg-orange-50 rounded-lg p-4 space-y-2">
+                <p className="font-medium text-orange-800 mb-2">Payment Submission Details</p>
+                <div className="text-sm text-orange-700 space-y-1">
+                  <p><span className="text-orange-600">Submitted by:</span> {approvalModal.offline_submitted_by_name} ({approvalModal.offline_submitted_by_email})</p>
+                  <p><span className="text-orange-600">Submitted at:</span> {formatDate(approvalModal.offline_submitted_at)}</p>
+                  {approvalModal.offline_transaction_reference && (
+                    <p><span className="text-orange-600">Transaction Ref:</span> <span className="font-mono font-medium">{approvalModal.offline_transaction_reference}</span></p>
+                  )}
+                </div>
+              </div>
+
+              {/* Approve Section */}
+              <div className="border border-green-200 rounded-lg p-4">
+                <p className="font-medium text-green-800 mb-3 flex items-center">
+                  <Check className="w-4 h-4 mr-1" />
+                  Approve Payment
+                </p>
+                <textarea
+                  value={approvalNote}
+                  onChange={(e) => setApprovalNote(e.target.value)}
+                  placeholder="Add a note (optional)"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 mb-3"
+                  rows={2}
+                />
+                <button
+                  onClick={() => handleApprovePayment(approvalModal)}
+                  disabled={processing}
+                  className="w-full px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+                >
+                  {processing ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      <span>Approve & Mark as Paid</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Reject Section */}
+              <div className="border border-red-200 rounded-lg p-4">
+                <p className="font-medium text-red-800 mb-3 flex items-center">
+                  <Ban className="w-4 h-4 mr-1" />
+                  Reject Payment
+                </p>
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Reason for rejection (required)"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 mb-3"
+                  rows={2}
+                />
+                <button
+                  onClick={() => handleRejectPayment(approvalModal)}
+                  disabled={processing || !rejectionReason.trim()}
+                  className="w-full px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+                >
+                  {processing ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  ) : (
+                    <>
+                      <XCircle className="w-4 h-4" />
+                      <span>Reject Payment</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Cancel */}
+              <button
+                onClick={() => setApprovalModal(null)}
+                className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
