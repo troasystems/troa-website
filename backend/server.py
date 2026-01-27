@@ -1566,18 +1566,50 @@ async def create_maintenance_invoice(invoice_data: MaintenanceInvoiceCreate, req
 
 @api_router.get("/invoices")
 async def get_invoices(request: Request, status: Optional[str] = None, invoice_type: Optional[str] = None):
-    """Get invoices - managers see all, users see their own"""
+    """Get invoices - managers/accountants see based on role, users see their own"""
     try:
         user = await require_auth(request)
+        user_role = user.get('role')
+        user_email = user.get('email')
         
         query = {}
-        is_manager = user.get('role') in ['admin', 'manager']
         
-        if not is_manager:
-            query['user_email'] = user['email']
+        # Role-based access
+        if user_role in ['admin', 'manager']:
+            # Admin and Manager see all invoices
+            pass
+        elif user_role == 'accountant':
+            # Accountant sees only maintenance invoices they created
+            query['invoice_type'] = INVOICE_TYPE_MAINTENANCE
+            query['created_by_email'] = user_email
+        elif user_role == 'clubhouse_staff':
+            # Clubhouse staff sees only clubhouse subscription invoices
+            query['invoice_type'] = INVOICE_TYPE_CLUBHOUSE
+        else:
+            # Regular users see invoices where their email is in the villa's email list OR directly assigned
+            # First, get villas associated with this user's email
+            user_villas = await db.villas.find(
+                {"emails": {"$elemMatch": {"$regex": f"^{user_email}$", "$options": "i"}}},
+                {"_id": 0, "villa_number": 1}
+            ).to_list(100)
+            villa_numbers = [v['villa_number'] for v in user_villas]
+            
+            # User sees invoices where they are directly assigned OR their villa is assigned
+            if villa_numbers:
+                query['$or'] = [
+                    {'user_email': user_email},
+                    {'villa_number': {'$in': villa_numbers}}
+                ]
+            else:
+                query['user_email'] = user_email
         
+        # Filter by status if provided
         if status:
             query['payment_status'] = status
+        
+        # Filter by invoice type if provided (overrides role-based type filtering for admin/manager)
+        if invoice_type:
+            query['invoice_type'] = invoice_type
         
         invoices = await db.invoices.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
         
