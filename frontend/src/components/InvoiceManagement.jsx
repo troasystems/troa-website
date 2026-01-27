@@ -43,12 +43,19 @@ const InvoiceManagement = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('session_token');
-      const headers = { ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {}) };
+      const headers = { 
+        ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {}),
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      };
+      
+      // Add timestamp to bust cache
+      const timestamp = new Date().getTime();
       
       const [invoicesRes, usersRes, amenitiesRes] = await Promise.all([
-        axios.get(`${getAPI()}/invoices`, { withCredentials: true, headers }),
-        axios.get(`${getAPI()}/users`, { withCredentials: true, headers }),
-        axios.get(`${getAPI()}/amenities`, { withCredentials: true, headers })
+        axios.get(`${getAPI()}/invoices?_t=${timestamp}`, { withCredentials: true, headers }),
+        axios.get(`${getAPI()}/users?_t=${timestamp}`, { withCredentials: true, headers }),
+        axios.get(`${getAPI()}/amenities?_t=${timestamp}`, { withCredentials: true, headers })
       ]);
       
       setInvoices(invoicesRes.data);
