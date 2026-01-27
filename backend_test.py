@@ -3961,7 +3961,8 @@ class TROAAPITester:
             'Community Chat': ['community_chat'],
             'Push Notifications': ['push_notifications'],
             'PWA Features': ['pwa'],
-            'PWA Caching': ['pwa_caching']
+            'PWA Caching': ['pwa_caching'],
+            'Fix Testing (4 Issues)': ['fix_testing']
         }
         
         for category, endpoints in categories.items():
