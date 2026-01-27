@@ -817,6 +817,25 @@ const UserManagement = () => {
         </div>
       </div>
 
+      {/* Accountants */}
+      <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg p-4 sm:p-6 border-2 border-amber-200">
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <UserCog className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 flex-shrink-0" />
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Accountants</h3>
+          <span className="bg-amber-200 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full">
+            {groupedUsers.accountant.length}
+          </span>
+        </div>
+        <p className="text-xs text-amber-600 mb-3">Accountants can create and manage maintenance invoices</p>
+        <div className="space-y-3">
+          {groupedUsers.accountant.length === 0 ? (
+            <p className="text-gray-500 italic text-sm">No accountants</p>
+          ) : (
+            groupedUsers.accountant.map(user => renderUserCard(user, 'amber'))
+          )}
+        </div>
+      </div>
+
       {/* Regular Users */}
       <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg p-4 sm:p-6 border-2 border-gray-200">
         <div className="flex items-center gap-2 mb-4 flex-wrap">
