@@ -1418,6 +1418,8 @@ async def create_invoice(invoice_data: InvoiceCreate, request: Request):
         
         invoice = Invoice(
             invoice_number=generate_invoice_number(invoice_data.year, invoice_data.month),
+            invoice_type=INVOICE_TYPE_CLUBHOUSE,
+            villa_number=target_user.get('villa_number', ''),
             user_email=invoice_data.user_email,
             user_name=target_user.get('name', ''),
             user_villa=target_user.get('villa_number'),
