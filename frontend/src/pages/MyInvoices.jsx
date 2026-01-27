@@ -748,24 +748,33 @@ const MyInvoices = () => {
                           <span>PDF</span>
                         </button>
                         
-                        {invoice.payment_status === 'pending' && !selectMode && (
-                          <button
-                            onClick={() => handlePayInvoice(invoice)}
-                            disabled={payingInvoiceId === invoice.id}
-                            className="flex items-center justify-center space-x-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg text-sm font-medium transition-all disabled:opacity-50"
-                          >
-                            {payingInvoiceId === invoice.id ? (
-                              <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                                <span>Processing...</span>
-                              </>
-                            ) : (
-                              <>
-                                <CreditCard className="w-4 h-4" />
-                                <span>Pay Now</span>
-                              </>
-                            )}
-                          </button>
+                        {invoice.payment_status === 'pending' && invoice.offline_payment_status !== 'pending_approval' && !selectMode && (
+                          <>
+                            <button
+                              onClick={() => handlePayInvoice(invoice)}
+                              disabled={payingInvoiceId === invoice.id}
+                              className="flex items-center justify-center space-x-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg text-sm font-medium transition-all disabled:opacity-50"
+                            >
+                              {payingInvoiceId === invoice.id ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                  <span>Processing...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <CreditCard className="w-4 h-4" />
+                                  <span>Pay Online</span>
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleOfflinePayment(invoice)}
+                              className="flex items-center justify-center space-x-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 text-sm font-medium transition-all"
+                            >
+                              <QrCode className="w-4 h-4" />
+                              <span>Pay Offline</span>
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
