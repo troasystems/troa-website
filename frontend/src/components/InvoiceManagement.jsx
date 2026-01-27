@@ -72,15 +72,17 @@ const InvoiceManagement = () => {
       // Add timestamp to bust cache
       const timestamp = new Date().getTime();
       
-      const [invoicesRes, usersRes, amenitiesRes] = await Promise.all([
+      const [invoicesRes, usersRes, amenitiesRes, villasRes] = await Promise.all([
         axios.get(`${getAPI()}/invoices?_t=${timestamp}`, { withCredentials: true, headers }),
-        axios.get(`${getAPI()}/users?_t=${timestamp}`, { withCredentials: true, headers }),
-        axios.get(`${getAPI()}/amenities?_t=${timestamp}`, { withCredentials: true, headers })
+        axios.get(`${getAPI()}/users?_t=${timestamp}`, { withCredentials: true, headers }).catch(() => ({ data: [] })),
+        axios.get(`${getAPI()}/amenities?_t=${timestamp}`, { withCredentials: true, headers }).catch(() => ({ data: [] })),
+        axios.get(`${getAPI()}/villas?_t=${timestamp}`, { withCredentials: true, headers }).catch(() => ({ data: [] }))
       ]);
       
       setInvoices(invoicesRes.data);
       setUsers(usersRes.data);
       setAmenities(amenitiesRes.data);
+      setVillas(villasRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
