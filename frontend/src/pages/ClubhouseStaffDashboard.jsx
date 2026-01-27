@@ -105,7 +105,8 @@ const ClubhouseStaffDashboard = () => {
         title: 'Success',
         description: `Booking marked as ${status.replace('_', ' ')}`
       });
-      fetchBookings();
+      // Force refresh with await
+      await fetchBookings();
     } catch (error) {
       toast({
         title: 'Error',
