@@ -43,7 +43,8 @@ class TROAAPITester:
             'email_verification': {'already_verified_success': None, 'token_mismatch_error': None},
             'community_chat': {'get_groups': None, 'create_group': None, 'join_group': None, 'leave_group': None, 'get_messages': None, 'send_message': None, 'mc_group_exists': None, 'message_pagination': None, 'message_deletion': None, 'file_upload_pdf': None, 'deleted_message_response': None, 'message_order': None, 'group_types': None, 'private_group_join_restriction': None, 'emoji_reactions': None, 'reply_messages': None, 'reaction_removal': None, 'message_reactions_field': None, 'message_reply_field': None},
             'push_notifications': {'vapid_public_key': None, 'subscribe': None, 'unsubscribe': None, 'status': None, 'send_admin_only': None, 'send_notification_to_user': None, 'send_notification_to_admins': None},
-            'pwa_caching': {'cache_headers_amenities': None, 'cache_headers_committee': None, 'cache_headers_events': None, 'cache_headers_gallery': None, 'no_cache_auth': None, 'service_worker': None, 'manifest': None, 'cors_headers': None}
+            'pwa_caching': {'cache_headers_amenities': None, 'cache_headers_committee': None, 'cache_headers_events': None, 'cache_headers_gallery': None, 'no_cache_auth': None, 'service_worker': None, 'manifest': None, 'cors_headers': None},
+            'fix_testing': {'clubhouse_staff_role': None, 'invoice_amount_override': None, 'cache_busting_headers': None, 'frontend_refresh_support': None}
         }
         self.errors = []
         self.created_event_id = None
