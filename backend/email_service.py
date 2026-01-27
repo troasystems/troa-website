@@ -693,6 +693,114 @@ Visit our website: {self.frontend_url}
         
         return await self._send_email(recipient_email, f"[TROA] Payment Receipt - Invoice #{invoice_number}", html_body, text_body)
 
+    async def send_maintenance_invoice_raised(
+        self,
+        recipient_email: str,
+        user_name: str,
+        invoice_number: str,
+        villa_number: str,
+        total_amount: float,
+        due_date: str,
+        line_items: list
+    ) -> dict:
+        """Send maintenance invoice raised notification"""
+        
+        # Build line items HTML
+        line_items_html = ""
+        for item in line_items:
+            line_items_html += f"""
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">{item.get('description', '')}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">{item.get('quantity', 1)}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">₹{item.get('rate', 0):.2f}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">₹{item.get('amount', 0):.2f}</td>
+            </tr>
+            """
+        
+        html_body = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #2c5530 0%, #1a3a1f 100%); color: white; padding: 20px; text-align: center;">
+                <h1 style="margin: 0;">TROA</h1>
+                <p style="margin: 5px 0 0 0; font-size: 14px;">The Retreat Owners Association</p>
+            </div>
+            <div style="padding: 30px; background: #f9f9f9;">
+                <h2 style="color: #333;">Maintenance Invoice Raised</h2>
+                <p>Hi{' ' + user_name if user_name else ''},</p>
+                <p>A maintenance invoice has been raised for your villa. Please find the details below:</p>
+                
+                <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 8px 0;"><strong>Invoice Number:</strong></td>
+                            <td style="padding: 8px 0;">{invoice_number}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0;"><strong>Villa Number:</strong></td>
+                            <td style="padding: 8px 0;">{villa_number}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0;"><strong>Due Date:</strong></td>
+                            <td style="padding: 8px 0;">{due_date}</td>
+                        </tr>
+                    </table>
+                    
+                    <h3 style="margin-top: 20px; border-bottom: 2px solid #2c5530; padding-bottom: 10px;">Line Items</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f5f5f5;">
+                                <th style="padding: 10px; text-align: left;">Description</th>
+                                <th style="padding: 10px; text-align: center;">Qty</th>
+                                <th style="padding: 10px; text-align: right;">Rate</th>
+                                <th style="padding: 10px; text-align: right;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {line_items_html}
+                        </tbody>
+                        <tfoot>
+                            <tr style="font-weight: bold; background: #f5f5f5;">
+                                <td colspan="3" style="padding: 10px; text-align: right;">Total Amount:</td>
+                                <td style="padding: 10px; text-align: right; color: #2c5530;">₹{total_amount:.2f}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="{self.frontend_url}/my-invoices" style="background: #2c5530; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Pay Now</a>
+                </div>
+                
+                <p style="color: #666; font-size: 12px; margin-top: 20px;">
+                    Please make the payment before the due date to avoid any inconvenience. 
+                    If you have any questions, please contact us at {self.reply_to_email}.
+                </p>
+            </div>
+            <div style="background: #333; color: white; padding: 15px; text-align: center; font-size: 12px;">
+                <p style="margin: 0;">© {datetime.now().year} TROA - The Retreat Owners Association</p>
+            </div>
+        </div>
+        """
+        
+        text_body = f"""Hi {user_name if user_name else ''},
+
+A maintenance invoice has been raised for your villa.
+
+Invoice Number: {invoice_number}
+Villa Number: {villa_number}
+Total Amount: ₹{total_amount:.2f}
+Due Date: {due_date}
+
+Please log in to pay this invoice: {self.frontend_url}/my-invoices
+
+For any queries, contact {self.reply_to_email}"""
+        
+        return await self._send_email(
+            recipient_email, 
+            f"[TROA] Maintenance Invoice #{invoice_number} - Villa {villa_number}", 
+            html_body, 
+            text_body
+        )
+
 
 # Helper function to get admin and manager emails
 async def get_admin_manager_emails() -> List[str]:
