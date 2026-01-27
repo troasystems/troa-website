@@ -10,8 +10,19 @@ import { getImageUrl, getBackendUrl } from '../utils/api';
 
 const getAPI = () => `${getBackendUrl()}/api`;
 
-// Amenities that cannot be booked
-const NON_BOOKABLE_AMENITIES = ['Landscaped Gardens', 'Children\'s Play Area', 'Swimming Pool', 'Club House', 'Fitness Center'];
+// Amenities that cannot be booked (matched by partial name, case-insensitive)
+const NON_BOOKABLE_AMENITIES = [
+  'Landscaped Gardens', 
+  'Children\'s Play Area', 
+  'Swimming Pool', 
+  'Club House', 
+  'Fitness Center',
+  'Fitness Centre',
+  'Gym',
+  'Garden',
+  'Play Area',
+  'Playground'
+];
 
 const Amenities = () => {
   const [amenities, setAmenities] = useState([]);
