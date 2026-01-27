@@ -1466,8 +1466,106 @@ async def create_invoice(invoice_data: InvoiceCreate, request: Request):
         raise HTTPException(status_code=500, detail="Failed to create invoice")
 
 
+@api_router.post("/invoices/maintenance")
+async def create_maintenance_invoice(invoice_data: MaintenanceInvoiceCreate, request: Request):
+    """Create maintenance invoice against a villa - Accountant, Manager, or Admin"""
+    try:
+        user = await require_accountant(request)
+        
+        # Validate villa exists
+        villa = await db.villas.find_one({"villa_number": invoice_data.villa_number}, {"_id": 0})
+        if not villa:
+            raise HTTPException(status_code=404, detail="Villa not found")
+        
+        if not invoice_data.line_items or len(invoice_data.line_items) == 0:
+            raise HTTPException(status_code=400, detail="At least one line item is required")
+        
+        # Calculate amounts
+        maintenance_line_items = []
+        subtotal = 0.0
+        
+        for item in invoice_data.line_items:
+            amount = item.quantity * item.rate
+            maintenance_line_items.append({
+                'id': str(uuid.uuid4()),
+                'description': item.description,
+                'quantity': item.quantity,
+                'rate': item.rate,
+                'amount': amount
+            })
+            subtotal += amount
+        
+        # Calculate discount
+        discount_amount = 0.0
+        if invoice_data.discount_type == "percentage":
+            discount_amount = subtotal * (invoice_data.discount_value / 100)
+        elif invoice_data.discount_type == "fixed":
+            discount_amount = min(invoice_data.discount_value, subtotal)  # Can't discount more than subtotal
+        
+        total_amount = max(subtotal - discount_amount, 0)
+        
+        # Calculate due date
+        due_date = datetime.utcnow() + timedelta(days=invoice_data.due_days)
+        
+        # Get primary email for the villa (first in the list)
+        primary_email = villa.get('emails', [''])[0] if villa.get('emails') else ''
+        
+        invoice = Invoice(
+            invoice_number=generate_maintenance_invoice_number(),
+            invoice_type=INVOICE_TYPE_MAINTENANCE,
+            villa_number=invoice_data.villa_number,
+            user_email=primary_email,
+            user_name='',  # Maintenance invoices are against villas, not specific users
+            maintenance_line_items=maintenance_line_items,
+            subtotal=subtotal,
+            discount_type=invoice_data.discount_type,
+            discount_value=invoice_data.discount_value,
+            discount_amount=discount_amount,
+            total_amount=total_amount,
+            due_date=due_date,
+            created_by_email=user['email'],
+            created_by_name=user.get('name', ''),
+            audit_log=[{
+                'action': 'created',
+                'timestamp': datetime.utcnow().isoformat(),
+                'by_email': user['email'],
+                'by_name': user.get('name', ''),
+                'details': f"Maintenance invoice created with {len(maintenance_line_items)} line items"
+            }]
+        )
+        
+        await db.invoices.insert_one(invoice.dict())
+        logger.info(f"Maintenance invoice {invoice.invoice_number} created for villa {invoice_data.villa_number}")
+        
+        # Send email notifications to all villa emails
+        try:
+            for email in villa.get('emails', []):
+                # Get user name if registered
+                villa_user = await db.users.find_one({"email": email}, {"_id": 0, "name": 1})
+                user_name = villa_user.get('name', '') if villa_user else ''
+                
+                await email_service.send_maintenance_invoice_raised(
+                    recipient_email=email,
+                    user_name=user_name,
+                    invoice_number=invoice.invoice_number,
+                    villa_number=invoice_data.villa_number,
+                    total_amount=total_amount,
+                    due_date=due_date.strftime("%d %b %Y"),
+                    line_items=maintenance_line_items
+                )
+        except Exception as email_error:
+            logger.error(f"Failed to send maintenance invoice email: {email_error}")
+        
+        return invoice.dict()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating maintenance invoice: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create maintenance invoice")
+
+
 @api_router.get("/invoices")
-async def get_invoices(request: Request, status: Optional[str] = None):
+async def get_invoices(request: Request, status: Optional[str] = None, invoice_type: Optional[str] = None):
     """Get invoices - managers see all, users see their own"""
     try:
         user = await require_auth(request)
