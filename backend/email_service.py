@@ -801,6 +801,107 @@ For any queries, contact {self.reply_to_email}"""
             text_body
         )
 
+    async def send_invoice_reminder(
+        self,
+        recipient_email: str,
+        user_name: str,
+        invoice_number: str,
+        villa_number: str,
+        total_amount: float,
+        due_date: str,
+        days_until_due: int,
+        is_overdue: bool = False
+    ) -> dict:
+        """Send invoice payment reminder notification"""
+        
+        if is_overdue:
+            urgency_color = "#dc2626"  # Red
+            urgency_text = f"⚠️ OVERDUE by {abs(days_until_due)} day(s)"
+            subject_prefix = "OVERDUE"
+        elif days_until_due <= 3:
+            urgency_color = "#f59e0b"  # Orange
+            urgency_text = f"⚠️ Due in {days_until_due} day(s)"
+            subject_prefix = "REMINDER"
+        else:
+            urgency_color = "#2c5530"  # Green
+            urgency_text = f"Due in {days_until_due} day(s)"
+            subject_prefix = "REMINDER"
+        
+        html_body = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, {urgency_color} 0%, #1a1a1a 100%); color: white; padding: 20px; text-align: center;">
+                <h1 style="margin: 0;">TROA</h1>
+                <p style="margin: 5px 0 0 0; font-size: 14px;">Payment Reminder</p>
+            </div>
+            <div style="padding: 30px; background: #f9f9f9;">
+                <div style="background: {urgency_color}; color: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; font-size: 18px;">{urgency_text}</h2>
+                </div>
+                
+                <p>Hi{' ' + user_name if user_name else ''},</p>
+                <p>This is a friendly reminder that you have a pending invoice that requires your attention.</p>
+                
+                <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid {urgency_color};">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 8px 0;"><strong>Invoice Number:</strong></td>
+                            <td style="padding: 8px 0;">{invoice_number}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0;"><strong>Villa Number:</strong></td>
+                            <td style="padding: 8px 0;">{villa_number}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0;"><strong>Amount Due:</strong></td>
+                            <td style="padding: 8px 0; font-weight: bold; color: {urgency_color};">₹{total_amount:.2f}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0;"><strong>Due Date:</strong></td>
+                            <td style="padding: 8px 0;">{due_date}</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="{self.frontend_url}/my-invoices" style="background: {urgency_color}; color: white; padding: 14px 35px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Pay Now</a>
+                </div>
+                
+                <p style="color: #666; font-size: 12px; margin-top: 20px;">
+                    {"Please make the payment immediately to avoid further reminders and potential late fees." if is_overdue else "Please make the payment before the due date to avoid any inconvenience."} 
+                    If you have already made the payment, please disregard this email.
+                    For any questions, please contact us at {self.reply_to_email}.
+                </p>
+            </div>
+            <div style="background: #333; color: white; padding: 15px; text-align: center; font-size: 12px;">
+                <p style="margin: 0;">© {datetime.now().year} TROA - The Retreat Owners Association</p>
+            </div>
+        </div>
+        """
+        
+        text_body = f"""Hi {user_name if user_name else ''},
+
+{urgency_text}
+
+This is a friendly reminder that you have a pending invoice.
+
+Invoice Number: {invoice_number}
+Villa Number: {villa_number}
+Amount Due: ₹{total_amount:.2f}
+Due Date: {due_date}
+
+Please log in to pay this invoice: {self.frontend_url}/my-invoices
+
+{"Please make the payment immediately to avoid further reminders and potential late fees." if is_overdue else "Please make the payment before the due date to avoid any inconvenience."}
+
+For any queries, contact {self.reply_to_email}"""
+        
+        return await self._send_email(
+            recipient_email, 
+            f"[TROA] {subject_prefix}: Invoice #{invoice_number} - ₹{total_amount:.2f} Due", 
+            html_body, 
+            text_body
+        )
+
 
 # Helper function to get admin and manager emails
 async def get_admin_manager_emails() -> List[str]:
