@@ -784,6 +784,143 @@ const MyInvoices = () => {
             ))}
           </div>
         )}
+
+        {/* Offline Payment Modal */}
+        {showOfflineModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b bg-gradient-to-r from-gray-50 to-slate-50">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-gray-900 flex items-center">
+                    <QrCode className="w-5 h-5 mr-2 text-gray-700" />
+                    Offline Payment
+                  </h3>
+                  <button 
+                    onClick={() => setShowOfflineModal(null)} 
+                    className="p-2 hover:bg-white/50 rounded-lg text-gray-500"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p className="text-sm text-gray-600 mt-1">
+                  Invoice #{showOfflineModal.invoice_number}
+                </p>
+              </div>
+              
+              <div className="p-6 space-y-6">
+                {/* Amount */}
+                <div className="text-center">
+                  <p className="text-sm text-gray-600">Amount to Pay</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    ₹{showOfflineModal.total_amount?.toFixed(0)}
+                  </p>
+                </div>
+                
+                {/* QR Code Section */}
+                <div className="bg-gray-50 rounded-xl p-4 text-center">
+                  <p className="text-sm font-medium text-gray-700 mb-3">Scan to Pay</p>
+                  <div className="bg-white p-4 rounded-lg inline-block shadow-sm">
+                    {qrInfo?.qr_image_url ? (
+                      <img 
+                        src={qrInfo.qr_image_url} 
+                        alt="Payment QR Code" 
+                        className="w-48 h-48 mx-auto"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center" style={{ display: qrInfo?.qr_image_url ? 'none' : 'flex' }}>
+                      <div className="text-center text-gray-500">
+                        <QrCode className="w-16 h-16 mx-auto mb-2" />
+                        <p className="text-xs">QR Code</p>
+                      </div>
+                    </div>
+                  </div>
+                  {qrInfo?.upi_id && (
+                    <p className="mt-3 text-sm font-medium text-gray-700">
+                      UPI: {qrInfo.upi_id}
+                    </p>
+                  )}
+                </div>
+                
+                {/* Bank Details */}
+                {qrInfo?.account_number && (
+                  <div className="bg-blue-50 rounded-xl p-4">
+                    <p className="text-sm font-medium text-blue-800 mb-2 flex items-center">
+                      <Banknote className="w-4 h-4 mr-1" />
+                      Bank Transfer Details
+                    </p>
+                    <div className="text-sm text-blue-700 space-y-1">
+                      <p><span className="text-blue-600">Bank:</span> {qrInfo.bank_name}</p>
+                      <p><span className="text-blue-600">A/C Name:</span> {qrInfo.account_name}</p>
+                      <p><span className="text-blue-600">A/C No:</span> {qrInfo.account_number}</p>
+                      <p><span className="text-blue-600">IFSC:</span> {qrInfo.ifsc_code}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Instructions */}
+                {qrInfo?.instructions && (
+                  <div className="bg-amber-50 rounded-xl p-4">
+                    <p className="text-sm font-medium text-amber-800 mb-2">Instructions</p>
+                    <ol className="text-xs text-amber-700 space-y-1 list-decimal list-inside">
+                      {qrInfo.instructions.map((instr, idx) => (
+                        <li key={idx}>{instr}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+                
+                {/* Transaction Reference Input */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Transaction ID / UTR Number
+                  </label>
+                  <input
+                    type="text"
+                    value={transactionRef}
+                    onChange={(e) => setTransactionRef(e.target.value)}
+                    placeholder="Enter transaction reference"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    This helps admin verify your payment faster
+                  </p>
+                </div>
+                
+                {/* Submit Button */}
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setShowOfflineModal(null)}
+                    className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={submitOfflinePayment}
+                    disabled={submittingOffline}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-gray-700 to-gray-900 text-white rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50"
+                  >
+                    {submittingOffline ? (
+                      <span className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                        Submitting...
+                      </span>
+                    ) : (
+                      'Submit for Approval'
+                    )}
+                  </button>
+                </div>
+                
+                <p className="text-xs text-center text-gray-500">
+                  Your payment will be verified by an admin before the invoice is marked as paid.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
