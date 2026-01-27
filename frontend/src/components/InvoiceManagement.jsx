@@ -525,10 +525,10 @@ const InvoiceManagement = () => {
                     <td className="px-4 py-3 text-sm">{invoice.amenity_name}</td>
                     <td className="px-4 py-3 text-sm">{getMonthName(invoice.month, invoice.year)}</td>
                     <td className="px-4 py-3 text-right">
-                      <p className="font-semibold">₹{invoice.total_amount.toFixed(0)}</p>
-                      {invoice.adjustment !== 0 && (
-                        <p className={`text-xs ${invoice.adjustment > 0 ? 'text-red-500' : 'text-green-500'}`}>
-                          Adj: {invoice.adjustment > 0 ? '+' : ''}₹{invoice.adjustment.toFixed(0)}
+                      <p className="font-semibold">₹{(invoice.total_amount || 0).toFixed(0)}</p>
+                      {(invoice.adjustment || 0) !== 0 && (
+                        <p className={`text-xs ${(invoice.adjustment || 0) > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                          Adj: {(invoice.adjustment || 0) > 0 ? '+' : ''}₹{Math.abs(invoice.adjustment || 0).toFixed(0)}
                         </p>
                       )}
                     </td>
