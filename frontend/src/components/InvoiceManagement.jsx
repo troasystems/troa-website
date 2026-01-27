@@ -1,20 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FileText, Plus, Download, Edit2, X, Search, Calendar, User, CheckCircle, XCircle, Clock, Trash2, History } from 'lucide-react';
+import { FileText, Plus, Download, Edit2, X, Search, Calendar, User, CheckCircle, XCircle, Clock, Trash2, History, Home, Tag } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 import { getBackendUrl } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 const getAPI = () => `${getBackendUrl()}/api`;
 
 const InvoiceManagement = () => {
+  const { role, isAdmin, isManager, isAccountant, isClubhouseStaff } = useAuth();
   const [invoices, setInvoices] = useState([]);
   const [users, setUsers] = useState([]);
   const [amenities, setAmenities] = useState([]);
+  const [villas, setVillas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Create invoice modal
+  // Create clubhouse invoice modal
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createForm, setCreateForm] = useState({
     user_email: '',
@@ -23,6 +27,17 @@ const InvoiceManagement = () => {
     year: new Date().getFullYear()
   });
   const [creating, setCreating] = useState(false);
+  
+  // Create maintenance invoice modal
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+  const [maintenanceForm, setMaintenanceForm] = useState({
+    villa_number: '',
+    line_items: [{ description: '', quantity: 1, rate: 0 }],
+    discount_type: 'none',
+    discount_value: 0,
+    due_days: 20
+  });
+  const [creatingMaintenance, setCreatingMaintenance] = useState(false);
   
   // Edit invoice modal
   const [editModal, setEditModal] = useState(null);
@@ -34,6 +49,11 @@ const InvoiceManagement = () => {
   
   // Audit log modal
   const [auditModal, setAuditModal] = useState(null);
+
+  // Can create clubhouse invoices
+  const canCreateClubhouse = isAdmin || isManager || isClubhouseStaff;
+  // Can create maintenance invoices
+  const canCreateMaintenance = isAdmin || isManager || role === 'accountant';
 
   useEffect(() => {
     fetchData();
