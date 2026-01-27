@@ -3581,6 +3581,292 @@ class TROAAPITester:
             self.test_results['pwa_caching']['cors_headers'] = False
             self.log_error("/amenities (CORS)", "OPTIONS", f"Exception: {str(e)}")
 
+    def test_fix_clubhouse_staff_role(self):
+        """Test Fix #1: User role can be set to clubhouse_staff"""
+        print("\n🧪 Testing Fix #1: Clubhouse Staff Role Support...")
+        
+        try:
+            # Get users list to find a test user
+            response = requests.get(f"{self.base_url}/users", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                users = response.json()
+                test_user = None
+                
+                # Find a user with 'user' role to test with
+                for user in users:
+                    if user.get('role') == 'user' and 'test' in user.get('email', '').lower():
+                        test_user = user
+                        break
+                
+                if not test_user and users:
+                    # Use the first non-admin user
+                    for user in users:
+                        if user.get('role') != 'admin':
+                            test_user = user
+                            break
+                
+                if test_user:
+                    user_id = test_user.get('id')
+                    original_role = test_user.get('role')
+                    
+                    # Test updating role to clubhouse_staff
+                    update_data = {"role": "clubhouse_staff"}
+                    response = requests.patch(f"{self.base_url}/users/{user_id}", 
+                                            json=update_data,
+                                            headers=self.auth_headers,
+                                            timeout=10)
+                    
+                    if response.status_code == 200:
+                        updated_user = response.json()
+                        if updated_user.get('role') == 'clubhouse_staff':
+                            self.test_results['fix_testing']['clubhouse_staff_role'] = True
+                            self.log_success("Fix #1 - Clubhouse Staff Role", "PATCH", 
+                                           f"- Successfully set role to clubhouse_staff for user {user_id}")
+                            
+                            # Restore original role
+                            restore_data = {"role": original_role}
+                            requests.patch(f"{self.base_url}/users/{user_id}", 
+                                         json=restore_data,
+                                         headers=self.auth_headers,
+                                         timeout=10)
+                        else:
+                            self.test_results['fix_testing']['clubhouse_staff_role'] = False
+                            self.log_error("Fix #1 - Clubhouse Staff Role", "PATCH", 
+                                         f"Role not updated correctly. Got: {updated_user.get('role')}")
+                    else:
+                        self.test_results['fix_testing']['clubhouse_staff_role'] = False
+                        self.log_error("Fix #1 - Clubhouse Staff Role", "PATCH", 
+                                     f"Status code: {response.status_code}, Response: {response.text}")
+                else:
+                    self.test_results['fix_testing']['clubhouse_staff_role'] = False
+                    self.log_error("Fix #1 - Clubhouse Staff Role", "SETUP", "No suitable test user found")
+            else:
+                self.test_results['fix_testing']['clubhouse_staff_role'] = False
+                self.log_error("Fix #1 - Clubhouse Staff Role", "GET", f"Cannot access users: {response.status_code}")
+                
+        except Exception as e:
+            self.test_results['fix_testing']['clubhouse_staff_role'] = False
+            self.log_error("Fix #1 - Clubhouse Staff Role", "TEST", f"Exception: {str(e)}")
+
+    def test_fix_invoice_amount_override(self):
+        """Test Fix #2: Invoice amount override with audit log"""
+        print("\n🧪 Testing Fix #2: Invoice Amount Override...")
+        
+        try:
+            # Get invoices list
+            response = requests.get(f"{self.base_url}/invoices", 
+                                  headers=self.auth_headers,
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                invoices = response.json()
+                test_invoice = None
+                
+                # Find a pending invoice to test with
+                for invoice in invoices:
+                    if invoice.get('payment_status') == 'pending':
+                        test_invoice = invoice
+                        break
+                
+                if test_invoice:
+                    invoice_id = test_invoice.get('id')
+                    original_amount = test_invoice.get('total_amount', 0)
+                    new_amount = original_amount + 100  # Add 100 for testing
+                    
+                    # Test invoice update with new_total_amount
+                    update_data = {
+                        "new_total_amount": new_amount,
+                        "adjustment_reason": "Test override for automated testing - Fix #2"
+                    }
+                    
+                    response = requests.put(f"{self.base_url}/invoices/{invoice_id}", 
+                                          json=update_data,
+                                          headers=self.auth_headers,
+                                          timeout=10)
+                    
+                    if response.status_code == 200:
+                        # Verify the invoice was updated
+                        response = requests.get(f"{self.base_url}/invoices/{invoice_id}", 
+                                              headers=self.auth_headers,
+                                              timeout=10)
+                        
+                        if response.status_code == 200:
+                            updated_invoice = response.json()
+                            updated_amount = updated_invoice.get('total_amount')
+                            audit_log = updated_invoice.get('audit_log', [])
+                            
+                            amount_correct = updated_amount == new_amount
+                            audit_exists = any('amount_modified' in entry.get('action', '') for entry in audit_log)
+                            
+                            if amount_correct and audit_exists:
+                                self.test_results['fix_testing']['invoice_amount_override'] = True
+                                self.log_success("Fix #2 - Invoice Amount Override", "PUT", 
+                                               f"- Amount updated from ₹{original_amount} to ₹{updated_amount} with audit log")
+                            else:
+                                self.test_results['fix_testing']['invoice_amount_override'] = False
+                                self.log_error("Fix #2 - Invoice Amount Override", "PUT", 
+                                             f"Amount correct: {amount_correct}, Audit exists: {audit_exists}")
+                        else:
+                            self.test_results['fix_testing']['invoice_amount_override'] = False
+                            self.log_error("Fix #2 - Invoice Amount Override", "GET", 
+                                         f"Cannot verify update: {response.status_code}")
+                    else:
+                        self.test_results['fix_testing']['invoice_amount_override'] = False
+                        self.log_error("Fix #2 - Invoice Amount Override", "PUT", 
+                                     f"Status code: {response.status_code}, Response: {response.text}")
+                else:
+                    self.test_results['fix_testing']['invoice_amount_override'] = False
+                    self.log_error("Fix #2 - Invoice Amount Override", "SETUP", "No pending invoice found for testing")
+            else:
+                self.test_results['fix_testing']['invoice_amount_override'] = False
+                self.log_error("Fix #2 - Invoice Amount Override", "GET", f"Cannot access invoices: {response.status_code}")
+                
+        except Exception as e:
+            self.test_results['fix_testing']['invoice_amount_override'] = False
+            self.log_error("Fix #2 - Invoice Amount Override", "TEST", f"Exception: {str(e)}")
+
+    def test_fix_cache_busting_headers(self):
+        """Test Fix #3 & #4: Cache-busting headers implementation"""
+        print("\n🧪 Testing Fix #3 & #4: Cache-Busting Headers...")
+        
+        try:
+            # Test that sensitive endpoints have no-cache headers
+            sensitive_endpoints = [
+                'invoices',
+                'users', 
+                'bookings',
+                'staff/bookings/today'
+            ]
+            
+            cache_tests_passed = 0
+            total_cache_tests = len(sensitive_endpoints)
+            
+            for endpoint in sensitive_endpoints:
+                try:
+                    response = requests.get(f"{self.base_url}/{endpoint}", 
+                                          headers=self.auth_headers,
+                                          timeout=10)
+                    
+                    if response.status_code == 200:
+                        cache_control = response.headers.get('Cache-Control', '')
+                        
+                        # Check for no-cache directives
+                        has_no_cache = any(directive in cache_control.lower() for directive in 
+                                         ['no-cache', 'no-store', 'must-revalidate'])
+                        
+                        if has_no_cache:
+                            cache_tests_passed += 1
+                            self.log_success(f"Fix #3/4 - Cache Headers ({endpoint})", "GET", 
+                                           f"- Correct no-cache headers: {cache_control}")
+                        else:
+                            self.log_error(f"Fix #3/4 - Cache Headers ({endpoint})", "GET", 
+                                         f"Missing no-cache headers: {cache_control}")
+                    else:
+                        self.log_error(f"Fix #3/4 - Cache Headers ({endpoint})", "GET", 
+                                     f"Status code: {response.status_code}")
+                        
+                except Exception as e:
+                    self.log_error(f"Fix #3/4 - Cache Headers ({endpoint})", "GET", f"Exception: {str(e)}")
+            
+            # Test that cacheable endpoints have proper cache headers
+            cacheable_endpoints = ['amenities', 'committee', 'gallery']
+            
+            for endpoint in cacheable_endpoints:
+                try:
+                    response = requests.get(f"{self.base_url}/{endpoint}", timeout=10)
+                    
+                    if response.status_code == 200:
+                        cache_control = response.headers.get('Cache-Control', '')
+                        
+                        # Check for cache directives
+                        has_cache = 'max-age' in cache_control.lower() and 'public' in cache_control.lower()
+                        
+                        if has_cache:
+                            cache_tests_passed += 1
+                            self.log_success(f"Fix #3/4 - Cache Headers ({endpoint})", "GET", 
+                                           f"- Correct cache headers: {cache_control}")
+                        else:
+                            self.log_error(f"Fix #3/4 - Cache Headers ({endpoint})", "GET", 
+                                         f"Missing cache headers: {cache_control}")
+                    else:
+                        self.log_error(f"Fix #3/4 - Cache Headers ({endpoint})", "GET", 
+                                     f"Status code: {response.status_code}")
+                        
+                except Exception as e:
+                    self.log_error(f"Fix #3/4 - Cache Headers ({endpoint})", "GET", f"Exception: {str(e)}")
+            
+            total_cache_tests += len(cacheable_endpoints)
+            
+            # Mark as successful if most tests passed
+            if cache_tests_passed >= (total_cache_tests * 0.7):  # 70% success rate
+                self.test_results['fix_testing']['cache_busting_headers'] = True
+                self.log_success("Fix #3/4 - Cache-Busting Headers", "OVERALL", 
+                               f"- {cache_tests_passed}/{total_cache_tests} cache header tests passed")
+            else:
+                self.test_results['fix_testing']['cache_busting_headers'] = False
+                self.log_error("Fix #3/4 - Cache-Busting Headers", "OVERALL", 
+                             f"Only {cache_tests_passed}/{total_cache_tests} cache header tests passed")
+                
+        except Exception as e:
+            self.test_results['fix_testing']['cache_busting_headers'] = False
+            self.log_error("Fix #3/4 - Cache-Busting Headers", "TEST", f"Exception: {str(e)}")
+
+    def test_fix_frontend_refresh_support(self):
+        """Test Fix #3 & #4: Frontend refresh support via timestamp parameters"""
+        print("\n🧪 Testing Fix #3 & #4: Frontend Refresh Support...")
+        
+        try:
+            # Test that endpoints accept timestamp parameters for cache busting
+            endpoints_to_test = [
+                'invoices',
+                'users',
+                'staff/bookings/today'
+            ]
+            
+            refresh_tests_passed = 0
+            total_refresh_tests = len(endpoints_to_test)
+            
+            for endpoint in endpoints_to_test:
+                try:
+                    # Test without timestamp
+                    response1 = requests.get(f"{self.base_url}/{endpoint}", 
+                                           headers=self.auth_headers,
+                                           timeout=10)
+                    
+                    # Test with timestamp parameter
+                    timestamp = int(datetime.now().timestamp() * 1000)
+                    response2 = requests.get(f"{self.base_url}/{endpoint}?_t={timestamp}", 
+                                           headers=self.auth_headers,
+                                           timeout=10)
+                    
+                    if response1.status_code == 200 and response2.status_code == 200:
+                        # Both requests should succeed
+                        refresh_tests_passed += 1
+                        self.log_success(f"Fix #3/4 - Frontend Refresh ({endpoint})", "GET", 
+                                       f"- Accepts timestamp parameter for cache busting")
+                    else:
+                        self.log_error(f"Fix #3/4 - Frontend Refresh ({endpoint})", "GET", 
+                                     f"Status codes: {response1.status_code}, {response2.status_code}")
+                        
+                except Exception as e:
+                    self.log_error(f"Fix #3/4 - Frontend Refresh ({endpoint})", "GET", f"Exception: {str(e)}")
+            
+            if refresh_tests_passed == total_refresh_tests:
+                self.test_results['fix_testing']['frontend_refresh_support'] = True
+                self.log_success("Fix #3/4 - Frontend Refresh Support", "OVERALL", 
+                               f"- All {refresh_tests_passed} refresh tests passed")
+            else:
+                self.test_results['fix_testing']['frontend_refresh_support'] = False
+                self.log_error("Fix #3/4 - Frontend Refresh Support", "OVERALL", 
+                             f"Only {refresh_tests_passed}/{total_refresh_tests} refresh tests passed")
+                
+        except Exception as e:
+            self.test_results['fix_testing']['frontend_refresh_support'] = False
+            self.log_error("Fix #3/4 - Frontend Refresh Support", "TEST", f"Exception: {str(e)}")
+
     def run_all_tests(self):
         """Run all API tests"""
         print(f"🚀 Starting TROA Backend API Tests")
