@@ -817,29 +817,30 @@ const MyInvoices = () => {
                 </div>
                 
                 {/* QR Code Section */}
-                <div className="bg-gray-50 rounded-xl p-4 text-center">
-                  <p className="text-sm font-medium text-gray-700 mb-3">Scan to Pay</p>
-                  <div className="bg-white p-4 rounded-lg inline-block shadow-sm">
+                <div className="bg-white border-2 border-purple-200 rounded-xl p-4 text-center">
+                  <p className="font-semibold text-purple-800 mb-3">Scan QR Code to Pay</p>
+                  <div className="flex justify-center mb-3">
                     {qrInfo?.qr_image_url ? (
                       <img 
                         src={qrInfo.qr_image_url} 
                         alt="Payment QR Code" 
-                        className="w-48 h-48 mx-auto"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }}
+                        className="w-56 h-56 object-contain border-2 border-gray-200 rounded-lg shadow-md"
                       />
-                    ) : null}
-                    <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center" style={{ display: qrInfo?.qr_image_url ? 'none' : 'flex' }}>
-                      <div className="text-center text-gray-500">
-                        <QrCode className="w-16 h-16 mx-auto mb-2" />
-                        <p className="text-xs">QR Code</p>
+                    ) : (
+                      <div className="w-56 h-56 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-gray-200">
+                        <div className="text-center text-gray-500">
+                          <QrCode className="w-16 h-16 mx-auto mb-2" />
+                          <p className="text-xs">QR Code</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
+                  <p className="text-xs text-gray-600">Or pay via Cash / Bank Transfer</p>
+                  <p className="text-xs text-green-700 mt-2 font-medium">
+                    ✓ QR Payments go directly to TROA's official bank account
+                  </p>
                   {qrInfo?.upi_id && (
-                    <p className="mt-3 text-sm font-medium text-gray-700">
+                    <p className="mt-2 text-sm font-medium text-purple-700">
                       UPI: {qrInfo.upi_id}
                     </p>
                   )}
