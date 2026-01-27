@@ -824,9 +824,9 @@ const InvoiceManagement = () => {
                       </p>
                       {entry.previous_amount !== undefined && entry.new_amount !== undefined && (
                         <div className="flex items-center space-x-2 mt-2 text-xs">
-                          <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded">₹{entry.previous_amount?.toFixed(0)}</span>
+                          <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded">₹{(entry.previous_amount || 0).toFixed(0)}</span>
                           <span>→</span>
-                          <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">₹{entry.new_amount?.toFixed(0)}</span>
+                          <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">₹{(entry.new_amount || 0).toFixed(0)}</span>
                         </div>
                       )}
                     </div>
