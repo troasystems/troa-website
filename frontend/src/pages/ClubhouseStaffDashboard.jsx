@@ -65,10 +65,14 @@ const ClubhouseStaffDashboard = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('session_token');
-      const response = await axios.get(`${getAPI()}/staff/bookings/date/${selectedDate}`, {
+      // Add timestamp to bust cache
+      const timestamp = new Date().getTime();
+      const response = await axios.get(`${getAPI()}/staff/bookings/date/${selectedDate}?_t=${timestamp}`, {
         withCredentials: true,
         headers: {
-          ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
+          ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {}),
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         }
       });
       setBookings(response.data);
