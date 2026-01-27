@@ -2122,25 +2122,6 @@ async def submit_offline_invoice_payment(invoice_id: str, request: Request):
         raise HTTPException(status_code=500, detail="Failed to submit offline payment")
 
 
-@api_router.get("/invoices/pending-approvals")
-async def get_pending_invoice_approvals(request: Request):
-    """Get all invoices with pending offline payment approvals - Admin/Manager only"""
-    try:
-        await require_manager_or_admin(request)
-        
-        pending = await db.invoices.find(
-            {"offline_payment_status": "pending_approval"},
-            {"_id": 0}
-        ).sort("offline_submitted_at", 1).to_list(100)
-        
-        return pending
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error fetching pending approvals: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch pending approvals")
-
-
 @api_router.post("/invoices/{invoice_id}/approve-offline")
 async def approve_offline_invoice_payment(invoice_id: str, request: Request):
     """Approve offline payment for an invoice - Admin/Manager only"""
