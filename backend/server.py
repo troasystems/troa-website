@@ -474,12 +474,8 @@ async def add_user_to_whitelist(user_data: UserCreate, request: Request):
             raise HTTPException(status_code=400, detail="User with this email already exists")
         
         # Validate role
-        if user_data.role not in ['admin', 'manager', 'user']:
-            raise HTTPException(status_code=400, detail="Invalid role. Must be: admin, manager, or user")
-        
-        # Validate villa_number if provided (must be numeric)
-        if user_data.villa_number and not user_data.villa_number.isdigit():
-            raise HTTPException(status_code=400, detail="Villa number must be numeric")
+        if user_data.role not in VALID_ROLES:
+            raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {', '.join(VALID_ROLES)}")
         
         # Create user with the specified role
         user_obj = User(
@@ -489,7 +485,7 @@ async def add_user_to_whitelist(user_data: UserCreate, request: Request):
             provider="whitelist",
             role=user_data.role,
             is_admin=user_data.role == 'admin',
-            villa_number=user_data.villa_number or ""
+            villa_number=user_data.villa_number.strip() if user_data.villa_number else ""
         )
         
         await db.users.insert_one(user_obj.dict())
