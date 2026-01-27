@@ -848,6 +848,189 @@ const InvoiceManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Maintenance Invoice Modal */}
+      {showMaintenanceModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-cyan-50">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center">
+                  <Home className="w-5 h-5 mr-2 text-blue-600" />
+                  Create Maintenance Invoice
+                </h3>
+                <button onClick={() => setShowMaintenanceModal(false)} className="p-2 hover:bg-white/50 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            
+            <form onSubmit={handleCreateMaintenanceInvoice} className="p-6 space-y-6">
+              {/* Villa Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Villa *</label>
+                <select
+                  value={maintenanceForm.villa_number}
+                  onChange={(e) => setMaintenanceForm({ ...maintenanceForm, villa_number: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Select a villa...</option>
+                  {villas.map((villa) => (
+                    <option key={villa.villa_number} value={villa.villa_number}>
+                      Villa {villa.villa_number} ({villa.emails.length} email{villa.emails.length !== 1 ? 's' : ''})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Line Items */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-700">Line Items *</label>
+                  <button
+                    type="button"
+                    onClick={addLineItem}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    + Add Item
+                  </button>
+                </div>
+                
+                <div className="space-y-3">
+                  {maintenanceForm.line_items.map((item, idx) => (
+                    <div key={idx} className="flex gap-2 items-start">
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          placeholder="Description"
+                          value={item.description}
+                          onChange={(e) => updateLineItem(idx, 'description', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div className="w-20">
+                        <input
+                          type="number"
+                          placeholder="Qty"
+                          value={item.quantity}
+                          onChange={(e) => updateLineItem(idx, 'quantity', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                          min="0"
+                          step="0.01"
+                        />
+                      </div>
+                      <div className="w-24">
+                        <input
+                          type="number"
+                          placeholder="Rate"
+                          value={item.rate}
+                          onChange={(e) => updateLineItem(idx, 'rate', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                          min="0"
+                          step="0.01"
+                        />
+                      </div>
+                      <div className="w-24 text-right py-2 text-sm font-medium">
+                        ₹{((parseFloat(item.quantity) || 0) * (parseFloat(item.rate) || 0)).toFixed(0)}
+                      </div>
+                      {maintenanceForm.line_items.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeLineItem(idx)}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Discount */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Discount Type</label>
+                  <select
+                    value={maintenanceForm.discount_type}
+                    onChange={(e) => setMaintenanceForm({ ...maintenanceForm, discount_type: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="none">No Discount</option>
+                    <option value="percentage">Percentage (%)</option>
+                    <option value="fixed">Fixed Amount (₹)</option>
+                  </select>
+                </div>
+                {maintenanceForm.discount_type !== 'none' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Discount Value {maintenanceForm.discount_type === 'percentage' ? '(%)' : '(₹)'}
+                    </label>
+                    <input
+                      type="number"
+                      value={maintenanceForm.discount_value}
+                      onChange={(e) => setMaintenanceForm({ ...maintenanceForm, discount_value: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Due Days */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Due in (days)</label>
+                <input
+                  type="number"
+                  value={maintenanceForm.due_days}
+                  onChange={(e) => setMaintenanceForm({ ...maintenanceForm, due_days: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  min="1"
+                  max="365"
+                />
+              </div>
+
+              {/* Total Summary */}
+              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Subtotal</span>
+                  <span className="font-medium">₹{calculateMaintenanceTotal().subtotal.toFixed(2)}</span>
+                </div>
+                {maintenanceForm.discount_type !== 'none' && calculateMaintenanceTotal().discount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Discount</span>
+                    <span>-₹{calculateMaintenanceTotal().discount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-lg font-bold border-t pt-2">
+                  <span>Total</span>
+                  <span className="text-blue-600">₹{calculateMaintenanceTotal().total.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Submit */}
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowMaintenanceModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingMaintenance}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg font-medium hover:shadow-lg disabled:opacity-50"
+                >
+                  {creatingMaintenance ? 'Creating...' : 'Create Invoice'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
