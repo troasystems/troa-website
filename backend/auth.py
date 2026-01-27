@@ -206,6 +206,20 @@ async def require_clubhouse_staff(request: Request):
         raise HTTPException(status_code=403, detail="Clubhouse Staff access required")
     return user
 
+async def require_accountant(request: Request):
+    """Require accountant, manager, or admin authentication"""
+    user = await require_auth(request)
+    if user.get('role') not in ['admin', 'manager', 'accountant']:
+        raise HTTPException(status_code=403, detail="Accountant access required")
+    return user
+
+async def require_staff(request: Request):
+    """Require any staff role (clubhouse_staff or accountant), manager, or admin"""
+    user = await require_auth(request)
+    if user.get('role') not in ['admin', 'manager', 'clubhouse_staff', 'accountant']:
+        raise HTTPException(status_code=403, detail="Staff access required")
+    return user
+
 
 # Google OAuth - Frontend Token Verification
 class GoogleTokenRequest(BaseModel):
