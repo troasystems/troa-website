@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FileText, Plus, Download, Edit2, X, Search, Calendar, User, CheckCircle, XCircle, Clock, Trash2 } from 'lucide-react';
+import { FileText, Plus, Download, Edit2, X, Search, Calendar, User, CheckCircle, XCircle, Clock, Trash2, History } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 import { getBackendUrl } from '../utils/api';
 
