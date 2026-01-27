@@ -257,9 +257,9 @@ class TROAOfflinePaymentTester:
             except:
                 pass
         
-        # Create another test invoice for rejection test
-        rejection_invoice_id = self.create_test_invoice()
-        if rejection_invoice_id:
+        # Get another pending invoice for rejection test
+        rejection_invoice_id = self.get_existing_pending_invoice()
+        if rejection_invoice_id and rejection_invoice_id != self.test_invoice_id:
             # Submit offline payment for rejection test
             payment_data = {
                 "transaction_reference": f"REJECT-TEST-{datetime.now().strftime('%Y%m%d%H%M%S')}"
@@ -288,6 +288,8 @@ class TROAOfflinePaymentTester:
                     data=rejection_data,
                     token=self.admin_token
                 )
+        else:
+            print("   ⚠️  No additional pending invoice found for rejection test")
 
     def test_invoice_status_flow(self):
         """Test the complete invoice status flow"""
