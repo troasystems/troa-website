@@ -381,6 +381,15 @@ const InvoiceManagement = () => {
                         >
                           <Download className="w-4 h-4" />
                         </button>
+                        {invoice.audit_log && invoice.audit_log.length > 0 && (
+                          <button
+                            onClick={() => setAuditModal(invoice)}
+                            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+                            title="View History"
+                          >
+                            <History className="w-4 h-4" />
+                          </button>
+                        )}
                         {invoice.payment_status === 'pending' && (
                           <>
                             <button
