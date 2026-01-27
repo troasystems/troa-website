@@ -71,6 +71,7 @@ const InvoiceManagement = () => {
 
   useEffect(() => {
     fetchData();
+    fetchPendingApprovals();
   }, []);
 
   const fetchData = async () => {
