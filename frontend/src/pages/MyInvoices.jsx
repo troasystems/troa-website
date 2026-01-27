@@ -33,6 +33,7 @@ const MyInvoices = () => {
     }
     if (!authLoading && isAuthenticated) {
       fetchInvoices();
+      fetchQrInfo();
     }
   }, [authLoading, isAuthenticated]);
 
@@ -56,6 +57,21 @@ const MyInvoices = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchQrInfo = async () => {
+    try {
+      const token = localStorage.getItem('session_token');
+      const response = await axios.get(`${getAPI()}/payment-qr-info`, {
+        withCredentials: true,
+        headers: {
+          ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
+        }
+      });
+      setQrInfo(response.data);
+    } catch (error) {
+      console.error('Error fetching QR info:', error);
     }
   };
 
