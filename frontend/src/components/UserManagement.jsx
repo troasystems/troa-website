@@ -719,6 +719,7 @@ const UserManagement = () => {
                 >
                   <option value="user">User</option>
                   <option value="clubhouse_staff">Clubhouse Staff</option>
+                  <option value="accountant">Accountant</option>
                   <option value="manager">Manager</option>
                   <option value="admin">Admin</option>
                 </select>
