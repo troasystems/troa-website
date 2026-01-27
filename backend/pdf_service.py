@@ -285,6 +285,7 @@ async def generate_booking_report_pdf(
 async def generate_invoice_pdf(invoice: dict, bookings: list) -> bytes:
     """
     Generate PDF invoice with TROA letterhead
+    Handles both clubhouse subscription and maintenance invoices
     """
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -299,6 +300,8 @@ async def generate_invoice_pdf(invoice: dict, bookings: list) -> bytes:
     elements = []
     styles = get_styles()
     
+    invoice_type = invoice.get('invoice_type', 'clubhouse')
+    
     # Letterhead
     create_letterhead(elements, styles, "INVOICE", f"Invoice #{invoice.get('invoice_number')}")
     
@@ -312,9 +315,9 @@ async def generate_invoice_pdf(invoice: dict, bookings: list) -> bytes:
     
     user_info = [
         ['Bill To:', ''],
-        ['Name:', invoice.get('user_name')],
-        ['Email:', invoice.get('user_email')],
-        ['Villa:', invoice.get('user_villa') or 'N/A']
+        ['Villa:', invoice.get('villa_number') or 'N/A'],
+        ['Name:', invoice.get('user_name') or 'Villa Owner'],
+        ['Email:', invoice.get('user_email') or 'N/A']
     ]
     
     # Create two-column info table
@@ -330,109 +333,215 @@ async def generate_invoice_pdf(invoice: dict, bookings: list) -> bytes:
     elements.append(info_table)
     elements.append(Spacer(1, 20))
     
-    # Period and Amenity
-    elements.append(Paragraph(f"<b>Period:</b> {get_month_name(invoice.get('month'), invoice.get('year'))}", styles['TROABold']))
-    elements.append(Paragraph(f"<b>Amenity:</b> {invoice.get('amenity_name')}", styles['TROABold']))
-    elements.append(Spacer(1, 15))
-    
-    # Calculation logic box
-    elements.append(Paragraph("Calculation Logic", styles['SectionHeader']))
-    calc_box_data = [
-        ['Category', 'Rate', 'Cap'],
-        ['Resident', '₹50 per person per session', '₹300 per month (per amenity)'],
-        ['External Guest', '₹50 per person per session', 'No cap'],
-        ['Coach', '₹50 per person per session', 'No cap']
-    ]
-    calc_table = Table(calc_box_data, colWidths=[100, 150, 150])
-    calc_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f3e8ff')),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 8),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
-        ('PADDING', (0, 0), (-1, -1), 6)
-    ]))
-    elements.append(calc_table)
-    elements.append(Spacer(1, 15))
-    
-    # Line items
-    elements.append(Paragraph("Booking Details", styles['SectionHeader']))
-    
-    line_items = invoice.get('line_items', [])
-    if line_items:
-        items_data = [['Date', 'Time', 'Type', 'Count', 'Rate', 'Amount']]
-        for item in line_items:
-            items_data.append([
-                format_date(item.get('booking_date')),
-                f"{item.get('start_time')} - {item.get('end_time')}",
-                item.get('attendee_type', '').title(),
-                str(item.get('attendee_count', 0)),
-                f"₹{item.get('rate', 50):.0f}",
-                f"₹{item.get('amount', 0):.0f}"
-            ])
+    if invoice_type == 'maintenance':
+        # Maintenance Invoice Layout
+        elements.append(Paragraph("Invoice Type: Maintenance", styles['TROABold']))
+        elements.append(Spacer(1, 15))
         
-        items_table = Table(items_data, colWidths=[70, 80, 70, 50, 50, 60])
-        items_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#9333ea')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        # Maintenance line items
+        elements.append(Paragraph("Line Items", styles['SectionHeader']))
+        
+        maintenance_items = invoice.get('maintenance_line_items', [])
+        if maintenance_items:
+            items_data = [['Description', 'Qty', 'Rate', 'Amount']]
+            for item in maintenance_items:
+                items_data.append([
+                    item.get('description', ''),
+                    str(item.get('quantity', 1)),
+                    f"₹{item.get('rate', 0):.2f}",
+                    f"₹{item.get('amount', 0):.2f}"
+                ])
+            
+            items_table = Table(items_data, colWidths=[220, 50, 80, 80])
+            items_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c5530')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
+                ('PADDING', (0, 0), (-1, -1), 6),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')])
+            ]))
+            elements.append(items_table)
+        else:
+            elements.append(Paragraph("No line items available.", styles['TROANormal']))
+        
+        elements.append(Spacer(1, 20))
+        
+        # Amount summary for maintenance
+        elements.append(Paragraph("Amount Summary", styles['SectionHeader']))
+        
+        summary_data = [
+            ['Description', 'Amount'],
+            ['Subtotal', f"₹{invoice.get('subtotal', 0):.2f}"]
+        ]
+        
+        if invoice.get('discount_amount', 0) > 0:
+            discount_text = f"Discount ({invoice.get('discount_type', '')})"
+            if invoice.get('discount_type') == 'percentage':
+                discount_text = f"Discount ({invoice.get('discount_value', 0)}%)"
+            elif invoice.get('discount_type') == 'fixed':
+                discount_text = f"Discount (Fixed)"
+            summary_data.append([discount_text, f"-₹{invoice.get('discount_amount', 0):.2f}"])
+        
+        summary_data.append(['TOTAL AMOUNT', f"₹{invoice.get('total_amount', 0):.2f}"])
+        
+        summary_table = Table(summary_data, colWidths=[320, 100])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e8f5e9')),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#2c5530')),
+            ('TEXTCOLOR', (0, -1), (-1, -1), colors.white),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
+            ('PADDING', (0, 0), (-1, -1), 8)
+        ]))
+        elements.append(summary_table)
+        
+    else:
+        # Clubhouse Subscription Invoice Layout (original)
+        # Period and Amenity
+        month = invoice.get('month')
+        year = invoice.get('year')
+        if month is not None and year is not None:
+            elements.append(Paragraph(f"<b>Period:</b> {get_month_name(month, year)}", styles['TROABold']))
+        elements.append(Paragraph(f"<b>Amenity:</b> {invoice.get('amenity_name', 'N/A')}", styles['TROABold']))
+        elements.append(Spacer(1, 15))
+        
+        # Calculation logic box
+        elements.append(Paragraph("Calculation Logic", styles['SectionHeader']))
+        calc_box_data = [
+            ['Category', 'Rate', 'Cap'],
+            ['Resident', '₹50 per person per session', '₹300 per month (per amenity)'],
+            ['External Guest', '₹50 per person per session', 'No cap'],
+            ['Coach', '₹50 per person per session', 'No cap']
+        ]
+        calc_table = Table(calc_box_data, colWidths=[100, 150, 150])
+        calc_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f3e8ff')),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 8),
-            ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
-            ('PADDING', (0, 0), (-1, -1), 4),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')])
+            ('PADDING', (0, 0), (-1, -1), 6)
         ]))
-        elements.append(items_table)
-    else:
-        elements.append(Paragraph("No booking details available.", styles['TROANormal']))
+        elements.append(calc_table)
+        elements.append(Spacer(1, 15))
+        
+        # Line items
+        elements.append(Paragraph("Booking Details", styles['SectionHeader']))
+        
+        line_items = invoice.get('line_items', [])
+        if line_items:
+            items_data = [['Date', 'Time', 'Type', 'Count', 'Rate', 'Amount']]
+            for item in line_items:
+                items_data.append([
+                    format_date(item.get('booking_date')),
+                    f"{item.get('start_time')} - {item.get('end_time')}",
+                    item.get('attendee_type', '').title(),
+                    str(item.get('attendee_count', 0)),
+                    f"₹{item.get('rate', 50):.0f}",
+                    f"₹{item.get('amount', 0):.0f}"
+                ])
+            
+            items_table = Table(items_data, colWidths=[70, 80, 70, 50, 50, 60])
+            items_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#9333ea')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
+                ('PADDING', (0, 0), (-1, -1), 4),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')])
+            ]))
+            elements.append(items_table)
+        else:
+            elements.append(Paragraph("No booking details available.", styles['TROANormal']))
+        
+        elements.append(Spacer(1, 20))
+        
+        # Amount summary for clubhouse
+        elements.append(Paragraph("Amount Summary", styles['SectionHeader']))
+        
+        resident_raw = invoice.get('resident_amount_raw', 0) or 0
+        resident_capped = invoice.get('resident_amount_capped', 0) or 0
+        cap_applied = resident_raw > resident_capped
+        
+        resident_sessions = invoice.get('resident_sessions_count', 0) or 0
+        
+        summary_data = [
+            ['Description', 'Sessions', 'Amount'],
+            [f"Resident Usage ({resident_sessions} sessions)", '', f"₹{resident_raw:.0f}"],
+        ]
+        
+        if cap_applied:
+            summary_data.append(['  → Monthly Cap Applied (₹300 max)', '', f"-₹{(resident_raw - resident_capped):.0f}"])
+            summary_data.append(['  → Resident Subtotal', '', f"₹{resident_capped:.0f}"])
+        
+        guest_amount = invoice.get('guest_amount', 0) or 0
+        if guest_amount > 0:
+            summary_data.append(['External Guest Charges', '', f"₹{guest_amount:.0f}"])
+        
+        coach_amount = invoice.get('coach_amount', 0) or 0
+        if coach_amount > 0:
+            summary_data.append(['Coach Charges', '', f"₹{coach_amount:.0f}"])
+        
+        subtotal = invoice.get('subtotal', 0) or 0
+        summary_data.append(['Subtotal', '', f"₹{subtotal:.0f}"])
+        
+        adjustment = invoice.get('adjustment', 0) or 0
+        if adjustment != 0:
+            adj_text = f"+₹{adjustment:.0f}" if adjustment > 0 else f"-₹{abs(adjustment):.0f}"
+            reason = invoice.get('adjustment_reason', '')
+            summary_data.append([f"Adjustment ({reason})", '', adj_text])
+        
+        total_amount = invoice.get('total_amount', 0) or 0
+        summary_data.append(['TOTAL AMOUNT', '', f"₹{total_amount:.0f}"])
+        
+        summary_table = Table(summary_data, colWidths=[280, 50, 80])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f3e8ff')),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#9333ea')),
+            ('TEXTCOLOR', (0, -1), (-1, -1), colors.white),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
+            ('PADDING', (0, 0), (-1, -1), 6)
+        ]))
+        elements.append(summary_table)
+        
+        elements.append(Spacer(1, 20))
+        
+        # Audit log section (proof) - only for clubhouse invoices
+        if bookings:
+            elements.append(Paragraph("Booking Audit Trail (Proof)", styles['SectionHeader']))
+            elements.append(Paragraph(
+                "The following is the audit trail for all bookings included in this invoice:",
+                styles['TROASmall']
+            ))
+            elements.append(Spacer(1, 10))
+            
+            for booking in bookings[:10]:  # Limit to 10 bookings to avoid very long PDFs
+                audit_log = booking.get('audit_log', [])
+                if audit_log:
+                    elements.append(Paragraph(
+                        f"<b>{format_date(booking.get('booking_date'))} {booking.get('start_time')}-{booking.get('end_time')}</b>",
+                        styles['TROASmall']
+                    ))
+                    for entry in audit_log[-3:]:  # Last 3 entries per booking
+                        elements.append(Paragraph(
+                            f"  • {entry.get('action', '').replace('_', ' ').title()}: {entry.get('details', '')} "
+                            f"({entry.get('by_name')}, {format_datetime(entry.get('timestamp'))})",
+                            ParagraphStyle(name='AuditEntry', fontSize=7, textColor=colors.HexColor('#666666'), leftIndent=15)
+                        ))
+                    elements.append(Spacer(1, 5))
     
-    elements.append(Spacer(1, 20))
-    
-    # Amount summary
-    elements.append(Paragraph("Amount Summary", styles['SectionHeader']))
-    
-    resident_raw = invoice.get('resident_amount_raw', 0)
-    resident_capped = invoice.get('resident_amount_capped', 0)
-    cap_applied = resident_raw > resident_capped
-    
-    summary_data = [
-        ['Description', 'Sessions', 'Amount'],
-        [f"Resident Usage ({invoice.get('resident_sessions_count', 0)} sessions)", '', f"₹{resident_raw:.0f}"],
-    ]
-    
-    if cap_applied:
-        summary_data.append(['  → Monthly Cap Applied (₹300 max)', '', f"-₹{(resident_raw - resident_capped):.0f}"])
-        summary_data.append(['  → Resident Subtotal', '', f"₹{resident_capped:.0f}"])
-    
-    if invoice.get('guest_amount', 0) > 0:
-        summary_data.append(['External Guest Charges', '', f"₹{invoice.get('guest_amount', 0):.0f}"])
-    
-    if invoice.get('coach_amount', 0) > 0:
-        summary_data.append(['Coach Charges', '', f"₹{invoice.get('coach_amount', 0):.0f}"])
-    
-    summary_data.append(['Subtotal', '', f"₹{invoice.get('subtotal', 0):.0f}"])
-    
-    if invoice.get('adjustment', 0) != 0:
-        adj = invoice.get('adjustment', 0)
-        adj_text = f"+₹{adj:.0f}" if adj > 0 else f"-₹{abs(adj):.0f}"
-        reason = invoice.get('adjustment_reason', '')
-        summary_data.append([f"Adjustment ({reason})", '', adj_text])
-    
-    summary_data.append(['TOTAL AMOUNT', '', f"₹{invoice.get('total_amount', 0):.0f}"])
-    
-    summary_table = Table(summary_data, colWidths=[280, 50, 80])
-    summary_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f3e8ff')),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#9333ea')),
-        ('TEXTCOLOR', (0, -1), (-1, -1), colors.white),
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
-        ('PADDING', (0, 0), (-1, -1), 6)
-    ]))
-    elements.append(summary_table)
     elements.append(Spacer(1, 20))
     
     # Payment info
@@ -459,32 +568,7 @@ async def generate_invoice_pdf(invoice: dict, bookings: list) -> bytes:
     
     elements.append(Spacer(1, 20))
     
-    # Audit log section (proof)
-    if bookings:
-        elements.append(Paragraph("Booking Audit Trail (Proof)", styles['SectionHeader']))
-        elements.append(Paragraph(
-            "The following is the audit trail for all bookings included in this invoice:",
-            styles['TROASmall']
-        ))
-        elements.append(Spacer(1, 10))
-        
-        for booking in bookings[:10]:  # Limit to 10 bookings to avoid very long PDFs
-            audit_log = booking.get('audit_log', [])
-            if audit_log:
-                elements.append(Paragraph(
-                    f"<b>{format_date(booking.get('booking_date'))} {booking.get('start_time')}-{booking.get('end_time')}</b>",
-                    styles['TROASmall']
-                ))
-                for entry in audit_log[-3:]:  # Last 3 entries per booking
-                    elements.append(Paragraph(
-                        f"  • {entry.get('action', '').replace('_', ' ').title()}: {entry.get('details', '')} "
-                        f"({entry.get('by_name')}, {format_datetime(entry.get('timestamp'))})",
-                        ParagraphStyle(name='AuditEntry', fontSize=7, textColor=colors.HexColor('#666666'), leftIndent=15)
-                    ))
-                elements.append(Spacer(1, 5))
-    
     # Footer
-    elements.append(Spacer(1, 20))
     elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#9333ea'), spaceAfter=10))
     elements.append(Paragraph(
         "This is a computer-generated invoice and does not require a signature.",
