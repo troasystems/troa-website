@@ -640,7 +640,7 @@ const MyInvoices = () => {
                           #{invoice.invoice_number}
                         </span>
                         {getTypeBadge(invoice.invoice_type)}
-                        {getStatusBadge(invoice.payment_status)}
+                        {getStatusBadge(invoice)}
                       </div>
                       
                       {/* Clubhouse Subscription Invoice */}
