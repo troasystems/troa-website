@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FileText, Download, CreditCard, Calendar, CheckCircle, XCircle, Clock, AlertCircle, Receipt } from 'lucide-react';
+import { FileText, Download, CreditCard, Calendar, CheckCircle, XCircle, Clock, AlertCircle, Receipt, Home, CheckSquare, Square, Tag } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 import { useAuth } from '../context/AuthContext';
 import { getBackendUrl } from '../utils/api';
@@ -14,7 +14,11 @@ const MyInvoices = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [payingInvoiceId, setPayingInvoiceId] = useState(null);
+  const [payingMultiple, setPayingMultiple] = useState(false);
+  const [selectedInvoices, setSelectedInvoices] = useState([]);
+  const [selectMode, setSelectMode] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -186,6 +190,122 @@ const MyInvoices = () => {
     }
   };
 
+  const handlePayMultipleInvoices = async () => {
+    if (selectedInvoices.length === 0) {
+      toast({
+        title: 'No invoices selected',
+        description: 'Please select at least one invoice to pay',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setPayingMultiple(true);
+    
+    try {
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        throw new Error('Failed to load payment gateway');
+      }
+
+      const token = localStorage.getItem('session_token');
+      
+      // Create multi-invoice order
+      const orderResponse = await axios.post(
+        `${getAPI()}/invoices/pay-multiple`,
+        { invoice_ids: selectedInvoices },
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
+          }
+        }
+      );
+
+      const { order_id, amount, key_id, invoice_count } = orderResponse.data;
+
+      const options = {
+        key: key_id,
+        amount: amount * 100,
+        currency: 'INR',
+        name: 'TROA',
+        description: `Payment for ${invoice_count} invoice${invoice_count > 1 ? 's' : ''}`,
+        order_id: order_id,
+        handler: async (response) => {
+          try {
+            await axios.post(
+              `${getAPI()}/invoices/verify-multi-payment`,
+              {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                invoice_ids: selectedInvoices
+              },
+              {
+                withCredentials: true,
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
+                }
+              }
+            );
+            
+            toast({
+              title: 'Payment Successful',
+              description: `${invoice_count} invoice${invoice_count > 1 ? 's have' : ' has'} been paid. Receipt sent to your email.`
+            });
+            
+            setSelectedInvoices([]);
+            setSelectMode(false);
+            fetchInvoices();
+          } catch (error) {
+            toast({
+              title: 'Payment Verification Failed',
+              description: 'Please contact support if amount was deducted',
+              variant: 'destructive'
+            });
+          }
+        },
+        theme: {
+          color: '#9333ea'
+        },
+        modal: {
+          ondismiss: () => {
+            setPayingMultiple(false);
+          }
+        }
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+    } catch (error) {
+      console.error('Multi-payment error:', error);
+      toast({
+        title: 'Error',
+        description: error.response?.data?.detail || 'Failed to initiate payment',
+        variant: 'destructive'
+      });
+    } finally {
+      setPayingMultiple(false);
+    }
+  };
+
+  const toggleInvoiceSelection = (invoiceId) => {
+    setSelectedInvoices(prev => 
+      prev.includes(invoiceId) 
+        ? prev.filter(id => id !== invoiceId)
+        : [...prev, invoiceId]
+    );
+  };
+
+  const selectAllPending = () => {
+    const pendingIds = invoices
+      .filter(inv => inv.payment_status === 'pending')
+      .map(inv => inv.id);
+    setSelectedInvoices(pendingIds);
+  };
+
   const getStatusBadge = (status) => {
     switch (status) {
       case 'paid':
@@ -212,6 +332,23 @@ const MyInvoices = () => {
     }
   };
 
+  const getTypeBadge = (type) => {
+    if (type === 'maintenance') {
+      return (
+        <span className="flex items-center space-x-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+          <Home className="w-3 h-3" />
+          <span>Maintenance</span>
+        </span>
+      );
+    }
+    return (
+      <span className="flex items-center space-x-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+        <Tag className="w-3 h-3" />
+        <span>Clubhouse</span>
+      </span>
+    );
+  };
+
   const formatDate = (dateStr) => {
     try {
       const date = new Date(dateStr);
@@ -222,16 +359,22 @@ const MyInvoices = () => {
   };
 
   const getMonthName = (month, year) => {
+    if (!month || !year) return '';
     return new Date(year, month - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
   };
 
   const filteredInvoices = invoices.filter(inv => {
-    if (filter === 'all') return true;
-    return inv.payment_status === filter;
+    const matchesStatus = filter === 'all' || inv.payment_status === filter;
+    const matchesType = typeFilter === 'all' || inv.invoice_type === typeFilter;
+    return matchesStatus && matchesType;
   });
 
   const pendingInvoices = invoices.filter(inv => inv.payment_status === 'pending');
   const totalPending = pendingInvoices.reduce((sum, inv) => sum + inv.total_amount, 0);
+  const selectedTotal = selectedInvoices.reduce((sum, id) => {
+    const invoice = invoices.find(inv => inv.id === id);
+    return sum + (invoice?.total_amount || 0);
+  }, 0);
 
   if (authLoading) {
     return (
@@ -250,7 +393,7 @@ const MyInvoices = () => {
             <Receipt className="w-7 h-7 mr-3" />
             My Invoices
           </h1>
-          <p className="text-sm opacity-90 mt-1">View and pay your amenity usage invoices</p>
+          <p className="text-sm opacity-90 mt-1">View and pay your invoices</p>
         </div>
       </div>
 
@@ -258,9 +401,9 @@ const MyInvoices = () => {
         {/* Summary Card */}
         {pendingInvoices.length > 0 && (
           <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 mb-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center space-x-3">
-                <AlertCircle className="w-8 h-8 text-amber-500" />
+                <AlertCircle className="w-8 h-8 text-amber-500 flex-shrink-0" />
                 <div>
                   <p className="font-semibold text-amber-900">
                     {pendingInvoices.length} Pending Invoice{pendingInvoices.length > 1 ? 's' : ''}
@@ -268,25 +411,105 @@ const MyInvoices = () => {
                   <p className="text-sm text-amber-700">Total Due: ₹{totalPending.toFixed(0)}</p>
                 </div>
               </div>
+              {pendingInvoices.length > 1 && (
+                <button
+                  onClick={() => {
+                    setSelectMode(!selectMode);
+                    if (!selectMode) {
+                      selectAllPending();
+                    } else {
+                      setSelectedInvoices([]);
+                    }
+                  }}
+                  className="flex items-center justify-center space-x-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span>{selectMode ? 'Cancel Selection' : 'Pay Multiple'}</span>
+                </button>
+              )}
             </div>
           </div>
         )}
 
-        {/* Filter */}
-        <div className="flex space-x-2 mb-6 overflow-x-auto pb-2">
-          {['all', 'pending', 'paid', 'cancelled'].map((status) => (
-            <button
-              key={status}
-              onClick={() => setFilter(status)}
-              className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors ${
-                filter === status
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-100 border'
-              }`}
-            >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </button>
-          ))}
+        {/* Multi-select payment bar */}
+        {selectMode && selectedInvoices.length > 0 && (
+          <div className="sticky top-16 z-10 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl p-4 mb-6 shadow-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <p className="font-semibold">{selectedInvoices.length} invoice{selectedInvoices.length > 1 ? 's' : ''} selected</p>
+                <p className="text-sm opacity-90">Total: ₹{selectedTotal.toFixed(0)}</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setSelectedInvoices([]);
+                    setSelectMode(false);
+                  }}
+                  className="px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePayMultipleInvoices}
+                  disabled={payingMultiple}
+                  className="flex items-center space-x-2 px-4 py-2 bg-white text-purple-600 rounded-lg hover:bg-purple-50 transition-colors text-sm font-semibold disabled:opacity-50"
+                >
+                  {payingMultiple ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-600 border-t-transparent"></div>
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4" />
+                      <span>Pay ₹{selectedTotal.toFixed(0)}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Filters */}
+        <div className="flex flex-col gap-4 mb-6">
+          {/* Status Filter */}
+          <div className="flex space-x-2 overflow-x-auto pb-2">
+            {['all', 'pending', 'paid', 'cancelled'].map((status) => (
+              <button
+                key={status}
+                onClick={() => setFilter(status)}
+                className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors ${
+                  filter === status
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-100 border'
+                }`}
+              >
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Type Filter */}
+          <div className="flex space-x-2 overflow-x-auto pb-2">
+            {[
+              { key: 'all', label: 'All Types' },
+              { key: 'clubhouse_subscription', label: 'Clubhouse' },
+              { key: 'maintenance', label: 'Maintenance' }
+            ].map((type) => (
+              <button
+                key={type.key}
+                onClick={() => setTypeFilter(type.key)}
+                className={`px-3 py-1.5 rounded-lg font-medium text-xs whitespace-nowrap transition-colors ${
+                  typeFilter === type.key
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-100 border'
+                }`}
+              >
+                {type.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Invoice List */}
@@ -299,44 +522,107 @@ const MyInvoices = () => {
             <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-600">No invoices found</h3>
             <p className="text-gray-500">
-              {filter === 'all' ? "You don't have any invoices yet" : `No ${filter} invoices`}
+              {filter === 'all' && typeFilter === 'all' ? "You don't have any invoices yet" : `No matching invoices`}
             </p>
           </div>
         ) : (
           <div className="space-y-4">
             {filteredInvoices.map((invoice) => (
-              <div key={invoice.id} className="bg-white rounded-xl shadow-sm border overflow-hidden">
+              <div 
+                key={invoice.id} 
+                className={`bg-white rounded-xl shadow-sm border overflow-hidden transition-all ${
+                  selectMode && invoice.payment_status === 'pending' 
+                    ? 'cursor-pointer hover:border-purple-300' 
+                    : ''
+                } ${
+                  selectedInvoices.includes(invoice.id) ? 'border-purple-500 ring-2 ring-purple-200' : ''
+                }`}
+                onClick={() => {
+                  if (selectMode && invoice.payment_status === 'pending') {
+                    toggleInvoiceSelection(invoice.id);
+                  }
+                }}
+              >
                 <div className="p-4 sm:p-6">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    {/* Selection checkbox */}
+                    {selectMode && invoice.payment_status === 'pending' && (
+                      <div className="flex items-center">
+                        {selectedInvoices.includes(invoice.id) ? (
+                          <CheckSquare className="w-6 h-6 text-purple-600" />
+                        ) : (
+                          <Square className="w-6 h-6 text-gray-400" />
+                        )}
+                      </div>
+                    )}
+
                     {/* Invoice Info */}
                     <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
                         <span className="font-mono text-sm text-purple-600 font-medium">
                           #{invoice.invoice_number}
                         </span>
+                        {getTypeBadge(invoice.invoice_type)}
                         {getStatusBadge(invoice.payment_status)}
                       </div>
                       
-                      <h3 className="font-semibold text-gray-900">{invoice.amenity_name}</h3>
-                      <p className="text-sm text-gray-600 flex items-center mt-1">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        {getMonthName(invoice.month, invoice.year)}
-                      </p>
-                      
-                      <div className="mt-3 text-sm text-gray-500">
-                        <p>Resident Sessions: {invoice.resident_sessions_count}</p>
-                        {invoice.resident_amount_raw > invoice.resident_amount_capped && (
-                          <p className="text-green-600">Cap Applied: ₹{invoice.resident_amount_raw.toFixed(0)} → ₹{invoice.resident_amount_capped.toFixed(0)}</p>
-                        )}
-                        {invoice.guest_amount > 0 && <p>Guest Charges: ₹{invoice.guest_amount.toFixed(0)}</p>}
-                        {invoice.coach_amount > 0 && <p>Coach Charges: ₹{invoice.coach_amount.toFixed(0)}</p>}
-                        {invoice.adjustment !== 0 && (
-                          <p className={invoice.adjustment > 0 ? 'text-red-600' : 'text-green-600'}>
-                            Adjustment: {invoice.adjustment > 0 ? '+' : ''}₹{invoice.adjustment.toFixed(0)}
-                            {invoice.adjustment_reason && ` (${invoice.adjustment_reason})`}
+                      {/* Clubhouse Subscription Invoice */}
+                      {invoice.invoice_type === 'clubhouse_subscription' && (
+                        <>
+                          <h3 className="font-semibold text-gray-900">{invoice.amenity_name}</h3>
+                          <p className="text-sm text-gray-600 flex items-center mt-1">
+                            <Calendar className="w-4 h-4 mr-1" />
+                            {getMonthName(invoice.month, invoice.year)}
                           </p>
-                        )}
-                      </div>
+                          
+                          <div className="mt-3 text-sm text-gray-500">
+                            <p>Resident Sessions: {invoice.resident_sessions_count}</p>
+                            {invoice.resident_amount_raw > invoice.resident_amount_capped && (
+                              <p className="text-green-600">Cap Applied: ₹{invoice.resident_amount_raw?.toFixed(0)} → ₹{invoice.resident_amount_capped?.toFixed(0)}</p>
+                            )}
+                            {invoice.guest_amount > 0 && <p>Guest Charges: ₹{invoice.guest_amount?.toFixed(0)}</p>}
+                            {invoice.coach_amount > 0 && <p>Coach Charges: ₹{invoice.coach_amount?.toFixed(0)}</p>}
+                          </div>
+                        </>
+                      )}
+
+                      {/* Maintenance Invoice */}
+                      {invoice.invoice_type === 'maintenance' && (
+                        <>
+                          <h3 className="font-semibold text-gray-900 flex items-center">
+                            <Home className="w-4 h-4 mr-2" />
+                            Villa {invoice.villa_number}
+                          </h3>
+                          
+                          {/* Line items */}
+                          {invoice.maintenance_line_items && invoice.maintenance_line_items.length > 0 && (
+                            <div className="mt-3 space-y-1">
+                              {invoice.maintenance_line_items.map((item, idx) => (
+                                <div key={idx} className="text-sm text-gray-600 flex justify-between">
+                                  <span>{item.description}</span>
+                                  <span className="text-gray-800">₹{item.amount?.toFixed(0)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Discount */}
+                          {invoice.discount_amount > 0 && (
+                            <p className="text-sm text-green-600 mt-2">
+                              Discount: -₹{invoice.discount_amount?.toFixed(0)}
+                              {invoice.discount_type === 'percentage' && ` (${invoice.discount_value}%)`}
+                            </p>
+                          )}
+                        </>
+                      )}
+
+                      {/* Adjustment (common) */}
+                      {invoice.adjustment !== 0 && (
+                        <p className={`text-sm mt-2 ${invoice.adjustment > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          Adjustment: {invoice.adjustment > 0 ? '+' : ''}₹{invoice.adjustment?.toFixed(0)}
+                          {invoice.adjustment_reason && ` (${invoice.adjustment_reason})`}
+                        </p>
+                      )}
                       
                       {invoice.payment_status === 'pending' && (
                         <p className="text-xs text-amber-600 mt-2">
@@ -354,10 +640,10 @@ const MyInvoices = () => {
                     {/* Amount and Actions */}
                     <div className="text-right">
                       <p className="text-2xl font-bold text-gray-900">
-                        ₹{invoice.total_amount.toFixed(0)}
+                        ₹{invoice.total_amount?.toFixed(0)}
                       </p>
                       
-                      <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                      <div className="flex flex-col sm:flex-row gap-2 mt-4" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => downloadInvoicePdf(invoice.id, invoice.invoice_number)}
                           className="flex items-center justify-center space-x-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium transition-colors"
@@ -366,7 +652,7 @@ const MyInvoices = () => {
                           <span>PDF</span>
                         </button>
                         
-                        {invoice.payment_status === 'pending' && (
+                        {invoice.payment_status === 'pending' && !selectMode && (
                           <button
                             onClick={() => handlePayInvoice(invoice)}
                             disabled={payingInvoiceId === invoice.id}
