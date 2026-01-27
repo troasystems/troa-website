@@ -551,66 +551,136 @@ const InvoiceManagement = () => {
             <div className="p-6 space-y-4">
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="flex justify-between text-sm">
-                  <span>Subtotal:</span>
-                  <span>₹{editModal.subtotal.toFixed(0)}</span>
+                  <span>Original Subtotal:</span>
+                  <span>₹{editModal.subtotal?.toFixed(0) || 0}</span>
                 </div>
                 <div className="flex justify-between text-sm mt-1">
-                  <span>Current Adjustment:</span>
-                  <span className={editModal.adjustment > 0 ? 'text-red-600' : editModal.adjustment < 0 ? 'text-green-600' : ''}>
-                    {editModal.adjustment > 0 ? '+' : ''}₹{editModal.adjustment.toFixed(0)}
-                  </span>
-                </div>
-                <div className="flex justify-between font-bold mt-2 pt-2 border-t">
                   <span>Current Total:</span>
-                  <span>₹{editModal.total_amount.toFixed(0)}</span>
+                  <span className="font-semibold">₹{editModal.total_amount?.toFixed(0) || editModal.subtotal?.toFixed(0) || 0}</span>
                 </div>
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Adjustment Amount (₹)
+                  New Total Amount (₹) *
                 </label>
                 <input
                   type="number"
-                  value={editForm.adjustment}
-                  onChange={(e) => setEditForm({ ...editForm, adjustment: parseFloat(e.target.value) || 0 })}
+                  min="0"
+                  step="1"
+                  value={editForm.new_total_amount}
+                  onChange={(e) => setEditForm({ ...editForm, new_total_amount: parseFloat(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                  placeholder="Enter positive or negative amount"
+                  placeholder="Enter new total amount"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  New Total: ₹{(editModal.subtotal + (parseFloat(editForm.adjustment) || 0)).toFixed(0)}
+                  This will override the current total amount
                 </p>
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Adjustment Reason
+                  Reason for Change *
                 </label>
-                <input
-                  type="text"
+                <textarea
                   value={editForm.adjustment_reason}
                   onChange={(e) => setEditForm({ ...editForm, adjustment_reason: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                  placeholder="e.g., Discount, Waiver, Late fee"
+                  placeholder="e.g., Discount applied, Waiver granted, Late fee added"
+                  rows={2}
                 />
+              </div>
+              
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm">
+                <p className="font-medium text-amber-800 flex items-center">
+                  <History className="w-4 h-4 mr-1" />
+                  All changes are logged
+                </p>
+                <p className="text-amber-700 mt-1">
+                  This change will be recorded in the invoice audit history and visible to the user.
+                </p>
               </div>
               
               <div className="flex space-x-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setEditModal(null)}
+                  onClick={() => {
+                    setEditModal(null);
+                    setEditForm({ new_total_amount: 0, adjustment_reason: '' });
+                  }}
                   className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleUpdateInvoice}
-                  disabled={editing}
+                  disabled={editing || !editForm.adjustment_reason.trim()}
                   className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:shadow-lg disabled:opacity-50"
                 >
                   {editing ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Audit Log Modal */}
+      {auditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold flex items-center">
+                  <History className="w-5 h-5 mr-2 text-purple-600" />
+                  Invoice History
+                </h3>
+                <button onClick={() => setAuditModal(null)} className="p-2 hover:bg-gray-100 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-sm text-gray-500 mt-1">#{auditModal.invoice_number}</p>
+            </div>
+            
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              {auditModal.audit_log && auditModal.audit_log.length > 0 ? (
+                <div className="space-y-4">
+                  {[...auditModal.audit_log].reverse().map((entry, idx) => (
+                    <div key={idx} className="border-l-4 border-purple-400 pl-4 py-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-gray-900 capitalize">
+                          {entry.action?.replace(/_/g, ' ') || 'Update'}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {entry.timestamp ? new Date(entry.timestamp).toLocaleString('en-IN') : ''}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700 mt-1">{entry.details}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        by {entry.by_name} ({entry.by_email})
+                      </p>
+                      {entry.previous_amount !== undefined && entry.new_amount !== undefined && (
+                        <div className="flex items-center space-x-2 mt-2 text-xs">
+                          <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded">₹{entry.previous_amount?.toFixed(0)}</span>
+                          <span>→</span>
+                          <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">₹{entry.new_amount?.toFixed(0)}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-8">No history available</p>
+              )}
+            </div>
+            
+            <div className="p-4 border-t">
+              <button
+                onClick={() => setAuditModal(null)}
+                className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
