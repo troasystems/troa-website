@@ -132,7 +132,9 @@ const InvoiceManagement = () => {
       });
       
       setEditModal(null);
-      fetchData();
+      setEditForm({ new_total_amount: 0, adjustment_reason: '' });
+      // Force refresh data
+      await fetchData();
     } catch (error) {
       toast({
         title: 'Error',
