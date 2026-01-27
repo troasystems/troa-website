@@ -37,7 +37,7 @@ class InvoiceAPITester:
         # Setup authentication headers
         self.basic_auth = base64.b64encode(f"{BASIC_AUTH_USERNAME}:{BASIC_AUTH_PASSWORD}".encode()).decode()
         # Using accountant session token for testing
-        self.accountant_token = "xBPTLcvN2wsTsXtfGxu1MJ4W7VmNi8oO5fUrLqqVT44"  # Valid accountant session token
+        self.accountant_token = "c6CZ5XYPXh2iiMRjv6-PjNVoaa5RYSdYiLk3YostOBk"  # Valid accountant session token
         self.auth_headers = {
             'Authorization': f'Basic {self.basic_auth}',
             'X-Session-Token': f'Bearer {self.accountant_token}',
