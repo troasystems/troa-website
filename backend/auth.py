@@ -856,6 +856,19 @@ async def login_with_email(credentials: EmailPasswordLogin, request: Request):
             mongo_client.close()
             raise HTTPException(status_code=401, detail="Invalid email or password")
         
+        # Determine user role - super admin always gets admin, others use database role
+        user_role = 'admin' if user['email'] == SUPER_ADMIN_EMAIL else user.get('role', 'user')
+        
+        # For regular users (non-privileged roles), check if email exists in any villa
+        if not is_privileged_role(user_role):
+            villa = await check_email_in_villas(credentials.email)
+            if not villa:
+                mongo_client.close()
+                raise HTTPException(
+                    status_code=403, 
+                    detail="Your email is not associated with any villa in TROA. Please contact troa.systems@gmail.com for assistance."
+                )
+        
         # Check email verification status
         email_verified = user.get('email_verified', False)
         verification_expires_at = user.get('verification_expires_at')
@@ -877,9 +890,6 @@ async def login_with_email(credentials: EmailPasswordLogin, request: Request):
             {'$set': {'last_login': datetime.utcnow()}}
         )
         
-        # Determine user role - super admin always gets admin, others use database role
-        user_role = 'admin' if user['email'] == SUPER_ADMIN_EMAIL else user.get('role', 'user')
-        
         # If user is super admin but database doesn't have admin role, update it
         if user['email'] == SUPER_ADMIN_EMAIL and user.get('role') != 'admin':
             await db.users.update_one(
@@ -894,6 +904,7 @@ async def login_with_email(credentials: EmailPasswordLogin, request: Request):
             'picture': user.get('picture', ''),
             'role': user_role,
             'is_admin': user_role == 'admin',
+            'is_staff': is_staff_role(user_role),
             'villa_number': user.get('villa_number'),
             'email_verified': email_verified,
             'verification_expires_at': verification_expires_at.isoformat() if verification_expires_at else None,
