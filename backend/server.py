@@ -2016,6 +2016,310 @@ async def cancel_invoice(invoice_id: str, request: Request):
         raise HTTPException(status_code=500, detail="Failed to cancel invoice")
 
 
+# ============ OFFLINE INVOICE PAYMENT ENDPOINTS ============
+
+@api_router.post("/invoices/{invoice_id}/pay-offline")
+async def submit_offline_invoice_payment(invoice_id: str, request: Request):
+    """Submit offline payment for an invoice - requires admin approval"""
+    try:
+        user = await require_auth(request)
+        body = await request.json()
+        transaction_reference = body.get('transaction_reference', '')
+        
+        invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+        if not invoice:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        
+        # Check access - user must be the invoice owner or have access via villa
+        user_villa_numbers = []
+        if user.get('villa_number'):
+            user_villa_numbers.append(user['villa_number'])
+        user_villa = await db.villas.find_one(
+            {"emails": user['email']},
+            {"_id": 0, "villa_number": 1}
+        )
+        if user_villa:
+            user_villa_numbers.append(user_villa['villa_number'])
+        
+        has_access = (
+            invoice.get('user_email') == user['email'] or
+            invoice.get('villa_number') in user_villa_numbers
+        )
+        if not has_access:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        if invoice['payment_status'] != 'pending':
+            raise HTTPException(status_code=400, detail="Invoice is not pending payment")
+        
+        if invoice.get('offline_payment_status') == 'pending_approval':
+            raise HTTPException(status_code=400, detail="Offline payment already submitted and pending approval")
+        
+        # Create audit log entry
+        audit_entry = {
+            "action": "offline_payment_submitted",
+            "timestamp": datetime.utcnow().isoformat(),
+            "by_email": user['email'],
+            "by_name": user.get('name', user['email']),
+            "details": f"Offline payment submitted. Reference: {transaction_reference or 'N/A'}"
+        }
+        
+        await db.invoices.update_one(
+            {"id": invoice_id},
+            {
+                "$set": {
+                    "offline_payment_status": "pending_approval",
+                    "offline_transaction_reference": transaction_reference,
+                    "offline_submitted_by_email": user['email'],
+                    "offline_submitted_by_name": user.get('name', user['email']),
+                    "offline_submitted_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                },
+                "$push": {
+                    "audit_log": audit_entry
+                }
+            }
+        )
+        
+        logger.info(f"Offline payment submitted for invoice {invoice_id} by {user['email']}")
+        
+        # Notify admins
+        try:
+            await send_notification_to_admins(
+                title="Invoice Offline Payment",
+                body=f"Offline payment submitted for Invoice #{invoice.get('invoice_number', invoice_id)}",
+                url="/admin"
+            )
+        except Exception as notif_error:
+            logger.error(f"Failed to send admin notification: {notif_error}")
+        
+        return {
+            "message": "Offline payment submitted successfully. Pending admin approval.",
+            "invoice_id": invoice_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error submitting offline payment: {e}")
+        raise HTTPException(status_code=500, detail="Failed to submit offline payment")
+
+
+@api_router.get("/invoices/pending-approvals")
+async def get_pending_invoice_approvals(request: Request):
+    """Get all invoices with pending offline payment approvals - Admin/Manager only"""
+    try:
+        await require_manager_or_admin(request)
+        
+        pending = await db.invoices.find(
+            {"offline_payment_status": "pending_approval"},
+            {"_id": 0}
+        ).sort("offline_submitted_at", 1).to_list(100)
+        
+        return pending
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching pending approvals: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch pending approvals")
+
+
+@api_router.post("/invoices/{invoice_id}/approve-offline")
+async def approve_offline_invoice_payment(invoice_id: str, request: Request):
+    """Approve offline payment for an invoice - Admin/Manager only"""
+    try:
+        admin = await require_manager_or_admin(request)
+        body = await request.json() if request.headers.get('content-type') == 'application/json' else {}
+        approval_note = body.get('approval_note', '')
+        
+        invoice = await db.invoices.find_one({
+            "id": invoice_id,
+            "offline_payment_status": "pending_approval"
+        }, {"_id": 0})
+        
+        if not invoice:
+            raise HTTPException(status_code=404, detail="Invoice not found or not pending approval")
+        
+        payment_date = datetime.utcnow()
+        
+        # Create audit log entry
+        audit_entry = {
+            "action": "offline_payment_approved",
+            "timestamp": payment_date.isoformat(),
+            "by_email": admin['email'],
+            "by_name": admin.get('name', admin['email']),
+            "details": f"Offline payment approved. {approval_note or ''}"
+        }
+        
+        await db.invoices.update_one(
+            {"id": invoice_id},
+            {
+                "$set": {
+                    "payment_status": "paid",
+                    "payment_method": "offline",
+                    "payment_date": payment_date,
+                    "offline_payment_status": "approved",
+                    "offline_approved_by_email": admin['email'],
+                    "offline_approved_by_name": admin.get('name', admin['email']),
+                    "offline_approval_note": approval_note,
+                    "offline_approved_at": payment_date,
+                    "updated_at": payment_date
+                },
+                "$push": {
+                    "audit_log": audit_entry
+                }
+            }
+        )
+        
+        logger.info(f"Offline payment approved for invoice {invoice_id} by {admin['email']}")
+        
+        # Send notification to user
+        try:
+            if invoice.get('user_email'):
+                await send_notification_to_user(
+                    user_email=invoice['user_email'],
+                    title="Payment Approved! ✅",
+                    body=f"Your offline payment for Invoice #{invoice.get('invoice_number', '')} has been approved.",
+                    url="/my-invoices"
+                )
+        except Exception as notif_error:
+            logger.error(f"Failed to send user notification: {notif_error}")
+        
+        # Send payment receipt email
+        try:
+            if invoice.get('user_email'):
+                if invoice.get('invoice_type') == INVOICE_TYPE_MAINTENANCE:
+                    # Maintenance invoice receipt
+                    await email_service.send_invoice_payment_receipt(
+                        recipient_email=invoice['user_email'],
+                        user_name=invoice.get('user_name', ''),
+                        invoice_number=invoice['invoice_number'],
+                        amenity_name=f"Maintenance - Villa {invoice.get('villa_number', '')}",
+                        month_year="N/A",
+                        total_amount=invoice['total_amount'],
+                        payment_id=f"OFFLINE-{invoice.get('offline_transaction_reference', 'N/A')}",
+                        payment_date=payment_date.strftime("%d %b %Y %H:%M")
+                    )
+                else:
+                    # Clubhouse invoice receipt
+                    month_name = datetime(invoice['year'], invoice['month'], 1).strftime("%B %Y") if invoice.get('month') and invoice.get('year') else "N/A"
+                    await email_service.send_invoice_payment_receipt(
+                        recipient_email=invoice['user_email'],
+                        user_name=invoice.get('user_name', ''),
+                        invoice_number=invoice['invoice_number'],
+                        amenity_name=invoice.get('amenity_name', ''),
+                        month_year=month_name,
+                        total_amount=invoice['total_amount'],
+                        payment_id=f"OFFLINE-{invoice.get('offline_transaction_reference', 'N/A')}",
+                        payment_date=payment_date.strftime("%d %b %Y %H:%M")
+                    )
+        except Exception as email_error:
+            logger.error(f"Failed to send payment receipt email: {email_error}")
+        
+        return {
+            "message": "Offline payment approved successfully",
+            "invoice_id": invoice_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error approving offline payment: {e}")
+        raise HTTPException(status_code=500, detail="Failed to approve offline payment")
+
+
+@api_router.post("/invoices/{invoice_id}/reject-offline")
+async def reject_offline_invoice_payment(invoice_id: str, request: Request):
+    """Reject offline payment for an invoice - Admin/Manager only"""
+    try:
+        admin = await require_manager_or_admin(request)
+        body = await request.json() if request.headers.get('content-type') == 'application/json' else {}
+        rejection_reason = body.get('rejection_reason', '')
+        
+        invoice = await db.invoices.find_one({
+            "id": invoice_id,
+            "offline_payment_status": "pending_approval"
+        }, {"_id": 0})
+        
+        if not invoice:
+            raise HTTPException(status_code=404, detail="Invoice not found or not pending approval")
+        
+        # Create audit log entry
+        audit_entry = {
+            "action": "offline_payment_rejected",
+            "timestamp": datetime.utcnow().isoformat(),
+            "by_email": admin['email'],
+            "by_name": admin.get('name', admin['email']),
+            "details": f"Offline payment rejected. Reason: {rejection_reason or 'No reason provided'}"
+        }
+        
+        await db.invoices.update_one(
+            {"id": invoice_id},
+            {
+                "$set": {
+                    "offline_payment_status": "rejected",
+                    "offline_rejected_by_email": admin['email'],
+                    "offline_rejected_by_name": admin.get('name', admin['email']),
+                    "offline_rejection_reason": rejection_reason,
+                    "offline_rejected_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                },
+                "$unset": {
+                    "offline_transaction_reference": "",
+                    "offline_submitted_by_email": "",
+                    "offline_submitted_by_name": "",
+                    "offline_submitted_at": ""
+                },
+                "$push": {
+                    "audit_log": audit_entry
+                }
+            }
+        )
+        
+        logger.info(f"Offline payment rejected for invoice {invoice_id} by {admin['email']}")
+        
+        # Send notification to user
+        try:
+            if invoice.get('user_email'):
+                await send_notification_to_user(
+                    user_email=invoice['user_email'],
+                    title="Payment Rejected ❌",
+                    body=f"Your offline payment for Invoice #{invoice.get('invoice_number', '')} was rejected. {rejection_reason}",
+                    url="/my-invoices"
+                )
+        except Exception as notif_error:
+            logger.error(f"Failed to send user notification: {notif_error}")
+        
+        return {
+            "message": "Offline payment rejected",
+            "invoice_id": invoice_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error rejecting offline payment: {e}")
+        raise HTTPException(status_code=500, detail="Failed to reject offline payment")
+
+
+@api_router.get("/payment-qr-info")
+async def get_payment_qr_info(request: Request):
+    """Get QR code info for offline payments"""
+    # This returns the UPI/bank details for offline payments
+    # The QR code image can be stored in GridFS or as a static URL
+    return {
+        "upi_id": "troa@upi",
+        "bank_name": "HDFC Bank",
+        "account_name": "The Retreat Owners Association",
+        "account_number": "50100XXXXXXXXX",
+        "ifsc_code": "HDFC0001234",
+        "qr_image_url": "/api/static/payment-qr.png",
+        "instructions": [
+            "Scan the QR code using any UPI app (GPay, PhonePe, Paytm, etc.)",
+            "Enter the exact invoice amount",
+            "Add the Invoice Number in the remarks/notes",
+            "Complete the payment and note down the Transaction ID",
+            "Submit the payment with the Transaction ID for approval"
+        ]
+    }
+
+
 @api_router.post("/invoices/pay-multiple")
 async def create_multi_invoice_payment_order(request: Request):
     """Create Razorpay order for multiple invoices - Pay oldest first"""
