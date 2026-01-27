@@ -19,6 +19,12 @@ const MyInvoices = () => {
   const [payingMultiple, setPayingMultiple] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState([]);
   const [selectMode, setSelectMode] = useState(false);
+  
+  // Offline payment state
+  const [showOfflineModal, setShowOfflineModal] = useState(null);
+  const [qrInfo, setQrInfo] = useState(null);
+  const [transactionRef, setTransactionRef] = useState('');
+  const [submittingOffline, setSubmittingOffline] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
