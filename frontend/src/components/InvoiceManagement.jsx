@@ -740,7 +740,7 @@ const InvoiceManagement = () => {
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {getStatusBadge(invoice.payment_status)}
+                      {getStatusBadge(invoice)}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end space-x-1">
