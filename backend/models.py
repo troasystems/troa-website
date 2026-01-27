@@ -1,7 +1,35 @@
 from pydantic import BaseModel, Field, EmailStr
-from typing import Optional
-from datetime import datetime
+from typing import Optional, List
+from datetime import datetime, timedelta
 import uuid
+
+# ============ ROLE CONSTANTS ============
+# Staff roles group
+STAFF_ROLES = ['clubhouse_staff', 'accountant']
+# All valid roles
+VALID_ROLES = ['admin', 'manager', 'clubhouse_staff', 'accountant', 'user']
+# Roles that bypass villa email check on login
+PRIVILEGED_ROLES = ['admin', 'manager', 'clubhouse_staff', 'accountant']
+
+
+# ============ VILLA MODELS ============
+
+class Villa(BaseModel):
+    villa_number: str  # Primary key - alphanumeric (e.g., "A-101", "205")
+    square_feet: float = 0.0
+    emails: List[str] = []  # List of email addresses associated with this villa
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class VillaCreate(BaseModel):
+    villa_number: str
+    square_feet: float = 0.0
+    emails: List[str] = []
+
+class VillaUpdate(BaseModel):
+    square_feet: Optional[float] = None
+    emails: Optional[List[str]] = None
+
 
 class CommitteeMember(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
