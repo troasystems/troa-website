@@ -412,7 +412,8 @@ const InvoiceManagement = () => {
     pendingAmount: invoices.filter(i => i.payment_status === 'pending').reduce((sum, i) => sum + (i.total_amount || 0), 0),
     paidAmount: invoices.filter(i => i.payment_status === 'paid').reduce((sum, i) => sum + (i.total_amount || 0), 0),
     clubhouse: invoices.filter(i => i.invoice_type === 'clubhouse_subscription').length,
-    maintenance: invoices.filter(i => i.invoice_type === 'maintenance').length
+    maintenance: invoices.filter(i => i.invoice_type === 'maintenance').length,
+    pendingApproval: pendingApprovals.length
   };
 
   // Handle maintenance invoice creation
