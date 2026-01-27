@@ -110,6 +110,100 @@ const InvoiceManagement = () => {
     }
   };
 
+  const fetchPendingApprovals = async () => {
+    try {
+      const token = localStorage.getItem('session_token');
+      const response = await axios.get(`${getAPI()}/invoices/pending-approvals`, {
+        withCredentials: true,
+        headers: { ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {}) }
+      });
+      setPendingApprovals(response.data);
+    } catch (error) {
+      console.error('Error fetching pending approvals:', error);
+    }
+  };
+
+  const handleApprovePayment = async (invoice) => {
+    setProcessing(true);
+    try {
+      const token = localStorage.getItem('session_token');
+      await axios.post(
+        `${getAPI()}/invoices/${invoice.id}/approve-offline`,
+        { approval_note: approvalNote },
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
+          }
+        }
+      );
+      
+      toast({
+        title: 'Success',
+        description: 'Payment approved successfully'
+      });
+      
+      setApprovalModal(null);
+      setApprovalNote('');
+      fetchData();
+      fetchPendingApprovals();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.detail || 'Failed to approve payment',
+        variant: 'destructive'
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleRejectPayment = async (invoice) => {
+    if (!rejectionReason.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please provide a rejection reason',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    setProcessing(true);
+    try {
+      const token = localStorage.getItem('session_token');
+      await axios.post(
+        `${getAPI()}/invoices/${invoice.id}/reject-offline`,
+        { rejection_reason: rejectionReason },
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
+          }
+        }
+      );
+      
+      toast({
+        title: 'Success',
+        description: 'Payment rejected'
+      });
+      
+      setApprovalModal(null);
+      setRejectionReason('');
+      fetchData();
+      fetchPendingApprovals();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.detail || 'Failed to reject payment',
+        variant: 'destructive'
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const handleCreateInvoice = async (e) => {
     e.preventDefault();
     setCreating(true);
