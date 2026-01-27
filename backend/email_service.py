@@ -8,9 +8,12 @@ from datetime import datetime
 from dotenv import load_dotenv
 from pathlib import Path
 
-# Load environment variables
+# Load environment variables from .env file (for local development)
+# In production, environment variables should be set directly in the system
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+env_file = ROOT_DIR / '.env'
+if env_file.exists():
+    load_dotenv(env_file, override=False)  # Don't override existing env vars
 
 logger = logging.getLogger(__name__)
 
@@ -21,16 +24,16 @@ SUPER_ADMIN_EMAIL = 'troa.systems@gmail.com'
 class EmailService:
     def __init__(self):
         """Initialize SendGrid client with credentials"""
-        self.api_key = os.getenv('SENDGRID_API_KEY')
-        self.sender_email = os.getenv('SENDER_EMAIL', 'noreply@troa.in')
-        self.reply_to_email = os.getenv('REPLY_TO_EMAIL', 'troa.systems@gmail.com')
-        self.frontend_url = os.getenv('REACT_APP_BACKEND_URL', 'https://emailbuzz.preview.emergentagent.com')
+        self.api_key = os.environ.get('SENDGRID_API_KEY')
+        self.sender_email = os.environ.get('SENDER_EMAIL', 'noreply@troa.in')
+        self.reply_to_email = os.environ.get('REPLY_TO_EMAIL', 'troa.systems@gmail.com')
+        self.frontend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://troa.in')
         
         if not self.api_key:
             logger.warning("SendGrid API key not configured. Email sending will be disabled.")
         else:
             self.sg_client = SendGridAPIClient(self.api_key)
-            logger.info("SendGrid email service initialized successfully")
+            logger.info(f"SendGrid email service initialized successfully (key starts with: {self.api_key[:10]}...)")
 
     async def _send_email(self, recipient_email: str, subject: str, html_body: str, text_body: str) -> dict:
         """Base method to send an email using SendGrid"""
