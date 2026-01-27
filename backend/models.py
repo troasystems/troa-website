@@ -279,7 +279,12 @@ class EventRegistrationCreate(BaseModel):
 
 # ============ INVOICE MODELS ============
 
+# Invoice types
+INVOICE_TYPE_CLUBHOUSE = "clubhouse_subscription"
+INVOICE_TYPE_MAINTENANCE = "maintenance"
+
 class InvoiceLineItem(BaseModel):
+    """Line item for clubhouse subscription invoices (booking-based)"""
     booking_id: str
     booking_date: str
     start_time: str
@@ -290,50 +295,93 @@ class InvoiceLineItem(BaseModel):
     amount: float
     audit_log: list = []  # Copy of booking audit log for proof
 
+class MaintenanceLineItem(BaseModel):
+    """Line item for maintenance invoices"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    description: str
+    quantity: float = 1.0
+    rate: float = 0.0
+    amount: float = 0.0  # quantity * rate
+
+class MaintenanceLineItemCreate(BaseModel):
+    description: str
+    quantity: float = 1.0
+    rate: float = 0.0
+
 class Invoice(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    invoice_number: str  # Format: TROA-INV-YYYYMM-XXXXX
-    # User details
-    user_email: str
-    user_name: str
-    user_villa: Optional[str] = None
-    # Amenity details
-    amenity_id: str
-    amenity_name: str
-    # Period
-    month: int  # 1-12
-    year: int
-    # Amounts
+    invoice_number: str  # Format: TROA-INV-YYYYMM-XXXXX or TROA-MAINT-YYYYMM-XXXXX
+    invoice_type: str = INVOICE_TYPE_CLUBHOUSE  # "clubhouse_subscription" or "maintenance"
+    
+    # Villa details (primary association)
+    villa_number: str = ""  # Villa this invoice is raised against
+    
+    # User details (for display and payment tracking)
+    user_email: str = ""  # Primary contact email (may be empty for villa-based invoices)
+    user_name: str = ""
+    user_villa: Optional[str] = None  # Deprecated - use villa_number instead
+    
+    # Amenity details (for clubhouse_subscription type)
+    amenity_id: str = ""
+    amenity_name: str = ""
+    
+    # Period (for clubhouse_subscription type)
+    month: int = 0  # 1-12
+    year: int = 0
+    
+    # Line items for clubhouse subscription invoices
     line_items: list = []  # List of InvoiceLineItem dicts
     resident_sessions_count: int = 0
     resident_amount_raw: float = 0.0  # Before cap
     resident_amount_capped: float = 0.0  # After ₹300 cap per amenity
     guest_amount: float = 0.0
     coach_amount: float = 0.0
-    subtotal: float = 0.0  # resident_amount_capped + guest_amount + coach_amount
+    
+    # Line items for maintenance invoices
+    maintenance_line_items: list = []  # List of MaintenanceLineItem dicts
+    
+    # Amounts
+    subtotal: float = 0.0  # Sum of all line items
+    discount_type: str = "none"  # "none", "percentage", "fixed"
+    discount_value: float = 0.0  # Percentage (0-100) or fixed amount
+    discount_amount: float = 0.0  # Calculated discount amount
     adjustment: float = 0.0  # Manual adjustment by manager (can be negative)
     adjustment_reason: Optional[str] = None
-    total_amount: float = 0.0  # subtotal + adjustment
+    total_amount: float = 0.0  # subtotal - discount_amount + adjustment
+    
     # Payment
     payment_status: str = "pending"  # pending, paid, cancelled
     payment_method: Optional[str] = None  # razorpay, offline
     payment_id: Optional[str] = None
     payment_date: Optional[datetime] = None
+    
     # Dates
-    due_date: datetime  # 20 days from creation
+    due_date: datetime = Field(default_factory=lambda: datetime.utcnow() + timedelta(days=20))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    
     # Created by
-    created_by_email: str
-    created_by_name: str
+    created_by_email: str = ""
+    created_by_name: str = ""
+    
     # Audit log
     audit_log: list = []  # List of InvoiceAuditEntry dicts
 
 class InvoiceCreate(BaseModel):
+    """Create clubhouse subscription invoice"""
     user_email: str
     amenity_id: str
     month: int  # 1-12
     year: int
+
+class MaintenanceInvoiceCreate(BaseModel):
+    """Create maintenance invoice"""
+    villa_number: str
+    line_items: List[MaintenanceLineItemCreate]
+    discount_type: str = "none"  # "none", "percentage", "fixed"
+    discount_value: float = 0.0
+    due_days: int = 20  # Number of days until due (configurable)
+    notes: Optional[str] = None
 
 class InvoiceUpdate(BaseModel):
     new_total_amount: Optional[float] = None  # Override total amount
@@ -347,3 +395,8 @@ class InvoiceAuditEntry(BaseModel):
     details: str
     previous_amount: Optional[float] = None
     new_amount: Optional[float] = None
+
+class MultiInvoicePayment(BaseModel):
+    """Pay multiple invoices at once"""
+    invoice_ids: List[str]
+    payment_method: str = "online"  # "online" or "offline"
