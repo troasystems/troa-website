@@ -645,6 +645,75 @@ const InvoiceManagement = () => {
         </div>
       </div>
 
+      {/* Pending Approvals Alert */}
+      {pendingApprovals.length > 0 && (
+        <div 
+          className="bg-orange-50 border border-orange-200 rounded-lg p-4 cursor-pointer hover:bg-orange-100 transition-colors"
+          onClick={() => setShowApprovalsTab(!showApprovalsTab)}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="bg-orange-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">
+                {pendingApprovals.length}
+              </div>
+              <div>
+                <p className="font-semibold text-orange-800">Offline Payments Pending Approval</p>
+                <p className="text-sm text-orange-600">Click to review and approve/reject</p>
+              </div>
+            </div>
+            <Hourglass className={`w-5 h-5 text-orange-500 transition-transform ${showApprovalsTab ? 'rotate-180' : ''}`} />
+          </div>
+        </div>
+      )}
+
+      {/* Pending Approvals List */}
+      {showApprovalsTab && pendingApprovals.length > 0 && (
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-orange-200">
+          <div className="bg-orange-100 px-4 py-3 border-b border-orange-200">
+            <h3 className="font-semibold text-orange-800 flex items-center">
+              <Hourglass className="w-4 h-4 mr-2" />
+              Payments Awaiting Approval
+            </h3>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {pendingApprovals.map((invoice) => (
+              <div key={invoice.id} className="p-4 hover:bg-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span className="font-mono text-sm text-purple-600 font-medium">#{invoice.invoice_number}</span>
+                    <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs">
+                      {invoice.invoice_type === 'maintenance' ? 'Maintenance' : 'Clubhouse'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700">
+                    <span className="font-medium">{invoice.user_name}</span>
+                    {invoice.villa_number && ` • Villa ${invoice.villa_number}`}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Submitted: {formatDate(invoice.offline_submitted_at)}
+                    {invoice.offline_transaction_reference && (
+                      <span className="ml-2 font-medium">Ref: {invoice.offline_transaction_reference}</span>
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <p className="text-xl font-bold text-gray-900">₹{invoice.total_amount?.toFixed(0)}</p>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => { setApprovalModal(invoice); setApprovalNote(''); setRejectionReason(''); }}
+                      className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 flex items-center space-x-1"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>Review</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Search and Filter */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row gap-4">
