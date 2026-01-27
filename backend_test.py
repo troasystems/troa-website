@@ -631,15 +631,16 @@ class TROAAPITester:
 
     def run_all_tests(self):
         """Run all tests"""
-        print("🚀 Starting TROA Bulk Upload API Tests")
+        print("🚀 Starting TROA Offline QR Payment API Tests")
         print(f"📍 Base URL: {self.base_url}")
-        print(f"🔑 Using tokens: Accountant & Admin")
+        print(f"🔑 Using tokens: User, Admin & Accountant")
         
-        # Run test suites
-        self.test_bulk_invoice_features()
-        self.test_bulk_villa_features()
-        self.test_invoice_management_apis()
-        self.test_email_functionality()
+        # Run test suites for offline payment system
+        self.test_offline_payment_qr_info()
+        self.test_offline_payment_submission()
+        self.test_pending_approvals()
+        self.test_payment_approval_rejection()
+        self.test_invoice_status_flow()
         
         # Print summary
         print("\n" + "="*60)
