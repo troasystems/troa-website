@@ -522,8 +522,8 @@ async def update_user(user_id: str, update: UserUpdate, request: Request):
         
         # Validate and add role if provided
         if update.role is not None:
-            if update.role not in ['admin', 'manager', 'clubhouse_staff', 'user']:
-                raise HTTPException(status_code=400, detail="Invalid role. Must be: admin, manager, clubhouse_staff, or user")
+            if update.role not in VALID_ROLES:
+                raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {', '.join(VALID_ROLES)}")
             update_data["role"] = update.role
             update_data["is_admin"] = update.role == 'admin'
         
@@ -531,11 +531,9 @@ async def update_user(user_id: str, update: UserUpdate, request: Request):
         if update.name is not None:
             update_data["name"] = update.name
         
-        # Validate and add villa_number if provided (must be numeric)
+        # Validate and add villa_number if provided (alphanumeric allowed)
         if update.villa_number is not None:
-            if update.villa_number and not update.villa_number.isdigit():
-                raise HTTPException(status_code=400, detail="Villa number must be numeric")
-            update_data["villa_number"] = update.villa_number
+            update_data["villa_number"] = update.villa_number.strip()
         
         # Add picture if provided
         if update.picture is not None:
