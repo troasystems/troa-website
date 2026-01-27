@@ -297,10 +297,10 @@ class TROAOfflinePaymentTester:
         print("🔄 TESTING INVOICE STATUS FLOW")
         print("="*60)
         
-        # Create a fresh invoice for status flow testing
-        flow_invoice_id = self.create_test_invoice()
+        # Get a fresh pending invoice for status flow testing
+        flow_invoice_id = self.get_existing_pending_invoice()
         if not flow_invoice_id:
-            print("   ❌ Cannot test status flow without a test invoice")
+            print("   ❌ Cannot test status flow without a pending invoice")
             return
         
         # Step 1: Check initial status (should be pending)
