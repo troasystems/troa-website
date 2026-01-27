@@ -280,6 +280,9 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     isManager: user?.role === 'manager',
+    isStaff: user?.role === 'clubhouse_staff' || user?.role === 'accountant',
+    isClubhouseStaff: user?.role === 'clubhouse_staff',
+    isAccountant: user?.role === 'accountant',
     role: user?.role || 'user'
   };
 
