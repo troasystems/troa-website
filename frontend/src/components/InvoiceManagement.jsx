@@ -509,13 +509,22 @@ const InvoiceManagement = () => {
             </button>
           )}
           {canCreateMaintenance && (
-            <button
-              onClick={() => setShowMaintenanceModal(true)}
-              className="flex-1 flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg p-2 text-white text-sm font-medium hover:opacity-90 transition-opacity"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Maintenance</span>
-            </button>
+            <>
+              <button
+                onClick={() => setShowMaintenanceModal(true)}
+                className="flex-1 flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg p-2 text-white text-sm font-medium hover:opacity-90 transition-opacity"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Maintenance</span>
+              </button>
+              <button
+                onClick={() => setShowBulkUploadModal(true)}
+                className="flex-1 flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg p-2 text-white text-sm font-medium hover:opacity-90 transition-opacity"
+              >
+                <Upload className="w-4 h-4" />
+                <span>Bulk Upload</span>
+              </button>
+            </>
           )}
         </div>
       </div>
