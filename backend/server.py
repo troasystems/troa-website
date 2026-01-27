@@ -1801,6 +1801,7 @@ app.include_router(gridfs_router, prefix="/api")
 app.include_router(payment_router, prefix="/api")
 app.include_router(chatbot_router, prefix="/api")
 app.include_router(events_router, prefix="/api")
+app.include_router(villas_router, prefix="/api")
 
 # Push notifications router for PWA
 from push_notifications import push_router
