@@ -103,7 +103,7 @@ class User(BaseModel):
     name: str
     picture: Optional[str] = None
     provider: str = "google"  # google, facebook, email
-    role: str = "user"  # admin, manager, user
+    role: str = "user"  # admin, manager, clubhouse_staff, accountant, user
     is_admin: bool = False  # Deprecated - use role instead
     villa_number: str = ""  # Villa/Unit number - required for email signups
     email_verified: bool = False  # Email verification status
@@ -117,11 +117,11 @@ class UserCreate(BaseModel):
     name: str = ""
     picture: Optional[str] = None
     provider: str = "whitelist"
-    role: str = "user"  # admin, manager, user
+    role: str = "user"  # admin, manager, clubhouse_staff, accountant, user
     villa_number: str = ""
 
 class UserUpdate(BaseModel):
-    role: Optional[str] = None  # admin, manager, user
+    role: Optional[str] = None  # admin, manager, clubhouse_staff, accountant, user
     name: Optional[str] = None
     villa_number: Optional[str] = None
     picture: Optional[str] = None
