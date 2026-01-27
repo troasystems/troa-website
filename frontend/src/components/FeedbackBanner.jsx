@@ -1,20 +1,34 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MessageSquare, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const FeedbackBanner = () => {
+const FeedbackBanner = ({ onVisibilityChange }) => {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
-  const [isVisible, setIsVisible] = React.useState(true);
+  const [isVisible, setIsVisible] = useState(true);
 
-  // Don't show on login pages or feedback page itself
-  if (!isVisible || location.pathname === '/feedback' || location.pathname === '/login' || location.pathname === '/login') {
+  // Check if banner should be hidden on certain pages
+  const shouldHide = location.pathname === '/feedback' || 
+                     location.pathname === '/login' || 
+                     location.pathname === '/chat' ||
+                     location.pathname === '/verify-email';
+
+  const isActuallyVisible = isVisible && !shouldHide;
+
+  // Notify parent of visibility changes
+  useEffect(() => {
+    if (onVisibilityChange) {
+      onVisibilityChange(isActuallyVisible);
+    }
+  }, [isActuallyVisible, onVisibilityChange]);
+
+  if (!isActuallyVisible) {
     return null;
   }
 
   return (
-    <div className="fixed top-20 w-full bg-gradient-to-r from-pink-500 via-pink-600 to-purple-600 text-white py-2 md:py-3 px-3 md:px-4 shadow-lg z-40">
+    <div className="w-full bg-gradient-to-r from-pink-500 via-pink-600 to-purple-600 text-white py-2 md:py-3 px-3 md:px-4 shadow-lg z-40">
       <div className="max-w-7xl mx-auto">
         {/* Desktop Layout */}
         <div className="hidden md:flex items-center justify-between">
@@ -28,14 +42,14 @@ const FeedbackBanner = () => {
             {isAuthenticated ? (
               <Link
                 to="/feedback"
-                className="px-4 py-2 bg-white text-pink-600 rounded-lg font-semibold hover:bg-pink-50 transition-all duration-300 hover:scale-105 whitespace-nowrap text-sm"
+                className="px-4 py-2 bg-white text-pink-600 rounded-lg font-semibold hover:bg-pink-50 transition-all duration-300 hover:scale-105 whitespace-nowrap text-sm inline-flex items-center justify-center"
               >
                 Give Feedback
               </Link>
             ) : (
               <Link
                 to="/login"
-                className="px-4 py-2 bg-white text-pink-600 rounded-lg font-semibold hover:bg-pink-50 transition-all duration-300 hover:scale-105 whitespace-nowrap text-sm"
+                className="px-4 py-2 bg-white text-pink-600 rounded-lg font-semibold hover:bg-pink-50 transition-all duration-300 hover:scale-105 whitespace-nowrap text-sm inline-flex items-center justify-center"
               >
                 Login to Give Feedback
               </Link>
@@ -63,14 +77,14 @@ const FeedbackBanner = () => {
             {isAuthenticated ? (
               <Link
                 to="/feedback"
-                className="px-3 py-1.5 bg-white text-pink-600 rounded-lg font-semibold text-xs whitespace-nowrap"
+                className="px-3 py-1.5 bg-white text-pink-600 rounded-lg font-semibold text-xs whitespace-nowrap inline-flex items-center justify-center"
               >
                 Feedback
               </Link>
             ) : (
               <Link
                 to="/login"
-                className="px-3 py-1.5 bg-white text-pink-600 rounded-lg font-semibold text-xs whitespace-nowrap"
+                className="px-3 py-1.5 bg-white text-pink-600 rounded-lg font-semibold text-xs whitespace-nowrap inline-flex items-center justify-center"
               >
                 Login
               </Link>

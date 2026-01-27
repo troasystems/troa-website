@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Lock, Camera, Save, X } from 'lucide-react';
+import { User, Lock, Camera, Save, X, Bell } from 'lucide-react';
 import axios from 'axios';
 import { toast } from '../hooks/use-toast';
 import { getBackendUrl } from '../utils/api';
+import { NotificationSettings } from '../components/PushNotifications';
 
 const getAPI = () => `${getBackendUrl()}/api`;
 
@@ -286,6 +287,18 @@ const ProfileSettings = () => {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Push Notifications Section */}
+          <div className="mb-8 pb-8 border-b">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              <Bell className="w-5 h-5 mr-2" />
+              Notifications
+            </h2>
+            <NotificationSettings />
+            <p className="text-sm text-gray-500 mt-3">
+              Enable push notifications to receive updates about bookings, events, and community announcements.
+            </p>
           </div>
 
           {/* Change Password Section - Only for email/password accounts */}

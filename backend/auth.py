@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse
 from authlib.integrations.starlette_client import OAuth
 from starlette.config import Config
 from starlette.middleware.sessions import SessionMiddleware
+from pydantic import BaseModel, EmailStr
 import os
 import logging
 from typing import Optional
@@ -169,6 +170,134 @@ async def require_manager_or_admin(request: Request):
         raise HTTPException(status_code=403, detail="Manager or Admin access required")
     return user
 
+async def require_clubhouse_staff(request: Request):
+    """Require clubhouse staff, manager, or admin authentication"""
+    user = await require_auth(request)
+    if user.get('role') not in ['admin', 'manager', 'clubhouse_staff']:
+        raise HTTPException(status_code=403, detail="Clubhouse Staff access required")
+    return user
+
+
+# Google OAuth - Frontend Token Verification
+class GoogleTokenRequest(BaseModel):
+    credential: str  # The JWT credential from Google Identity Services
+
+@auth_router.post('/google/verify-token')
+async def verify_google_token(token_request: GoogleTokenRequest, request: Request):
+    """Verify Google ID token from frontend and create session"""
+    try:
+        from google.oauth2 import id_token
+        from google.auth.transport import requests as google_requests
+        
+        # Verify the token
+        try:
+            idinfo = id_token.verify_oauth2_token(
+                token_request.credential, 
+                google_requests.Request(), 
+                GOOGLE_CLIENT_ID
+            )
+        except ValueError as e:
+            logger.error(f"Invalid Google token: {e}")
+            raise HTTPException(status_code=400, detail="Invalid Google token")
+        
+        # Get user info from the verified token
+        email = idinfo.get('email')
+        name = idinfo.get('name', '')
+        picture = idinfo.get('picture', '')
+        
+        if not email:
+            raise HTTPException(status_code=400, detail="Email not found in token")
+        
+        logger.info(f"Google token verified for: {email}")
+        
+        # Get database
+        mongo_url = os.environ['MONGO_URL']
+        mongo_client = AsyncIOMotorClient(mongo_url)
+        db = mongo_client[os.environ['DB_NAME']]
+        
+        # Check if user exists
+        existing_user = await db.users.find_one({'email': email}, {'_id': 0})
+        
+        # Determine user role
+        if email == SUPER_ADMIN_EMAIL:
+            user_role = 'admin'
+        elif existing_user and 'role' in existing_user:
+            user_role = existing_user['role']
+        else:
+            user_role = 'user'
+        
+        needs_villa_number = False
+        
+        if not existing_user:
+            # Create new user
+            user_obj = User(
+                email=email,
+                name=name,
+                picture=picture,
+                provider='google',
+                role=user_role,
+                is_admin=user_role == 'admin',
+                villa_number='',
+                email_verified=True  # Google users are pre-verified
+            )
+            await db.users.insert_one(user_obj.dict())
+            logger.info(f"New Google user created: {email} with role: {user_role}")
+            needs_villa_number = True
+        else:
+            # Update existing user
+            update_data = {
+                'name': name,
+                'picture': picture,
+                'last_login': datetime.utcnow(),
+                'email_verified': True,
+                'provider': 'google'  # Update provider if they're now using Google
+            }
+            
+            if email == SUPER_ADMIN_EMAIL and existing_user.get('role') != 'admin':
+                update_data['role'] = 'admin'
+                update_data['is_admin'] = True
+            
+            await db.users.update_one(
+                {'email': email},
+                {'$set': update_data}
+            )
+            logger.info(f"Existing user updated via Google: {email}")
+            
+            if not existing_user.get('villa_number'):
+                needs_villa_number = True
+        
+        # Create session
+        user_data = {
+            'email': email,
+            'name': name,
+            'picture': picture,
+            'role': user_role,
+            'is_admin': user_role == 'admin',
+            'needs_villa_number': needs_villa_number,
+            'villa_number': existing_user.get('villa_number', '') if existing_user else '',
+            'provider': 'google',
+            'email_verified': True  # Google users are always verified
+        }
+        
+        session_token = await create_session(user_data)
+        mongo_client.close()
+        
+        logger.info(f"Session created for Google user: {email}")
+        
+        return {
+            'status': 'success',
+            'token': session_token,
+            'user': user_data
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Google token verification failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Authentication failed: {str(e)}")
+
+
+# Legacy Google OAuth endpoints (keeping for backward compatibility)
 @auth_router.get('/google/login')
 async def google_login(request: Request):
     """Initiate Google OAuth login"""
@@ -327,8 +456,12 @@ async def google_callback(code: str, state: str, request: Request):
             'name': user_info.get('name', ''),
             'picture': user_info.get('picture', ''),
             'role': user_role,
-            'is_admin': user_role == 'admin'  # Legacy support
+            'is_admin': user_role == 'admin',  # Legacy support
+            'provider': 'google',
+            'email_verified': True  # Google users are always verified
         }
+        
+        needs_villa_number = False
         
         if not existing_user:
             # Create new user with default 'user' role (admin can promote later)
@@ -338,16 +471,21 @@ async def google_callback(code: str, state: str, request: Request):
                 picture=user_info.get('picture', ''),
                 provider='google',
                 role=user_role,
-                is_admin=user_role == 'admin'
+                is_admin=user_role == 'admin',
+                villa_number='',  # Empty - will need to be filled
+                email_verified=True  # Google users are pre-verified
             )
             await db.users.insert_one(user_obj.dict())
             logger.info(f"New user created: {user_info['email']} with role: {user_role}")
+            needs_villa_number = True  # New user needs to provide villa number
         else:
-            # Update existing user - preserve role from database
+            # Update existing user - preserve role and villa_number from database
             update_data = {
                 'name': user_info.get('name', ''),
                 'picture': user_info.get('picture', ''),
-                'last_login': datetime.utcnow()
+                'last_login': datetime.utcnow(),
+                'email_verified': True,  # Google users are always verified
+                'provider': 'google'  # Update provider if they're now using Google
             }
             
             # Only update role for super admin to ensure they always have admin access
@@ -359,11 +497,19 @@ async def google_callback(code: str, state: str, request: Request):
                 {'email': user_info['email']},
                 {'$set': update_data}
             )
-            logger.info(f"Existing user updated: {user_info['email']} with role: {user_role}")
+            logger.info(f"Existing user updated via Google: {user_info['email']} with role: {user_role}")
+            
+            # Check if existing user needs villa number (empty or not set)
+            if not existing_user.get('villa_number'):
+                needs_villa_number = True
+        
+        # Add villa number requirement flag to user data
+        user_data['needs_villa_number'] = needs_villa_number
+        user_data['villa_number'] = existing_user.get('villa_number', '') if existing_user else ''
         
         # Create session
         session_token = await create_session(user_data)
-        logger.info(f"Session created for user: {user_info['email']}")
+        logger.info(f"Session created for user: {user_info['email']}, needs_villa: {needs_villa_number}")
         
         mongo_client.close()
         
@@ -462,6 +608,10 @@ async def get_user(request: Request):
             if verification_expires_at and isinstance(verification_expires_at, datetime):
                 verification_expires_at = verification_expires_at.isoformat()
             
+            # Check if user needs to provide villa number (Google users without villa)
+            villa_number = db_user.get('villa_number', '')
+            needs_villa_number = db_user.get('provider') == 'google' and not villa_number
+            
             # Return fresh data from database with session role info
             return {
                 'email': db_user.get('email'),
@@ -469,10 +619,11 @@ async def get_user(request: Request):
                 'picture': db_user.get('picture', ''),
                 'role': user.get('role', 'user'),  # Keep role from session for consistency
                 'is_admin': user.get('role') == 'admin',
-                'villa_number': db_user.get('villa_number'),
+                'villa_number': villa_number,
                 'email_verified': db_user.get('email_verified', False),
                 'verification_expires_at': verification_expires_at,
-                'provider': db_user.get('provider', 'email')
+                'provider': db_user.get('provider', 'email'),
+                'needs_villa_number': needs_villa_number
             }
         
         return user
@@ -494,7 +645,6 @@ async def logout(request: Request):
 
 
 # Email/Password Authentication Routes
-from pydantic import BaseModel, EmailStr
 import bcrypt
 from email_service import email_service
 
@@ -815,6 +965,50 @@ async def update_profile_picture(picture_data: ProfilePictureUpdate, request: Re
         raise HTTPException(status_code=500, detail=f"Profile picture update failed: {str(e)}")
 
 
+# Villa Number Update Endpoint (for Google OAuth first-time login)
+class VillaNumberUpdate(BaseModel):
+    villa_number: str
+
+@auth_router.post('/update-villa-number')
+async def update_villa_number(villa_data: VillaNumberUpdate, request: Request):
+    """Update villa number for authenticated user"""
+    try:
+        # Get current user
+        user = await get_current_user(request)
+        if not user:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
+        # Validate villa number (must be numeric)
+        if not villa_data.villa_number or not villa_data.villa_number.isdigit():
+            raise HTTPException(status_code=400, detail="Villa number must be numeric")
+        
+        # Get database
+        mongo_url = os.environ['MONGO_URL']
+        mongo_client = AsyncIOMotorClient(mongo_url)
+        db = mongo_client[os.environ['DB_NAME']]
+        
+        # Update villa number
+        await db.users.update_one(
+            {'email': user['email']},
+            {'$set': {'villa_number': villa_data.villa_number}}
+        )
+        
+        logger.info(f"Villa number updated for user: {user['email']} to {villa_data.villa_number}")
+        mongo_client.close()
+        
+        return {
+            'status': 'success',
+            'message': 'Villa number updated successfully',
+            'villa_number': villa_data.villa_number
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Villa number update failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Villa number update failed: {str(e)}")
+
+
 # Email Verification Endpoints
 @auth_router.post('/verify-email')
 async def verify_email(verify_request: VerifyEmailRequest):
@@ -825,16 +1019,35 @@ async def verify_email(verify_request: VerifyEmailRequest):
         mongo_client = AsyncIOMotorClient(mongo_url)
         db = mongo_client[os.environ['DB_NAME']]
         
-        # Find user by verification token
-        query = {'verification_token': verify_request.token}
-        if verify_request.email:
-            query['email'] = verify_request.email
-        
-        user = await db.users.find_one(query, {'_id': 0})
+        # First, try to find user by token only (most reliable)
+        user = await db.users.find_one({'verification_token': verify_request.token}, {'_id': 0})
         
         if not user:
+            # Token not found - check if user with this email exists and is already verified
+            if verify_request.email:
+                existing_user = await db.users.find_one({'email': verify_request.email}, {'_id': 0})
+                if existing_user:
+                    if existing_user.get('email_verified', False):
+                        mongo_client.close()
+                        return {
+                            'status': 'success',
+                            'message': 'Email is already verified',
+                            'email': existing_user['email']
+                        }
+                    else:
+                        # User exists but token doesn't match - they may have requested a new token
+                        mongo_client.close()
+                        raise HTTPException(
+                            status_code=400, 
+                            detail="This verification link is no longer valid. Please request a new verification email from the login page."
+                        )
             mongo_client.close()
             raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+        
+        # Verify email matches if provided (additional security check)
+        if verify_request.email and user.get('email') != verify_request.email:
+            mongo_client.close()
+            raise HTTPException(status_code=400, detail="Email mismatch in verification request")
         
         # Check if already verified
         if user.get('email_verified', False):

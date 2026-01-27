@@ -1,0 +1,504 @@
+"""
+PDF Generation Service for TROA
+Generates booking reports and invoices with TROA letterhead
+"""
+
+import io
+import os
+from datetime import datetime
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch, mm
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, HRFlowable
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+import logging
+
+logger = logging.getLogger(__name__)
+
+# TROA Logo URL
+TROA_LOGO_URL = "https://customer-assets.emergentagent.com/job_troaresidents/artifacts/ig305kse_821366b6-decf-46dc-8c80-2dade0f65395.jpeg"
+
+# Pricing constants
+RATE_PER_SESSION = 50.0  # ₹50 per person per session
+RESIDENT_MONTHLY_CAP = 300.0  # ₹300 cap per month per amenity
+
+
+def get_styles():
+    """Get custom paragraph styles"""
+    styles = getSampleStyleSheet()
+    
+    # Title style
+    styles.add(ParagraphStyle(
+        name='TROATitle',
+        parent=styles['Heading1'],
+        fontSize=20,
+        textColor=colors.HexColor('#9333ea'),
+        spaceAfter=6,
+        alignment=TA_CENTER
+    ))
+    
+    # Subtitle
+    styles.add(ParagraphStyle(
+        name='TROASubtitle',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.HexColor('#666666'),
+        alignment=TA_CENTER,
+        spaceAfter=20
+    ))
+    
+    # Section header
+    styles.add(ParagraphStyle(
+        name='SectionHeader',
+        parent=styles['Heading2'],
+        fontSize=12,
+        textColor=colors.HexColor('#9333ea'),
+        spaceBefore=15,
+        spaceAfter=10
+    ))
+    
+    # Normal text
+    styles.add(ParagraphStyle(
+        name='TROANormal',
+        parent=styles['Normal'],
+        fontSize=9,
+        spaceAfter=4
+    ))
+    
+    # Small text
+    styles.add(ParagraphStyle(
+        name='TROASmall',
+        parent=styles['Normal'],
+        fontSize=8,
+        textColor=colors.HexColor('#666666'),
+        spaceAfter=2
+    ))
+    
+    # Right aligned
+    styles.add(ParagraphStyle(
+        name='TROARight',
+        parent=styles['Normal'],
+        fontSize=9,
+        alignment=TA_RIGHT
+    ))
+    
+    # Bold
+    styles.add(ParagraphStyle(
+        name='TROABold',
+        parent=styles['Normal'],
+        fontSize=9,
+        fontName='Helvetica-Bold'
+    ))
+    
+    return styles
+
+
+def create_letterhead(elements, styles, title, subtitle=""):
+    """Add TROA letterhead to PDF"""
+    # Logo and title side by side
+    elements.append(Paragraph("TROA", styles['TROATitle']))
+    elements.append(Paragraph("The Retreat Owners Association", styles['TROASubtitle']))
+    
+    # Horizontal line
+    elements.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#9333ea'), spaceAfter=10))
+    
+    # Document title
+    elements.append(Paragraph(title, ParagraphStyle(
+        name='DocTitle',
+        fontSize=14,
+        fontName='Helvetica-Bold',
+        alignment=TA_CENTER,
+        spaceAfter=5
+    )))
+    
+    if subtitle:
+        elements.append(Paragraph(subtitle, ParagraphStyle(
+            name='DocSubtitle',
+            fontSize=10,
+            textColor=colors.HexColor('#666666'),
+            alignment=TA_CENTER,
+            spaceAfter=15
+        )))
+    
+    elements.append(Spacer(1, 10))
+
+
+def format_date(date_str):
+    """Format date string for display"""
+    try:
+        if isinstance(date_str, str):
+            date = datetime.strptime(date_str, "%Y-%m-%d")
+        else:
+            date = date_str
+        return date.strftime("%d %b %Y")
+    except:
+        return date_str
+
+
+def format_datetime(dt):
+    """Format datetime for display"""
+    try:
+        if isinstance(dt, str):
+            dt = datetime.fromisoformat(dt.replace('Z', '+00:00'))
+        return dt.strftime("%d %b %Y %H:%M")
+    except:
+        return str(dt)
+
+
+def get_month_name(month, year):
+    """Get month name"""
+    return datetime(year, month, 1).strftime("%B %Y")
+
+
+async def generate_booking_report_pdf(
+    amenity_name: str,
+    month: int,
+    year: int,
+    bookings: list,
+    generated_by: str
+) -> bytes:
+    """
+    Generate PDF report of all bookings for an amenity in a month
+    """
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=20*mm,
+        leftMargin=20*mm,
+        topMargin=20*mm,
+        bottomMargin=20*mm
+    )
+    
+    elements = []
+    styles = get_styles()
+    
+    # Letterhead
+    create_letterhead(
+        elements, 
+        styles, 
+        f"Amenity Booking Report",
+        f"{amenity_name} - {get_month_name(month, year)}"
+    )
+    
+    # Report info
+    elements.append(Paragraph(f"<b>Generated on:</b> {datetime.now().strftime('%d %b %Y %H:%M')}", styles['TROANormal']))
+    elements.append(Paragraph(f"<b>Generated by:</b> {generated_by}", styles['TROANormal']))
+    elements.append(Paragraph(f"<b>Total Bookings:</b> {len(bookings)}", styles['TROANormal']))
+    elements.append(Spacer(1, 15))
+    
+    if not bookings:
+        elements.append(Paragraph("No bookings found for this period.", styles['TROANormal']))
+    else:
+        # Summary table
+        availed_count = sum(1 for b in bookings if b.get('availed_status') == 'availed')
+        not_availed_count = sum(1 for b in bookings if b.get('availed_status') == 'not_availed')
+        pending_count = len(bookings) - availed_count - not_availed_count
+        
+        summary_data = [
+            ['Status', 'Count'],
+            ['Availed', str(availed_count)],
+            ['Not Availed', str(not_availed_count)],
+            ['Pending', str(pending_count)],
+            ['Total', str(len(bookings))]
+        ]
+        
+        summary_table = Table(summary_data, colWidths=[100, 60])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#9333ea')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#f3e8ff')),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db'))
+        ]))
+        elements.append(summary_table)
+        elements.append(Spacer(1, 20))
+        
+        # Bookings detail
+        elements.append(Paragraph("Booking Details", styles['SectionHeader']))
+        
+        for i, booking in enumerate(bookings, 1):
+            # Booking header
+            status_color = '#22c55e' if booking.get('availed_status') == 'availed' else '#ef4444' if booking.get('availed_status') == 'not_availed' else '#f59e0b'
+            status_text = booking.get('availed_status', 'pending').replace('_', ' ').title()
+            
+            elements.append(Paragraph(
+                f"<b>#{i}. {format_date(booking.get('booking_date'))} | {booking.get('start_time')} - {booking.get('end_time')}</b> "
+                f"<font color='{status_color}'>[{status_text}]</font>",
+                styles['TROABold']
+            ))
+            
+            elements.append(Paragraph(f"Booked by: {booking.get('booked_by_name')} ({booking.get('booked_by_email')})", styles['TROASmall']))
+            if booking.get('booked_by_villa'):
+                elements.append(Paragraph(f"Villa: {booking.get('booked_by_villa')}", styles['TROASmall']))
+            
+            # Guests
+            guests = booking.get('guests', [])
+            if guests:
+                guest_text = ", ".join([
+                    f"{g.get('name')} ({g.get('guest_type')})" + 
+                    (f" Villa {g.get('villa_number')}" if g.get('villa_number') else "") +
+                    (f" ₹{g.get('charge', 0)}" if g.get('charge', 0) > 0 else "")
+                    for g in guests
+                ])
+                elements.append(Paragraph(f"Guests: {guest_text}", styles['TROASmall']))
+            
+            if booking.get('total_guest_charges', 0) > 0:
+                elements.append(Paragraph(f"Guest Charges: ₹{booking.get('total_guest_charges')}", styles['TROASmall']))
+            
+            # Audit log
+            audit_log = booking.get('audit_log', [])
+            if audit_log:
+                elements.append(Paragraph("Audit Log:", styles['TROASmall']))
+                for entry in audit_log[-5:]:  # Last 5 entries
+                    elements.append(Paragraph(
+                        f"  • {entry.get('action', '').replace('_', ' ').title()} - {entry.get('details', '')} "
+                        f"(by {entry.get('by_name')} at {format_datetime(entry.get('timestamp'))})",
+                        ParagraphStyle(name='AuditEntry', fontSize=7, textColor=colors.HexColor('#888888'), leftIndent=10)
+                    ))
+            
+            elements.append(Spacer(1, 8))
+            elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e5e7eb'), spaceAfter=8))
+    
+    # Footer
+    elements.append(Spacer(1, 20))
+    elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#9333ea'), spaceAfter=10))
+    elements.append(Paragraph(
+        "This is an automatically generated report from TROA Management System.",
+        ParagraphStyle(name='Footer', fontSize=8, textColor=colors.HexColor('#999999'), alignment=TA_CENTER)
+    ))
+    elements.append(Paragraph(
+        f"© {datetime.now().year} The Retreat Owners Association",
+        ParagraphStyle(name='Copyright', fontSize=8, textColor=colors.HexColor('#999999'), alignment=TA_CENTER)
+    ))
+    
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+async def generate_invoice_pdf(invoice: dict, bookings: list) -> bytes:
+    """
+    Generate PDF invoice with TROA letterhead
+    """
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=20*mm,
+        leftMargin=20*mm,
+        topMargin=20*mm,
+        bottomMargin=20*mm
+    )
+    
+    elements = []
+    styles = get_styles()
+    
+    # Letterhead
+    create_letterhead(elements, styles, "INVOICE", f"Invoice #{invoice.get('invoice_number')}")
+    
+    # Invoice details - two column layout
+    invoice_info = [
+        ['Invoice Number:', invoice.get('invoice_number')],
+        ['Invoice Date:', format_datetime(invoice.get('created_at'))],
+        ['Due Date:', format_datetime(invoice.get('due_date'))],
+        ['Status:', invoice.get('payment_status', 'pending').upper()]
+    ]
+    
+    user_info = [
+        ['Bill To:', ''],
+        ['Name:', invoice.get('user_name')],
+        ['Email:', invoice.get('user_email')],
+        ['Villa:', invoice.get('user_villa') or 'N/A']
+    ]
+    
+    # Create two-column info table
+    info_table = Table([
+        [
+            Table(invoice_info, colWidths=[80, 120]),
+            Table(user_info, colWidths=[60, 140])
+        ]
+    ], colWidths=[200, 200])
+    info_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+    elements.append(info_table)
+    elements.append(Spacer(1, 20))
+    
+    # Period and Amenity
+    elements.append(Paragraph(f"<b>Period:</b> {get_month_name(invoice.get('month'), invoice.get('year'))}", styles['TROABold']))
+    elements.append(Paragraph(f"<b>Amenity:</b> {invoice.get('amenity_name')}", styles['TROABold']))
+    elements.append(Spacer(1, 15))
+    
+    # Calculation logic box
+    elements.append(Paragraph("Calculation Logic", styles['SectionHeader']))
+    calc_box_data = [
+        ['Category', 'Rate', 'Cap'],
+        ['Resident', '₹50 per person per session', '₹300 per month (per amenity)'],
+        ['External Guest', '₹50 per person per session', 'No cap'],
+        ['Coach', '₹50 per person per session', 'No cap']
+    ]
+    calc_table = Table(calc_box_data, colWidths=[100, 150, 150])
+    calc_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f3e8ff')),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
+        ('PADDING', (0, 0), (-1, -1), 6)
+    ]))
+    elements.append(calc_table)
+    elements.append(Spacer(1, 15))
+    
+    # Line items
+    elements.append(Paragraph("Booking Details", styles['SectionHeader']))
+    
+    line_items = invoice.get('line_items', [])
+    if line_items:
+        items_data = [['Date', 'Time', 'Type', 'Count', 'Rate', 'Amount']]
+        for item in line_items:
+            items_data.append([
+                format_date(item.get('booking_date')),
+                f"{item.get('start_time')} - {item.get('end_time')}",
+                item.get('attendee_type', '').title(),
+                str(item.get('attendee_count', 0)),
+                f"₹{item.get('rate', 50):.0f}",
+                f"₹{item.get('amount', 0):.0f}"
+            ])
+        
+        items_table = Table(items_data, colWidths=[70, 80, 70, 50, 50, 60])
+        items_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#9333ea')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
+            ('PADDING', (0, 0), (-1, -1), 4),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')])
+        ]))
+        elements.append(items_table)
+    else:
+        elements.append(Paragraph("No booking details available.", styles['TROANormal']))
+    
+    elements.append(Spacer(1, 20))
+    
+    # Amount summary
+    elements.append(Paragraph("Amount Summary", styles['SectionHeader']))
+    
+    resident_raw = invoice.get('resident_amount_raw', 0)
+    resident_capped = invoice.get('resident_amount_capped', 0)
+    cap_applied = resident_raw > resident_capped
+    
+    summary_data = [
+        ['Description', 'Sessions', 'Amount'],
+        [f"Resident Usage ({invoice.get('resident_sessions_count', 0)} sessions)", '', f"₹{resident_raw:.0f}"],
+    ]
+    
+    if cap_applied:
+        summary_data.append(['  → Monthly Cap Applied (₹300 max)', '', f"-₹{(resident_raw - resident_capped):.0f}"])
+        summary_data.append(['  → Resident Subtotal', '', f"₹{resident_capped:.0f}"])
+    
+    if invoice.get('guest_amount', 0) > 0:
+        summary_data.append(['External Guest Charges', '', f"₹{invoice.get('guest_amount', 0):.0f}"])
+    
+    if invoice.get('coach_amount', 0) > 0:
+        summary_data.append(['Coach Charges', '', f"₹{invoice.get('coach_amount', 0):.0f}"])
+    
+    summary_data.append(['Subtotal', '', f"₹{invoice.get('subtotal', 0):.0f}"])
+    
+    if invoice.get('adjustment', 0) != 0:
+        adj = invoice.get('adjustment', 0)
+        adj_text = f"+₹{adj:.0f}" if adj > 0 else f"-₹{abs(adj):.0f}"
+        reason = invoice.get('adjustment_reason', '')
+        summary_data.append([f"Adjustment ({reason})", '', adj_text])
+    
+    summary_data.append(['TOTAL AMOUNT', '', f"₹{invoice.get('total_amount', 0):.0f}"])
+    
+    summary_table = Table(summary_data, colWidths=[280, 50, 80])
+    summary_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f3e8ff')),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#9333ea')),
+        ('TEXTCOLOR', (0, -1), (-1, -1), colors.white),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
+        ('PADDING', (0, 0), (-1, -1), 6)
+    ]))
+    elements.append(summary_table)
+    elements.append(Spacer(1, 20))
+    
+    # Payment info
+    if invoice.get('payment_status') == 'paid':
+        elements.append(Paragraph("✓ PAID", ParagraphStyle(
+            name='Paid', fontSize=14, fontName='Helvetica-Bold', 
+            textColor=colors.HexColor('#22c55e'), alignment=TA_CENTER
+        )))
+        elements.append(Paragraph(f"Payment ID: {invoice.get('payment_id', 'N/A')}", styles['TROASmall']))
+        elements.append(Paragraph(f"Paid on: {format_datetime(invoice.get('payment_date'))}", styles['TROASmall']))
+    else:
+        elements.append(Paragraph(
+            "Payment Due",
+            ParagraphStyle(name='PayDue', fontSize=12, fontName='Helvetica-Bold', textColor=colors.HexColor('#ef4444'))
+        ))
+        elements.append(Paragraph(
+            f"Please pay by {format_datetime(invoice.get('due_date'))} to avoid late fees.",
+            styles['TROANormal']
+        ))
+        elements.append(Paragraph(
+            "Pay online at: https://troa.in/my-invoices",
+            styles['TROANormal']
+        ))
+    
+    elements.append(Spacer(1, 20))
+    
+    # Audit log section (proof)
+    if bookings:
+        elements.append(Paragraph("Booking Audit Trail (Proof)", styles['SectionHeader']))
+        elements.append(Paragraph(
+            "The following is the audit trail for all bookings included in this invoice:",
+            styles['TROASmall']
+        ))
+        elements.append(Spacer(1, 10))
+        
+        for booking in bookings[:10]:  # Limit to 10 bookings to avoid very long PDFs
+            audit_log = booking.get('audit_log', [])
+            if audit_log:
+                elements.append(Paragraph(
+                    f"<b>{format_date(booking.get('booking_date'))} {booking.get('start_time')}-{booking.get('end_time')}</b>",
+                    styles['TROASmall']
+                ))
+                for entry in audit_log[-3:]:  # Last 3 entries per booking
+                    elements.append(Paragraph(
+                        f"  • {entry.get('action', '').replace('_', ' ').title()}: {entry.get('details', '')} "
+                        f"({entry.get('by_name')}, {format_datetime(entry.get('timestamp'))})",
+                        ParagraphStyle(name='AuditEntry', fontSize=7, textColor=colors.HexColor('#666666'), leftIndent=15)
+                    ))
+                elements.append(Spacer(1, 5))
+    
+    # Footer
+    elements.append(Spacer(1, 20))
+    elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#9333ea'), spaceAfter=10))
+    elements.append(Paragraph(
+        "This is a computer-generated invoice and does not require a signature.",
+        ParagraphStyle(name='Footer', fontSize=8, textColor=colors.HexColor('#999999'), alignment=TA_CENTER)
+    ))
+    elements.append(Paragraph(
+        "For queries, contact: troa.systems@gmail.com",
+        ParagraphStyle(name='Contact', fontSize=8, textColor=colors.HexColor('#999999'), alignment=TA_CENTER)
+    ))
+    elements.append(Paragraph(
+        f"© {datetime.now().year} The Retreat Owners Association",
+        ParagraphStyle(name='Copyright', fontSize=8, textColor=colors.HexColor('#999999'), alignment=TA_CENTER)
+    ))
+    
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer.getvalue()

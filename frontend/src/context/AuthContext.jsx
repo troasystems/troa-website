@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { clearAllChatCache } from '../services/chatCache';
+import { clearAllCache } from '../hooks/useCache';
 
 // Use current origin for API calls (works in production with custom domain)
 // Fall back to env variable for local development
@@ -27,7 +29,9 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(() => localStorage.getItem('session_token'));
   const [loading, setLoading] = useState(true);
+  const [needsVillaNumber, setNeedsVillaNumber] = useState(false);
 
   useEffect(() => {
     // Check for token in URL (from OAuth callback)
@@ -42,6 +46,7 @@ export const AuthProvider = ({ children }) => {
       // Store token in localStorage
       console.log('[Auth] Storing token in localStorage');
       localStorage.setItem('session_token', token);
+      setToken(token);
       // Remove token from URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
@@ -63,9 +68,18 @@ export const AuthProvider = ({ children }) => {
       });
       console.log('[Auth] User authenticated:', response.data.email);
       setUser(response.data);
+      
+      // Check if user needs to provide villa number
+      if (response.data.needs_villa_number) {
+        console.log('[Auth] User needs to provide villa number');
+        setNeedsVillaNumber(true);
+      } else {
+        setNeedsVillaNumber(false);
+      }
     } catch (error) {
       console.log('[Auth] Auth check failed:', error.response?.status, error.response?.data);
       setUser(null);
+      setNeedsVillaNumber(false);
       // Clear invalid token
       localStorage.removeItem('session_token');
     } finally {
@@ -84,6 +98,14 @@ export const AuthProvider = ({ children }) => {
       });
       console.log('[Auth] User data refreshed');
       setUser(response.data);
+      
+      // Update villa number requirement
+      if (response.data.needs_villa_number) {
+        setNeedsVillaNumber(true);
+      } else {
+        setNeedsVillaNumber(false);
+      }
+      
       return response.data;
     } catch (error) {
       console.error('[Auth] Failed to refresh user data:', error);
@@ -91,6 +113,44 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateVillaNumber = (villaNumber) => {
+    // Update local user state after villa number is set
+    if (user) {
+      setUser({ ...user, villa_number: villaNumber, needs_villa_number: false });
+    }
+    setNeedsVillaNumber(false);
+  };
+
+  // New frontend-based Google login using Google Identity Services
+  const loginWithGoogleToken = async (credential) => {
+    try {
+      console.log('[Auth] Verifying Google token with backend...');
+      const response = await axios.post(`${API}/auth/google/verify-token`, {
+        credential
+      });
+
+      if (response.data.status === 'success' && response.data.token) {
+        console.log('[Auth] Google login successful');
+        localStorage.setItem('session_token', response.data.token);
+        setToken(response.data.token);
+        setUser(response.data.user);
+        
+        // Check if user needs villa number
+        if (response.data.user.needs_villa_number) {
+          setNeedsVillaNumber(true);
+        }
+        
+        return response.data;
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error) {
+      console.error('[Auth] Google token verification failed:', error.response?.data);
+      throw new Error(error.response?.data?.detail || 'Google authentication failed');
+    }
+  };
+
+  // Legacy Google OAuth (keeping for backward compatibility)
   const loginWithGoogle = () => {
     // Open Google OAuth in a popup window
     const width = 500;
@@ -114,6 +174,7 @@ export const AuthProvider = ({ children }) => {
       if (event.data.type === 'oauth_success' && event.data.token) {
         console.log('[Auth] OAuth success, storing token');
         localStorage.setItem('session_token', event.data.token);
+        setToken(event.data.token);
         
         // Close popup
         if (popup) {
@@ -146,6 +207,7 @@ export const AuthProvider = ({ children }) => {
 
       if (response.data.token) {
         localStorage.setItem('session_token', response.data.token);
+        setToken(response.data.token);
         setUser(response.data.user);
         console.log('[Auth] Email login successful');
       }
@@ -167,6 +229,7 @@ export const AuthProvider = ({ children }) => {
 
       if (response.data.token) {
         localStorage.setItem('session_token', response.data.token);
+        setToken(response.data.token);
         setUser(response.data.user);
         console.log('[Auth] Registration successful');
       }
@@ -181,13 +244,23 @@ export const AuthProvider = ({ children }) => {
       await axios.post(`${API}/auth/logout`, {}, {
         withCredentials: true
       });
-      setUser(null);
-      localStorage.removeItem('session_token');
-      window.location.href = '/';
     } catch (error) {
       console.error('Logout error:', error);
-      localStorage.removeItem('session_token');
+    } finally {
+      // Clear all local state
       setUser(null);
+      setToken(null);
+      localStorage.removeItem('session_token');
+      
+      // Clear all caches
+      try {
+        await clearAllChatCache(); // Clear chat IndexedDB and memory cache
+        clearAllCache(); // Clear general memory cache
+        console.log('[Auth] All caches cleared on logout');
+      } catch (cacheError) {
+        console.error('[Auth] Error clearing caches:', cacheError);
+      }
+      
       window.location.href = '/';
     }
   };
@@ -195,11 +268,15 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     loading,
+    token,
     loginWithGoogle,
+    loginWithGoogleToken,
     loginWithEmail,
     registerWithEmail,
     logout,
     refreshUser,
+    updateVillaNumber,
+    needsVillaNumber,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     isManager: user?.role === 'manager',

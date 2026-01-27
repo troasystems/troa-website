@@ -93,7 +93,28 @@ class UserCreate(BaseModel):
     villa_number: str = ""
 
 class UserUpdate(BaseModel):
-    role: str  # admin, manager, user
+    role: Optional[str] = None  # admin, manager, user
+    name: Optional[str] = None
+    villa_number: Optional[str] = None
+    picture: Optional[str] = None
+    new_password: Optional[str] = None  # For password reset by admin
+    email_verified: Optional[bool] = None  # Admin can manually verify/unverify
+
+# Guest type for amenity bookings
+class BookingGuest(BaseModel):
+    name: str
+    guest_type: str  # "resident", "external", "coach"
+    villa_number: Optional[str] = None  # Required for resident guests
+    charge: float = 0.0  # ₹50 for external guests and coaches
+
+class AuditLogEntry(BaseModel):
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    action: str  # "created", "modified", "availed", "not_availed", "amendment"
+    by_email: str
+    by_name: str
+    by_role: str
+    details: str
+    changes: Optional[dict] = None  # For amendments, store what changed
 
 class AmenityBooking(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -101,11 +122,25 @@ class AmenityBooking(BaseModel):
     amenity_name: str
     booked_by_email: str
     booked_by_name: str
+    booked_by_villa: Optional[str] = None  # Booker's villa number
     booking_date: str  # YYYY-MM-DD format
     start_time: str  # HH:MM format (24-hour)
     end_time: str  # HH:MM format (24-hour)
     duration_minutes: int  # 30 or 60
-    additional_guests: list = []  # List of guest names (1-3 users)
+    # Enhanced guest tracking
+    guests: list = []  # List of BookingGuest objects
+    additional_guests: list = []  # Legacy: List of guest names (kept for backward compatibility)
+    total_guest_charges: float = 0.0  # Total charges for external guests/coaches
+    # Availed status (for clubhouse staff)
+    availed_status: str = "pending"  # "pending", "availed", "not_availed"
+    availed_at: Optional[datetime] = None
+    availed_by_email: Optional[str] = None
+    availed_by_name: Optional[str] = None
+    # Actual attendance (for amendments)
+    actual_attendees: Optional[int] = None  # Actual number who showed up
+    amendment_notes: Optional[str] = None
+    # Audit log
+    audit_log: list = []  # List of AuditLogEntry objects
     status: str = "confirmed"  # confirmed, cancelled
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -116,7 +151,18 @@ class AmenityBookingCreate(BaseModel):
     booking_date: str  # YYYY-MM-DD
     start_time: str  # HH:MM (24-hour)
     duration_minutes: int  # 30 or 60 minutes
-    additional_guests: Optional[list] = []  # Optional list of guest names
+    guests: Optional[list] = []  # List of BookingGuest objects
+    additional_guests: Optional[list] = []  # Legacy: Optional list of guest names
+
+# Staff operations models
+class BookingAvailedUpdate(BaseModel):
+    availed_status: str  # "availed" or "not_availed"
+    notes: Optional[str] = None
+
+class BookingAmendment(BaseModel):
+    actual_attendees: int
+    amendment_notes: str
+    additional_charges: Optional[float] = 0.0  # For extra guests
 
 class Feedback(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -136,9 +182,6 @@ class FeedbackCreate(BaseModel):
     works_well: Optional[str] = None
     needs_improvement: Optional[str] = None
     feature_suggestions: Optional[str] = None
-
-class UserUpdate(BaseModel):
-    role: str  # admin, manager, user
 
 # Event Models
 class EventPreference(BaseModel):
@@ -204,3 +247,75 @@ class EventRegistrationCreate(BaseModel):
     event_id: str
     registrants: list  # List of registrant objects with name and preferences
     payment_method: str = "online"  # "online" or "offline"
+
+
+# ============ INVOICE MODELS ============
+
+class InvoiceLineItem(BaseModel):
+    booking_id: str
+    booking_date: str
+    start_time: str
+    end_time: str
+    attendee_type: str  # "resident", "external", "coach"
+    attendee_count: int
+    rate: float  # ₹50 per person per session
+    amount: float
+    audit_log: list = []  # Copy of booking audit log for proof
+
+class Invoice(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    invoice_number: str  # Format: TROA-INV-YYYYMM-XXXXX
+    # User details
+    user_email: str
+    user_name: str
+    user_villa: Optional[str] = None
+    # Amenity details
+    amenity_id: str
+    amenity_name: str
+    # Period
+    month: int  # 1-12
+    year: int
+    # Amounts
+    line_items: list = []  # List of InvoiceLineItem dicts
+    resident_sessions_count: int = 0
+    resident_amount_raw: float = 0.0  # Before cap
+    resident_amount_capped: float = 0.0  # After ₹300 cap per amenity
+    guest_amount: float = 0.0
+    coach_amount: float = 0.0
+    subtotal: float = 0.0  # resident_amount_capped + guest_amount + coach_amount
+    adjustment: float = 0.0  # Manual adjustment by manager (can be negative)
+    adjustment_reason: Optional[str] = None
+    total_amount: float = 0.0  # subtotal + adjustment
+    # Payment
+    payment_status: str = "pending"  # pending, paid, cancelled
+    payment_method: Optional[str] = None  # razorpay, offline
+    payment_id: Optional[str] = None
+    payment_date: Optional[datetime] = None
+    # Dates
+    due_date: datetime  # 20 days from creation
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    # Created by
+    created_by_email: str
+    created_by_name: str
+    # Audit log
+    audit_log: list = []  # List of InvoiceAuditEntry dicts
+
+class InvoiceCreate(BaseModel):
+    user_email: str
+    amenity_id: str
+    month: int  # 1-12
+    year: int
+
+class InvoiceUpdate(BaseModel):
+    new_total_amount: Optional[float] = None  # Override total amount
+    adjustment_reason: Optional[str] = None
+
+class InvoiceAuditEntry(BaseModel):
+    action: str  # "created", "amount_modified", "payment_received", "cancelled"
+    timestamp: str
+    by_email: str
+    by_name: str
+    details: str
+    previous_amount: Optional[float] = None
+    new_amount: Optional[float] = None

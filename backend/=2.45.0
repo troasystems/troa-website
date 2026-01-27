@@ -1,0 +1,2 @@
+ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
+google-genai 1.56.0 requires google-auth[requests]<3.0.0,>=2.45.0, but you have google-auth 2.41.1 which is incompatible.

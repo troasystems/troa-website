@@ -178,29 +178,29 @@ const EventsManagement = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* View Toggle */}
-      <div className="flex space-x-4 border-b pb-4">
+    <div className="space-y-4 sm:space-y-6">
+      {/* View Toggle - Responsive */}
+      <div className="flex flex-col sm:flex-row gap-2 sm:space-x-4 border-b pb-4">
         <button
           onClick={() => setViewMode('pending')}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+          className={`flex items-center justify-center sm:justify-start space-x-2 px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
             viewMode === 'pending'
               ? 'bg-amber-100 text-amber-700'
               : 'text-gray-600 hover:bg-gray-100'
           }`}
         >
-          <Hourglass className="w-5 h-5" />
-          <span>Pending Approvals ({pendingApprovals.length})</span>
+          <Hourglass className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span>Pending ({pendingApprovals.length})</span>
         </button>
         <button
           onClick={() => setViewMode('all')}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+          className={`flex items-center justify-center sm:justify-start space-x-2 px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
             viewMode === 'all'
               ? 'bg-purple-100 text-purple-700'
               : 'text-gray-600 hover:bg-gray-100'
           }`}
         >
-          <Calendar className="w-5 h-5" />
+          <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
           <span>All Events ({events.length})</span>
         </button>
       </div>
@@ -208,9 +208,9 @@ const EventsManagement = () => {
       {/* Pending Approvals View */}
       {viewMode === 'pending' && (
         <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
-            <AlertCircle className="w-6 h-6 inline mr-2 text-amber-500" />
-            Pending Approvals (Registrations & Modifications)
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center flex-wrap gap-2">
+            <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
+            <span>Pending Approvals</span>
           </h2>
 
           {pendingApprovals.length === 0 ? (
