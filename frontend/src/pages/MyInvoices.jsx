@@ -33,7 +33,8 @@ const MyInvoices = () => {
   const fetchInvoices = async () => {
     try {
       const token = localStorage.getItem('session_token');
-      const response = await axios.get(`${getAPI()}/invoices`, {
+      // Use view=my to get only personal/villa invoices, not management invoices
+      const response = await axios.get(`${getAPI()}/invoices?view=my`, {
         withCredentials: true,
         headers: {
           ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
