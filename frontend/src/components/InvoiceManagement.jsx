@@ -199,8 +199,8 @@ const InvoiceManagement = () => {
   const openEditModal = (invoice) => {
     setEditModal(invoice);
     setEditForm({
-      adjustment: invoice.adjustment || 0,
-      adjustment_reason: invoice.adjustment_reason || ''
+      new_total_amount: invoice.total_amount || invoice.subtotal || 0,
+      adjustment_reason: ''
     });
   };
 
