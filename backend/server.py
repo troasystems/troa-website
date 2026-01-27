@@ -1943,6 +1943,196 @@ async def cancel_invoice(invoice_id: str, request: Request):
         raise HTTPException(status_code=500, detail="Failed to cancel invoice")
 
 
+@api_router.post("/invoices/pay-multiple")
+async def create_multi_invoice_payment_order(request: Request):
+    """Create Razorpay order for multiple invoices - Pay oldest first"""
+    try:
+        user = await require_auth(request)
+        user_email = user.get('email')
+        
+        body = await request.json()
+        invoice_ids = body.get('invoice_ids', [])
+        
+        if not invoice_ids:
+            raise HTTPException(status_code=400, detail="No invoices selected")
+        
+        # Get user's villas
+        user_villas = await db.villas.find(
+            {"emails": {"$elemMatch": {"$regex": f"^{user_email}$", "$options": "i"}}},
+            {"_id": 0, "villa_number": 1}
+        ).to_list(100)
+        villa_numbers = [v['villa_number'] for v in user_villas]
+        
+        # Fetch and validate all invoices
+        invoices = await db.invoices.find(
+            {"id": {"$in": invoice_ids}},
+            {"_id": 0}
+        ).to_list(100)
+        
+        if len(invoices) != len(invoice_ids):
+            raise HTTPException(status_code=400, detail="One or more invoices not found")
+        
+        total_amount = 0
+        valid_invoices = []
+        
+        for invoice in invoices:
+            # Verify user has access to this invoice
+            has_access = (
+                invoice.get('user_email') == user_email or
+                invoice.get('villa_number') in villa_numbers
+            )
+            if not has_access:
+                raise HTTPException(status_code=403, detail=f"You don't have access to invoice {invoice.get('invoice_number')}")
+            
+            if invoice['payment_status'] != 'pending':
+                raise HTTPException(status_code=400, detail=f"Invoice {invoice.get('invoice_number')} is already {invoice['payment_status']}")
+            
+            total_amount += invoice.get('total_amount', 0)
+            valid_invoices.append(invoice)
+        
+        if total_amount <= 0:
+            raise HTTPException(status_code=400, detail="Total amount must be greater than 0")
+        
+        # Sort by created_at (oldest first)
+        valid_invoices.sort(key=lambda x: x.get('created_at', datetime.min))
+        
+        # Create Razorpay order
+        razorpay_key_id = os.getenv('RAZORPAY_KEY_ID')
+        razorpay_key_secret = os.getenv('RAZORPAY_KEY_SECRET')
+        
+        if not razorpay_key_id or not razorpay_key_secret:
+            raise HTTPException(status_code=500, detail="Payment gateway not configured")
+        
+        import razorpay
+        razorpay_client = razorpay.Client(auth=(razorpay_key_id, razorpay_key_secret))
+        
+        invoice_numbers = [inv.get('invoice_number') for inv in valid_invoices]
+        
+        order_data = {
+            'amount': int(total_amount * 100),  # Amount in paise
+            'currency': 'INR',
+            'notes': {
+                'invoice_ids': ','.join(invoice_ids),
+                'invoice_numbers': ','.join(invoice_numbers),
+                'user_email': user_email,
+                'type': 'multi_invoice_payment'
+            }
+        }
+        
+        order = razorpay_client.order.create(data=order_data)
+        
+        # Store payment order reference for each invoice
+        for invoice in valid_invoices:
+            await db.invoices.update_one(
+                {"id": invoice['id']},
+                {"$set": {
+                    "razorpay_order_id": order['id'],
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+        
+        logger.info(f"Multi-invoice payment order created for user {user_email}, total: ₹{total_amount}")
+        
+        return {
+            'order_id': order['id'],
+            'amount': total_amount,
+            'currency': 'INR',
+            'key_id': razorpay_key_id,
+            'invoice_ids': invoice_ids,
+            'invoice_count': len(valid_invoices)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating multi-invoice payment order: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create payment order")
+
+
+@api_router.post("/invoices/verify-multi-payment")
+async def verify_multi_invoice_payment(request: Request):
+    """Verify Razorpay payment for multiple invoices - Mark oldest first as paid"""
+    try:
+        user = await require_auth(request)
+        
+        body = await request.json()
+        razorpay_payment_id = body.get('razorpay_payment_id')
+        razorpay_order_id = body.get('razorpay_order_id')
+        razorpay_signature = body.get('razorpay_signature')
+        invoice_ids = body.get('invoice_ids', [])
+        
+        if not all([razorpay_payment_id, razorpay_order_id, razorpay_signature, invoice_ids]):
+            raise HTTPException(status_code=400, detail="Missing payment verification data")
+        
+        # Verify signature
+        razorpay_key_id = os.getenv('RAZORPAY_KEY_ID')
+        razorpay_key_secret = os.getenv('RAZORPAY_KEY_SECRET')
+        
+        import razorpay
+        import hmac
+        import hashlib
+        
+        razorpay_client = razorpay.Client(auth=(razorpay_key_id, razorpay_key_secret))
+        
+        # Verify signature
+        generated_signature = hmac.new(
+            razorpay_key_secret.encode('utf-8'),
+            f"{razorpay_order_id}|{razorpay_payment_id}".encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+        
+        if generated_signature != razorpay_signature:
+            raise HTTPException(status_code=400, detail="Invalid payment signature")
+        
+        # Fetch invoices and sort by created_at (oldest first)
+        invoices = await db.invoices.find(
+            {"id": {"$in": invoice_ids}},
+            {"_id": 0}
+        ).to_list(100)
+        
+        invoices.sort(key=lambda x: x.get('created_at', datetime.min))
+        
+        # Mark each invoice as paid (oldest first)
+        now = datetime.utcnow()
+        paid_invoices = []
+        
+        for invoice in invoices:
+            audit_entry = {
+                'action': 'payment_received',
+                'timestamp': now.isoformat(),
+                'by_email': user['email'],
+                'by_name': user.get('name', ''),
+                'details': f"Online payment received via multi-invoice payment. Payment ID: {razorpay_payment_id}"
+            }
+            
+            await db.invoices.update_one(
+                {"id": invoice['id']},
+                {
+                    "$set": {
+                        "payment_status": "paid",
+                        "payment_method": "razorpay",
+                        "payment_id": razorpay_payment_id,
+                        "payment_date": now,
+                        "updated_at": now
+                    },
+                    "$push": {"audit_log": audit_entry}
+                }
+            )
+            paid_invoices.append(invoice.get('invoice_number'))
+        
+        logger.info(f"Multi-invoice payment verified for user {user['email']}: {', '.join(paid_invoices)}")
+        
+        return {
+            'success': True,
+            'message': f'Payment verified for {len(paid_invoices)} invoices',
+            'paid_invoices': paid_invoices
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error verifying multi-invoice payment: {e}")
+        raise HTTPException(status_code=500, detail="Failed to verify payment")
+
+
 # Include routers in the main app
 app.include_router(api_router)
 app.include_router(auth_router, prefix="/api")
