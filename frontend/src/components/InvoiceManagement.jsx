@@ -55,6 +55,14 @@ const InvoiceManagement = () => {
   
   // Audit log modal
   const [auditModal, setAuditModal] = useState(null);
+  
+  // Pending approvals
+  const [pendingApprovals, setPendingApprovals] = useState([]);
+  const [showApprovalsTab, setShowApprovalsTab] = useState(false);
+  const [approvalModal, setApprovalModal] = useState(null);
+  const [approvalNote, setApprovalNote] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [processing, setProcessing] = useState(false);
 
   // Can create clubhouse invoices
   const canCreateClubhouse = isAdmin || isManager || isClubhouseStaff;
