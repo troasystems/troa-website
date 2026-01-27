@@ -324,12 +324,66 @@ const MyInvoices = () => {
 
   const selectAllPending = () => {
     const pendingIds = invoices
-      .filter(inv => inv.payment_status === 'pending')
+      .filter(inv => inv.payment_status === 'pending' && inv.offline_payment_status !== 'pending_approval')
       .map(inv => inv.id);
     setSelectedInvoices(pendingIds);
   };
 
-  const getStatusBadge = (status) => {
+  const handleOfflinePayment = async (invoice) => {
+    setShowOfflineModal(invoice);
+    setTransactionRef('');
+  };
+
+  const submitOfflinePayment = async () => {
+    if (!showOfflineModal) return;
+    
+    setSubmittingOffline(true);
+    try {
+      const token = localStorage.getItem('session_token');
+      await axios.post(
+        `${getAPI()}/invoices/${showOfflineModal.id}/pay-offline`,
+        { transaction_reference: transactionRef },
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {})
+          }
+        }
+      );
+      
+      toast({
+        title: 'Payment Submitted',
+        description: 'Your payment is pending admin approval.'
+      });
+      
+      setShowOfflineModal(null);
+      setTransactionRef('');
+      fetchInvoices();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.detail || 'Failed to submit payment',
+        variant: 'destructive'
+      });
+    } finally {
+      setSubmittingOffline(false);
+    }
+  };
+
+  const getStatusBadge = (invoice) => {
+    const status = invoice.payment_status;
+    const offlineStatus = invoice.offline_payment_status;
+    
+    if (offlineStatus === 'pending_approval') {
+      return (
+        <span className="flex items-center space-x-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">
+          <Hourglass className="w-3 h-3" />
+          <span>Pending Approval</span>
+        </span>
+      );
+    }
+    
     switch (status) {
       case 'paid':
         return (
