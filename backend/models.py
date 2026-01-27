@@ -306,5 +306,14 @@ class InvoiceCreate(BaseModel):
     year: int
 
 class InvoiceUpdate(BaseModel):
-    adjustment: Optional[float] = None
+    new_total_amount: Optional[float] = None  # Override total amount
     adjustment_reason: Optional[str] = None
+
+class InvoiceAuditEntry(BaseModel):
+    action: str  # "created", "amount_modified", "payment_received", "cancelled"
+    timestamp: str
+    by_email: str
+    by_name: str
+    details: str
+    previous_amount: Optional[float] = None
+    new_amount: Optional[float] = None
