@@ -109,6 +109,23 @@ const AdminPortal = () => {
 
   const activeTabData = availableTabs.find(tab => tab.id === activeTab);
 
+  // Determine portal title based on role
+  const getPortalTitle = () => {
+    if (isAdmin) return 'Admin Portal';
+    if (isManager) return 'Manager Portal';
+    if (role === 'accountant') return 'Accountant Portal';
+    if (role === 'clubhouse_staff') return 'Staff Portal';
+    return 'Portal';
+  };
+
+  const getPortalDescription = () => {
+    if (isAdmin) return 'Full system administration';
+    if (isManager) return 'Membership management';
+    if (role === 'accountant') return 'Invoice management';
+    if (role === 'clubhouse_staff') return 'Invoice management';
+    return 'Management portal';
+  };
+
   return (
     <div className="min-h-screen pt-16 md:pt-20 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
       <Toaster />
@@ -121,10 +138,10 @@ const AdminPortal = () => {
             </div>
             <div className="min-w-0">
               <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent truncate">
-                {isAdmin ? 'Admin Portal' : 'Manager Portal'}
+                {getPortalTitle()}
               </h1>
               <p className="text-sm sm:text-base text-gray-600 truncate">
-                {isAdmin ? 'Full system administration' : 'Membership management'}
+                {getPortalDescription()}
               </p>
             </div>
           </div>
