@@ -750,24 +750,26 @@ const MyInvoices = () => {
                         
                         {invoice.payment_status === 'pending' && invoice.offline_payment_status !== 'pending_approval' && !selectMode && (
                           <>
-                            <button
-                              onClick={() => handlePayInvoice(invoice)}
-                              disabled={payingInvoiceId === invoice.id}
-                              className="flex items-center justify-center space-x-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg text-sm font-medium transition-all disabled:opacity-50"
-                            >
-                              {payingInvoiceId === invoice.id ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                                  <span>Processing...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <CreditCard className="w-4 h-4" />
-                                  <span>Pay Online</span>
-                                </>
-                              )}
-                            </button>
-                            <p className="text-[10px] text-gray-500 text-center -mt-1">2% surcharge</p>
+                            <div className="flex flex-col items-center">
+                              <button
+                                onClick={() => handlePayInvoice(invoice)}
+                                disabled={payingInvoiceId === invoice.id}
+                                className="flex items-center justify-center space-x-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg text-sm font-medium transition-all disabled:opacity-50"
+                              >
+                                {payingInvoiceId === invoice.id ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                    <span>Processing...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <CreditCard className="w-4 h-4" />
+                                    <span>Pay Online</span>
+                                  </>
+                                )}
+                              </button>
+                              <p className="text-[10px] text-red-500 font-medium mt-1">2% surcharge</p>
+                            </div>
                             <button
                               onClick={() => handleOfflinePayment(invoice)}
                               className="flex items-center justify-center space-x-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 text-sm font-medium transition-all"
