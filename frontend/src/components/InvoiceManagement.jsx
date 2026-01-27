@@ -69,11 +69,11 @@ const InvoiceManagement = () => {
         'Pragma': 'no-cache'
       };
       
-      // Add timestamp to bust cache
+      // Add timestamp to bust cache and view=manage for management view
       const timestamp = new Date().getTime();
       
       const [invoicesRes, usersRes, amenitiesRes, villasRes] = await Promise.all([
-        axios.get(`${getAPI()}/invoices?_t=${timestamp}`, { withCredentials: true, headers }),
+        axios.get(`${getAPI()}/invoices?view=manage&_t=${timestamp}`, { withCredentials: true, headers }),
         axios.get(`${getAPI()}/users?_t=${timestamp}`, { withCredentials: true, headers }).catch(() => ({ data: [] })),
         axios.get(`${getAPI()}/amenities?_t=${timestamp}`, { withCredentials: true, headers }).catch(() => ({ data: [] })),
         axios.get(`${getAPI()}/villas?_t=${timestamp}`, { withCredentials: true, headers }).catch(() => ({ data: [] }))
