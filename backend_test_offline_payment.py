@@ -144,13 +144,13 @@ class TROAOfflinePaymentTester:
         print("💳 TESTING OFFLINE PAYMENT SUBMISSION")
         print("="*60)
         
-        # Create a test invoice if we don't have one
+        # Get an existing pending invoice if we don't have one
         if not self.test_invoice_id:
-            self.test_invoice_id = self.create_test_invoice()
+            self.test_invoice_id = self.get_existing_pending_invoice()
         
         if not self.test_invoice_id:
-            print("   ❌ Cannot test offline payment without a test invoice")
-            self.failed_tests.append("Offline Payment Submission: No test invoice available")
+            print("   ❌ Cannot test offline payment without a pending invoice")
+            self.failed_tests.append("Offline Payment Submission: No pending invoice available")
             return
         
         # Test 1: Submit offline payment
