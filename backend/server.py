@@ -17,9 +17,12 @@ from models import (
     Feedback, FeedbackCreate,
     AmenityBooking, AmenityBookingCreate,
     BookingGuest, AuditLogEntry, BookingAvailedUpdate, BookingAmendment,
-    Invoice, InvoiceCreate, InvoiceUpdate, InvoiceLineItem
+    Invoice, InvoiceCreate, InvoiceUpdate, InvoiceLineItem,
+    MaintenanceInvoiceCreate, MaintenanceLineItem, MultiInvoicePayment,
+    Villa, VillaCreate, VillaUpdate,
+    VALID_ROLES, STAFF_ROLES, INVOICE_TYPE_CLUBHOUSE, INVOICE_TYPE_MAINTENANCE
 )
-from auth import auth_router, require_admin, require_manager_or_admin, require_auth, require_clubhouse_staff
+from auth import auth_router, require_admin, require_manager_or_admin, require_auth, require_clubhouse_staff, require_accountant, require_staff
 from basic_auth import basic_auth_middleware
 from instagram import instagram_router
 from gridfs_upload import gridfs_router  # GridFS-based upload for production
@@ -27,6 +30,7 @@ from payment import payment_router
 from pdf_service import generate_booking_report_pdf, generate_invoice_pdf
 from chatbot import chatbot_router
 from events import events_router
+from villas import villas_router
 from email_service import email_service, get_admin_manager_emails
 from push_notifications import send_notification_to_user, send_notification_to_admins
 
