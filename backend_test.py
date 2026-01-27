@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-TROA Backend API Testing - Bulk Upload Features
-Tests the newly implemented bulk upload functionality for invoices and villas
+TROA Backend API Testing - Offline QR Code Payment System
+Tests the newly implemented offline QR code payment functionality for invoices
 """
 
 import requests
@@ -17,9 +17,11 @@ class TROAAPITester:
         self.base_url = base_url
         self.accountant_token = "e30e0d6d-d9a0-4d4f-90d5-7d718c1babd2"
         self.admin_token = "2222da03-770a-4485-8918-e9464bbed53c"
+        self.user_token = "e30e0d6d-d9a0-4d4f-90d5-7d718c1babd2"  # Using accountant token as user for testing
         self.tests_run = 0
         self.tests_passed = 0
         self.failed_tests = []
+        self.test_invoice_id = None
 
     def run_test(self, name, method, endpoint, expected_status, data=None, token=None, files=None):
         """Run a single API test"""
