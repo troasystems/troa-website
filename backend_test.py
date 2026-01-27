@@ -3925,6 +3925,12 @@ class TROAAPITester:
         # Test Push Notifications
         self.test_push_notifications()
         
+        # Test the 4 specific fixes
+        self.test_fix_clubhouse_staff_role()
+        self.test_fix_invoice_amount_override()
+        self.test_fix_cache_busting_headers()
+        self.test_fix_frontend_refresh_support()
+        
         # Test edge cases
         self.test_edge_cases()
         
