@@ -704,6 +704,135 @@ const VillaManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Bulk Upload Modal */}
+      {showBulkUploadModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  <FileSpreadsheet className="w-5 h-5 text-blue-600" />
+                  Bulk Upload Villas
+                </h3>
+                <button
+                  onClick={() => { setShowBulkUploadModal(false); setUploadResult(null); }}
+                  className="p-2 hover:bg-white/50 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Instructions */}
+              <div className="bg-gray-50 rounded-lg p-4 text-sm">
+                <h4 className="font-semibold text-gray-800 mb-2">How it works:</h4>
+                <ol className="list-decimal list-inside space-y-1 text-gray-600">
+                  <li>Download the Excel template</li>
+                  <li>Fill in villa details (number, square feet, emails)</li>
+                  <li>For existing villas, new emails will be merged with existing ones</li>
+                  <li>Upload the file to create/update all villas at once</li>
+                </ol>
+              </div>
+
+              {/* Download Template */}
+              <div className="flex items-center justify-between p-4 border border-dashed border-blue-300 rounded-lg bg-blue-50">
+                <div>
+                  <p className="font-medium text-blue-800">Step 1: Get the template</p>
+                  <p className="text-sm text-blue-600">Download and fill with your data</p>
+                </div>
+                <button
+                  onClick={downloadTemplate}
+                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download</span>
+                </button>
+              </div>
+
+              {/* Upload Section */}
+              <div className="space-y-3">
+                <p className="font-medium text-gray-800">Step 2: Upload your file</p>
+                <input
+                  type="file"
+                  accept=".xlsx"
+                  onChange={handleBulkUpload}
+                  ref={fileInputRef}
+                  className="hidden"
+                  id="bulk-villa-upload"
+                />
+                <label
+                  htmlFor="bulk-villa-upload"
+                  className={`flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                    uploading ? 'border-gray-300 bg-gray-50' : 'border-blue-300 hover:border-blue-400 hover:bg-blue-50'
+                  }`}
+                >
+                  {uploading ? (
+                    <div className="flex flex-col items-center">
+                      <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-b-4 border-blue-600 mb-3"></div>
+                      <span className="text-gray-600">Processing...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-10 h-10 text-blue-500 mb-3" />
+                      <span className="font-medium text-gray-700">Click to upload .xlsx file</span>
+                      <span className="text-sm text-gray-500 mt-1">or drag and drop</span>
+                    </>
+                  )}
+                </label>
+              </div>
+
+              {/* Upload Result */}
+              {uploadResult && (
+                <div className={`rounded-lg p-4 ${uploadResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                  {uploadResult.success ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2 text-green-700">
+                        <CheckCircle className="w-5 h-5" />
+                        <span className="font-semibold">{uploadResult.message}</span>
+                      </div>
+                      
+                      {uploadResult.details && uploadResult.details.length > 0 && (
+                        <div className="text-sm">
+                          <p className="font-medium text-gray-700 mb-2">Details:</p>
+                          <div className="max-h-32 overflow-y-auto space-y-1">
+                            {uploadResult.details.map((item, idx) => (
+                              <div key={idx} className="flex justify-between text-gray-600 bg-white px-2 py-1 rounded">
+                                <span>Villa {item.villa_number}</span>
+                                <span className={`text-xs px-2 py-0.5 rounded ${
+                                  item.action === 'created' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                                }`}>
+                                  {item.action} (+{item.emails_added} emails)
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2 text-red-700">
+                      <XCircle className="w-5 h-5" />
+                      <span>{uploadResult.error}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Close Button */}
+              <div className="pt-4">
+                <button
+                  onClick={() => { setShowBulkUploadModal(false); setUploadResult(null); }}
+                  className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
