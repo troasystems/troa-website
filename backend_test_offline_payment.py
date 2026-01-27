@@ -105,89 +105,37 @@ class TROAOfflinePaymentTester:
             except Exception as e:
                 print(f"   ❌ Error parsing response: {e}")
 
-    def create_test_invoice(self):
-        """Create a test invoice for offline payment testing"""
-        print("\n📝 Creating test invoice for offline payment testing...")
+    def get_existing_pending_invoice(self):
+        """Get an existing pending invoice for testing"""
+        print("\n📝 Looking for existing pending invoice...")
         
-        # First get users to find a valid user email
         success, response = self.run_test(
-            "Get Users for Test Invoice",
+            "Get Existing Invoices",
             "GET",
-            "users",
+            "invoices?view=manage",
             200,
-            token=self.admin_token
-        )
-        
-        if not success or not response:
-            print("   ❌ Failed to get users for test invoice")
-            return None
-            
-        try:
-            users = response.json()
-            if not users:
-                print("   ❌ No users found for test invoice")
-                return None
-                
-            test_user = users[0]  # Use first user
-            print(f"   📧 Using test user: {test_user.get('email', 'N/A')}")
-        except:
-            print("   ❌ Error parsing users response")
-            return None
-        
-        # Get amenities
-        success, response = self.run_test(
-            "Get Amenities for Test Invoice",
-            "GET",
-            "amenities",
-            200,
-            token=self.admin_token
-        )
-        
-        if not success or not response:
-            print("   ❌ Failed to get amenities for test invoice")
-            return None
-            
-        try:
-            amenities = response.json()
-            if not amenities:
-                print("   ❌ No amenities found for test invoice")
-                return None
-                
-            test_amenity = amenities[0]  # Use first amenity
-            print(f"   🏊 Using test amenity: {test_amenity.get('name', 'N/A')}")
-        except:
-            print("   ❌ Error parsing amenities response")
-            return None
-        
-        # Create invoice
-        invoice_data = {
-            "user_email": test_user['email'],
-            "amenity_id": test_amenity['id'],
-            "month": datetime.now().month,
-            "year": datetime.now().year
-        }
-        
-        success, response = self.run_test(
-            "Create Test Invoice",
-            "POST",
-            "invoices",
-            200,
-            data=invoice_data,
             token=self.admin_token
         )
         
         if success and response:
             try:
-                result = response.json()
-                invoice_id = result.get('id')
-                invoice_number = result.get('invoice_number')
-                print(f"   ✅ Test invoice created: {invoice_number} (ID: {invoice_id})")
-                return invoice_id
+                invoices = response.json()
+                # Look for a pending invoice
+                pending_invoices = [inv for inv in invoices if inv.get('payment_status') == 'pending']
+                if pending_invoices:
+                    test_invoice = pending_invoices[0]
+                    invoice_id = test_invoice.get('id')
+                    invoice_number = test_invoice.get('invoice_number')
+                    print(f"   ✅ Found pending invoice: {invoice_number} (ID: {invoice_id})")
+                    return invoice_id
+                else:
+                    print("   ⚠️  No pending invoices found")
+                    return None
             except:
-                print("   ❌ Error parsing invoice creation response")
+                print("   ❌ Error parsing invoices response")
                 return None
         else:
-            print("   ❌ Failed to create test invoice")
+            print("   ❌ Failed to get existing invoices")
             return None
 
     def test_offline_payment_submission(self):
