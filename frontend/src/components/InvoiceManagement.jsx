@@ -273,12 +273,14 @@ const InvoiceManagement = () => {
 
   const filteredInvoices = invoices.filter(inv => {
     const matchesFilter = filter === 'all' || inv.payment_status === filter;
+    const matchesType = typeFilter === 'all' || inv.invoice_type === typeFilter;
     const matchesSearch = !searchQuery || 
       inv.user_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       inv.user_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       inv.invoice_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      inv.amenity_name?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
+      inv.amenity_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      inv.villa_number?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesFilter && matchesType && matchesSearch;
   });
 
   // Stats
@@ -286,8 +288,104 @@ const InvoiceManagement = () => {
     total: invoices.length,
     pending: invoices.filter(i => i.payment_status === 'pending').length,
     paid: invoices.filter(i => i.payment_status === 'paid').length,
-    pendingAmount: invoices.filter(i => i.payment_status === 'pending').reduce((sum, i) => sum + i.total_amount, 0),
-    paidAmount: invoices.filter(i => i.payment_status === 'paid').reduce((sum, i) => sum + i.total_amount, 0)
+    pendingAmount: invoices.filter(i => i.payment_status === 'pending').reduce((sum, i) => sum + (i.total_amount || 0), 0),
+    paidAmount: invoices.filter(i => i.payment_status === 'paid').reduce((sum, i) => sum + (i.total_amount || 0), 0),
+    clubhouse: invoices.filter(i => i.invoice_type === 'clubhouse_subscription').length,
+    maintenance: invoices.filter(i => i.invoice_type === 'maintenance').length
+  };
+
+  // Handle maintenance invoice creation
+  const handleCreateMaintenanceInvoice = async (e) => {
+    e.preventDefault();
+    
+    if (!maintenanceForm.villa_number) {
+      toast({ title: 'Error', description: 'Please select a villa', variant: 'destructive' });
+      return;
+    }
+
+    const validLineItems = maintenanceForm.line_items.filter(item => item.description.trim());
+    if (validLineItems.length === 0) {
+      toast({ title: 'Error', description: 'Please add at least one line item', variant: 'destructive' });
+      return;
+    }
+
+    setCreatingMaintenance(true);
+    try {
+      const token = localStorage.getItem('session_token');
+      await axios.post(`${getAPI()}/invoices/maintenance`, {
+        villa_number: maintenanceForm.villa_number,
+        line_items: validLineItems.map(item => ({
+          description: item.description,
+          quantity: parseFloat(item.quantity) || 1,
+          rate: parseFloat(item.rate) || 0
+        })),
+        discount_type: maintenanceForm.discount_type,
+        discount_value: parseFloat(maintenanceForm.discount_value) || 0,
+        due_days: parseInt(maintenanceForm.due_days) || 20
+      }, {
+        withCredentials: true,
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {}) 
+        }
+      });
+
+      toast({ title: 'Success', description: 'Maintenance invoice created' });
+      setShowMaintenanceModal(false);
+      setMaintenanceForm({
+        villa_number: '',
+        line_items: [{ description: '', quantity: 1, rate: 0 }],
+        discount_type: 'none',
+        discount_value: 0,
+        due_days: 20
+      });
+      fetchData();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.detail || 'Failed to create invoice',
+        variant: 'destructive'
+      });
+    } finally {
+      setCreatingMaintenance(false);
+    }
+  };
+
+  const addLineItem = () => {
+    setMaintenanceForm({
+      ...maintenanceForm,
+      line_items: [...maintenanceForm.line_items, { description: '', quantity: 1, rate: 0 }]
+    });
+  };
+
+  const removeLineItem = (index) => {
+    if (maintenanceForm.line_items.length > 1) {
+      setMaintenanceForm({
+        ...maintenanceForm,
+        line_items: maintenanceForm.line_items.filter((_, i) => i !== index)
+      });
+    }
+  };
+
+  const updateLineItem = (index, field, value) => {
+    const newItems = [...maintenanceForm.line_items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    setMaintenanceForm({ ...maintenanceForm, line_items: newItems });
+  };
+
+  const calculateMaintenanceTotal = () => {
+    const subtotal = maintenanceForm.line_items.reduce((sum, item) => {
+      return sum + (parseFloat(item.quantity) || 0) * (parseFloat(item.rate) || 0);
+    }, 0);
+    
+    let discount = 0;
+    if (maintenanceForm.discount_type === 'percentage') {
+      discount = subtotal * (parseFloat(maintenanceForm.discount_value) || 0) / 100;
+    } else if (maintenanceForm.discount_type === 'fixed') {
+      discount = Math.min(parseFloat(maintenanceForm.discount_value) || 0, subtotal);
+    }
+    
+    return { subtotal, discount, total: Math.max(subtotal - discount, 0) };
   };
 
   if (loading) {
@@ -305,6 +403,7 @@ const InvoiceManagement = () => {
         <div className="bg-purple-50 rounded-lg p-4 text-center">
           <p className="text-2xl font-bold text-purple-600">{stats.total}</p>
           <p className="text-sm text-gray-600">Total Invoices</p>
+          <p className="text-xs text-gray-500">{stats.clubhouse} clubhouse, {stats.maintenance} maintenance</p>
         </div>
         <div className="bg-amber-50 rounded-lg p-4 text-center">
           <p className="text-2xl font-bold text-amber-600">{stats.pending}</p>
@@ -316,14 +415,25 @@ const InvoiceManagement = () => {
           <p className="text-sm text-gray-600">Paid</p>
           <p className="text-xs text-green-700">₹{stats.paidAmount.toFixed(0)}</p>
         </div>
-        <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg p-4 text-center text-white">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center justify-center space-x-2 w-full"
-          >
-            <Plus className="w-5 h-5" />
-            <span className="font-medium">Create Invoice</span>
-          </button>
+        <div className="flex flex-col gap-2">
+          {canCreateClubhouse && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex-1 flex items-center justify-center space-x-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg p-2 text-white text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Clubhouse</span>
+            </button>
+          )}
+          {canCreateMaintenance && (
+            <button
+              onClick={() => setShowMaintenanceModal(true)}
+              className="flex-1 flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg p-2 text-white text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Maintenance</span>
+            </button>
+          )}
         </div>
       </div>
 
