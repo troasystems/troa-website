@@ -230,7 +230,7 @@ const AdminPortal = () => {
           {/* Tab Content */}
           <div className="p-3 sm:p-6">
             {availableTabs.map((tab) => {
-              if (activeTab === tab.id) {
+              if (effectiveActiveTab === tab.id) {
                 const Component = tab.component;
                 return <Component key={tab.id} />;
               }
