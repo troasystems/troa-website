@@ -137,7 +137,8 @@ const ClubhouseStaffDashboard = () => {
       });
       setAmendmentModal(null);
       setAmendmentData({ actual_attendees: 0, amendment_notes: '', additional_charges: 0 });
-      fetchBookings();
+      // Force refresh with await
+      await fetchBookings();
     } catch (error) {
       toast({
         title: 'Error',
