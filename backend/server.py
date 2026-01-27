@@ -2225,6 +2225,10 @@ app.include_router(push_router, prefix="/api")
 from community_chat import chat_router, init_mc_group
 app.include_router(chat_router, prefix="/api")
 
+# Bulk upload router
+from bulk_upload import bulk_router
+app.include_router(bulk_router, prefix="/api")
+
 # Add session middleware
 app.add_middleware(
     SessionMiddleware,
