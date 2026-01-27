@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from '../hooks/use-toast';
 import { 
   Home, Plus, Trash2, Mail, Search, Edit2, X, Save, 
-  ChevronDown, ChevronUp, Users, Square
+  ChevronDown, ChevronUp, Users, Square, Upload, Download, FileSpreadsheet, CheckCircle, XCircle
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -18,6 +18,12 @@ const VillaManagement = () => {
   const [editingVilla, setEditingVilla] = useState(null);
   const [expandedVilla, setExpandedVilla] = useState(null);
   const [newEmailInput, setNewEmailInput] = useState({});
+  
+  // Bulk upload state
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState(null);
+  const fileInputRef = useRef(null);
 
   // Form state for new villa
   const [newVilla, setNewVilla] = useState({
