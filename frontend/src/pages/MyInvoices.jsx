@@ -767,6 +767,7 @@ const MyInvoices = () => {
                                 </>
                               )}
                             </button>
+                            <p className="text-[10px] text-gray-500 text-center -mt-1">2% surcharge</p>
                             <button
                               onClick={() => handleOfflinePayment(invoice)}
                               className="flex items-center justify-center space-x-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 text-sm font-medium transition-all"
