@@ -351,7 +351,6 @@ const VillaManagement = () => {
               </button>
             </>
           )}
-          )}
           {canModify && (
             <button
               onClick={() => setShowAddModal(true)}
