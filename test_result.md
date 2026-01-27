@@ -2,7 +2,14 @@
 
 ## Features to Test
 
-### 1. Invoice System Fixes (Current Session)
+### 0. Bulk Upload Features (Current Session - Jan 2025)
+- [ ] Invoice bulk upload template download (/api/bulk/invoices/template) - Accountant, Manager, Admin
+- [ ] Invoice bulk upload (/api/bulk/invoices/upload) - Multiple rows for same villa combined
+- [ ] Villa bulk upload template download (/api/bulk/villas/template) - Admin only
+- [ ] Villa bulk upload (/api/bulk/villas/upload) - Upsert with email merge
+- [ ] Emails sent when invoices are created via bulk upload
+
+### 1. Invoice System Fixes
 - [ ] Accountant accessing Invoice Management page (view=manage)
 - [ ] My Invoices page shows only personal/villa invoices (view=my)
 - [ ] PDF download for maintenance invoices
