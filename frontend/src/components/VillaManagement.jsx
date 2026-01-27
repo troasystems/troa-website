@@ -235,6 +235,79 @@ const VillaManagement = () => {
     }
   };
 
+  // Bulk upload functions
+  const downloadTemplate = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/bulk/villas/template`, {
+        responseType: 'blob',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'TROA_Villa_Upload_Template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to download template',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleBulkUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.xlsx')) {
+      toast({
+        title: 'Error',
+        description: 'Only .xlsx files are supported',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setUploading(true);
+    setUploadResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await axios.post(`${API_URL}/api/bulk/villas/upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      setUploadResult(response.data);
+      toast({
+        title: 'Success',
+        description: response.data.message
+      });
+      fetchVillas();
+    } catch (error) {
+      const errorMsg = error.response?.data?.detail || 'Failed to upload villas';
+      setUploadResult({ success: false, error: errorMsg });
+      toast({
+        title: 'Error',
+        description: errorMsg,
+        variant: 'destructive'
+      });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   // Filter villas based on search
   const filteredVillas = villas.filter(villa => 
     villa.villa_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -262,12 +335,22 @@ const VillaManagement = () => {
         
         <div className="flex flex-wrap gap-2">
           {isAdmin && (
-            <button
-              onClick={handleMigration}
-              className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors text-sm font-medium"
-            >
-              Migrate from Users
-            </button>
+            <>
+              <button
+                onClick={handleMigration}
+                className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors text-sm font-medium"
+              >
+                Migrate from Users
+              </button>
+              <button
+                onClick={() => setShowBulkUploadModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              >
+                <Upload className="w-4 h-4" />
+                Bulk Upload
+              </button>
+            </>
+          )}
           )}
           {canModify && (
             <button
