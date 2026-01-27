@@ -321,6 +321,8 @@ const UserManagement = () => {
         return 'bg-pink-100 text-pink-800 border-pink-300';
       case 'clubhouse_staff':
         return 'bg-blue-100 text-blue-800 border-blue-300';
+      case 'accountant':
+        return 'bg-amber-100 text-amber-800 border-amber-300';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-300';
     }
@@ -330,6 +332,7 @@ const UserManagement = () => {
     admin: users.filter(u => u.role === 'admin'),
     manager: users.filter(u => u.role === 'manager'),
     clubhouse_staff: users.filter(u => u.role === 'clubhouse_staff'),
+    accountant: users.filter(u => u.role === 'accountant'),
     user: users.filter(u => u.role === 'user')
   };
 
