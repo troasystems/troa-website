@@ -113,7 +113,7 @@ const AdminPortal = () => {
     return null;
   }
 
-  const activeTabData = availableTabs.find(tab => tab.id === activeTab);
+  const activeTabData = availableTabs.find(tab => tab.id === effectiveActiveTab);
 
   // Determine portal title based on role
   const getPortalTitle = () => {
