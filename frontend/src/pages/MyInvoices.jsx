@@ -707,9 +707,28 @@ const MyInvoices = () => {
                         </p>
                       )}
                       
+                      {invoice.offline_payment_status === 'pending_approval' && (
+                        <div className="mt-2 p-2 bg-orange-50 rounded text-xs text-orange-700">
+                          <p className="font-medium">Offline payment pending approval</p>
+                          {invoice.offline_transaction_reference && (
+                            <p>Ref: {invoice.offline_transaction_reference}</p>
+                          )}
+                        </div>
+                      )}
+                      
+                      {invoice.offline_payment_status === 'rejected' && (
+                        <div className="mt-2 p-2 bg-red-50 rounded text-xs text-red-700">
+                          <p className="font-medium">Offline payment was rejected</p>
+                          {invoice.offline_rejection_reason && (
+                            <p>Reason: {invoice.offline_rejection_reason}</p>
+                          )}
+                        </div>
+                      )}
+                      
                       {invoice.payment_status === 'paid' && (
                         <p className="text-xs text-green-600 mt-2">
                           Paid on: {formatDate(invoice.payment_date)}
+                          {invoice.payment_method === 'offline' && ' (Offline)'}
                         </p>
                       )}
                     </div>
