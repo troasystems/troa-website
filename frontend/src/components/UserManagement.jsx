@@ -260,16 +260,6 @@ const UserManagement = () => {
       return;
     }
 
-    // Validate villa number if provided
-    if (newUserVilla && !/^\d+$/.test(newUserVilla)) {
-      toast({
-        title: 'Error',
-        description: 'Villa number must be numeric',
-        variant: 'destructive'
-      });
-      return;
-    }
-
     setAddingUserLoading(true);
     try {
       const token = localStorage.getItem('session_token');
