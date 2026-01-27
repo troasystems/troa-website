@@ -189,7 +189,7 @@ const AdminPortal = () => {
                         setMobileMenuOpen(false);
                       }}
                       className={`w-full flex items-center space-x-3 px-4 py-3 text-left transition-all ${
-                        activeTab === tab.id
+                        effectiveActiveTab === tab.id
                           ? 'bg-purple-50 text-purple-600 border-l-4 border-purple-600'
                           : 'text-gray-600 hover:bg-gray-50 border-l-4 border-transparent'
                       }`}
