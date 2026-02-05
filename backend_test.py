@@ -90,8 +90,31 @@ class WebSocketChatTester:
             if response.status_code == 200:
                 groups = response.json()
                 if groups:
+                    # Find a group the user is a member of
+                    for group in groups:
+                        if self.user_email in group.get('members', []):
+                            self.test_group_id = group['id']
+                            self.log(f"Found {len(groups)} groups, using group: {group['name']} (member)")
+                            return True
+                    
+                    # If not a member of any, use the first one and try to join
                     self.test_group_id = groups[0]['id']
-                    self.log(f"Found {len(groups)} groups, using group: {groups[0]['name']}")
+                    self.log(f"Found {len(groups)} groups, using group: {groups[0]['name']} (will try to join)")
+                    
+                    # Try to join the group
+                    try:
+                        join_response = requests.post(
+                            f"{self.api_url}/chat/groups/{self.test_group_id}/join",
+                            headers={"Authorization": f"Bearer {self.token}"},
+                            timeout=10
+                        )
+                        if join_response.status_code == 200:
+                            self.log("Successfully joined the group")
+                        else:
+                            self.log(f"Could not join group: {join_response.status_code}")
+                    except Exception as e:
+                        self.log(f"Error joining group: {e}")
+                    
                     return True
                 else:
                     self.log("No groups found")
