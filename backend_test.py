@@ -173,25 +173,32 @@ class WebSocketChatTester:
                 await websocket.send(json.dumps(test_message))
                 self.log("Test message sent via WebSocket")
                 
-                # Wait for message confirmation or broadcast
+                # Wait a moment for processing
+                await asyncio.sleep(2)
+                
+                # Check if message was created by fetching via HTTP
                 try:
-                    # We might receive multiple messages, look for new_message
-                    for _ in range(3):  # Try up to 3 messages
-                        response = await asyncio.wait_for(websocket.recv(), timeout=5)
-                        data = json.loads(response)
-                        
-                        if data.get('type') == 'new_message':
-                            self.log("Received message confirmation via WebSocket")
-                            return True
-                        else:
-                            self.log(f"Received message type: {data.get('type')}")
+                    response = requests.get(
+                        f"{self.api_url}/chat/groups/{self.test_group_id}/messages?limit=5",
+                        headers={"Authorization": f"Bearer {self.token}"},
+                        timeout=10
+                    )
                     
-                    # If we didn't get new_message but got responses, consider it working
-                    self.log("WebSocket is responding, message likely sent successfully")
-                    return True
+                    if response.status_code == 200:
+                        messages = response.json()
+                        # Check if our test message is in the recent messages
+                        for msg in messages:
+                            if "WebSocket test message" in msg.get('content', ''):
+                                self.log("Test message found in HTTP response - WebSocket sending works!")
+                                return True
                         
-                except asyncio.TimeoutError:
-                    self.log("No response received for sent message")
+                        self.log("Test message not found in recent messages")
+                        return False
+                    else:
+                        self.log("Could not verify message via HTTP")
+                        return False
+                except Exception as e:
+                    self.log(f"Error verifying message: {e}")
                     return False
                     
         except Exception as e:
