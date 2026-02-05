@@ -818,6 +818,9 @@ async def send_message_with_files(
         
         await db.chat_messages.insert_one(message)
         
+        # Broadcast via WebSocket to all connected users
+        await broadcast_new_message(group_id, message)
+        
         # Send push notification
         try:
             notification_text = content[:50] if content else f"Sent {len(attachments)} file(s)"
