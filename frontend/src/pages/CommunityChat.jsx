@@ -1343,8 +1343,23 @@ const CommunityChat = () => {
                 {selectedGroup.is_mc_only && (
                   <Crown className="w-4 h-4 text-yellow-300" />
                 )}
+                {/* WebSocket connection indicator */}
+                {wsConnected ? (
+                  <span title="Real-time connection active" className="flex items-center">
+                    <Wifi className="w-3 h-3 text-green-300" />
+                  </span>
+                ) : usePollingFallback ? (
+                  <span title="Using polling mode" className="flex items-center">
+                    <WifiOff className="w-3 h-3 text-yellow-300" />
+                  </span>
+                ) : null}
               </div>
-              <p className="text-xs text-white/70">{selectedGroup.member_count} members</p>
+              <p className="text-xs text-white/70">
+                {wsConnected && onlineUsers.length > 0 
+                  ? `${onlineUsers.length} online · ${selectedGroup.member_count} members`
+                  : `${selectedGroup.member_count} members`
+                }
+              </p>
             </div>
           </div>
           <div className="flex items-center space-x-1">
