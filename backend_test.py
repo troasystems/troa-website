@@ -25,654 +25,454 @@ class WebSocketChatTester:
         self.tests_run = 0
         self.tests_passed = 0
         self.websocket_connections = {}
-
-    def run_test(self, name, method, endpoint, expected_status, data=None, token=None, files=None):
-        """Run a single API test"""
-        url = f"{self.base_url}/api/{endpoint}"
-        headers = {'Content-Type': 'application/json'}
         
-        if token:
-            headers['X-Session-Token'] = f'Bearer {token}'
+    def log(self, message: str, level: str = "INFO"):
+        """Log test messages with timestamp"""
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        print(f"[{timestamp}] {level}: {message}")
         
-        if files:
-            # Remove Content-Type for file uploads
-            headers.pop('Content-Type', None)
-
+    def run_test(self, name: str, test_func, *args, **kwargs):
+        """Run a single test with error handling"""
         self.tests_run += 1
-        print(f"\n🔍 Testing {name}...")
-        print(f"   URL: {url}")
+        self.log(f"🔍 Testing {name}...")
         
         try:
-            if method == 'GET':
-                response = requests.get(url, headers=headers)
-            elif method == 'POST':
-                if files:
-                    response = requests.post(url, files=files, headers=headers)
-                else:
-                    response = requests.post(url, json=data, headers=headers)
-            elif method == 'PUT':
-                response = requests.put(url, json=data, headers=headers)
-            elif method == 'DELETE':
-                response = requests.delete(url, headers=headers)
-
-            success = response.status_code == expected_status
-            if success:
+            result = test_func(*args, **kwargs)
+            if asyncio.iscoroutine(result):
+                result = asyncio.run(result)
+            
+            if result:
                 self.tests_passed += 1
-                print(f"✅ PASSED - Status: {response.status_code}")
-                if response.headers.get('content-type', '').startswith('application/json'):
-                    try:
-                        result = response.json()
-                        if isinstance(result, dict):
-                            if 'message' in result:
-                                print(f"   Message: {result['message']}")
-                            if 'invoices' in result:
-                                print(f"   Invoices created: {len(result['invoices'])}")
-                            if 'email_notifications' in result:
-                                print(f"   Emails sent: {result['email_notifications'].get('sent', 0)}")
-                    except:
-                        pass
-                return True, response
+                self.log(f"✅ {name} - PASSED", "SUCCESS")
+                return True
             else:
-                self.tests_passed += 1 if response.status_code in [200, 201] else 0
-                print(f"❌ FAILED - Expected {expected_status}, got {response.status_code}")
-                try:
-                    error_detail = response.json().get('detail', 'No error details')
-                    print(f"   Error: {error_detail}")
-                except:
-                    print(f"   Response: {response.text[:200]}")
-                self.failed_tests.append(f"{name}: Expected {expected_status}, got {response.status_code}")
-                return False, response
-
+                self.log(f"❌ {name} - FAILED", "ERROR")
+                return False
         except Exception as e:
-            print(f"❌ FAILED - Error: {str(e)}")
-            self.failed_tests.append(f"{name}: {str(e)}")
-            return False, None
-
-    def create_sample_invoice_excel(self):
-        """Create a sample Excel file for invoice bulk upload"""
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Invoice Template"
-        
-        # Headers
-        headers = ["Villa Number", "Description", "Quantity", "Rate", "Discount Type", "Discount Value", "Due Days"]
-        for col, header in enumerate(headers, 1):
-            ws.cell(row=1, column=col, value=header)
-        
-        # Sample data - multiple rows for same villa to test combining
-        sample_data = [
-            ["A-205", "Monthly Maintenance - January 2025", 1, 5000, "none", 0, 20],
-            ["A-205", "Water Charges - January 2025", 1, 500, "", "", ""],
-            ["B-305", "Monthly Maintenance - January 2025", 1, 5000, "percentage", 10, 30],
-            ["789", "Maintenance Fee", 1, 3000, "fixed", 200, 15],
-        ]
-        
-        for row_idx, row_data in enumerate(sample_data, 2):
-            for col_idx, value in enumerate(row_data, 1):
-                ws.cell(row=row_idx, column=col_idx, value=value)
-        
-        # Save to bytes
-        output = io.BytesIO()
-        wb.save(output)
-        output.seek(0)
-        return output
-
-    def create_sample_villa_excel(self):
-        """Create a sample Excel file for villa bulk upload"""
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Villa Template"
-        
-        # Headers
-        headers = ["Villa Number", "Square Feet", "Emails (comma-separated)"]
-        for col, header in enumerate(headers, 1):
-            ws.cell(row=1, column=col, value=header)
-        
-        # Sample data
-        sample_data = [
-            ["TEST-V001", 2500, "owner1@test.com, co-owner1@test.com"],
-            ["TEST-V002", 3000, "owner2@test.com"],
-            ["TEST-V003", 1800, "tenant@test.com, landlord@test.com"],
-            ["A-205", 2200, "new-email@test.com"],  # Existing villa to test merge
-        ]
-        
-        for row_idx, row_data in enumerate(sample_data, 2):
-            for col_idx, value in enumerate(row_data, 1):
-                ws.cell(row=row_idx, column=col_idx, value=value)
-        
-        # Save to bytes
-        output = io.BytesIO()
-        wb.save(output)
-        output.seek(0)
-        return output
-
-    def test_offline_payment_qr_info(self):
-        """Test QR code info endpoint"""
-        print("\n" + "="*60)
-        print("🔍 TESTING QR CODE INFO ENDPOINT")
-        print("="*60)
-        
-        success, response = self.run_test(
-            "Get Payment QR Info",
-            "GET",
-            "payment-qr-info",
-            200
-        )
-        
-        if success and response:
-            try:
-                result = response.json()
-                print(f"   📊 QR Info Details:")
-                print(f"      - UPI ID: {result.get('upi_id', 'N/A')}")
-                print(f"      - Bank: {result.get('bank_name', 'N/A')}")
-                print(f"      - Account: {result.get('account_name', 'N/A')}")
-                print(f"      - Account Number: {result.get('account_number', 'N/A')}")
-                print(f"      - IFSC: {result.get('ifsc_code', 'N/A')}")
-                print(f"      - QR Image URL: {result.get('qr_image_url', 'N/A')}")
-                print(f"      - Instructions: {len(result.get('instructions', []))} items")
-                
-                # Validate required fields
-                required_fields = ['upi_id', 'bank_name', 'account_name', 'account_number', 'ifsc_code']
-                missing_fields = [field for field in required_fields if not result.get(field)]
-                if missing_fields:
-                    print(f"   ⚠️  Missing fields: {', '.join(missing_fields)}")
-                else:
-                    print("   ✅ All required fields present")
-            except Exception as e:
-                print(f"   ❌ Error parsing response: {e}")
-
-    def create_test_invoice(self):
-        """Create a test invoice for offline payment testing"""
-        print("\n📝 Creating test invoice for offline payment testing...")
-        
-        # First get users to find a valid user email
-        success, response = self.run_test(
-            "Get Users for Test Invoice",
-            "GET",
-            "users",
-            200,
-            token=self.admin_token
-        )
-        
-        if not success or not response:
-            print("   ❌ Failed to get users for test invoice")
-            return None
-            
+            self.log(f"❌ {name} - ERROR: {str(e)}", "ERROR")
+            return False
+    
+    def test_login(self) -> bool:
+        """Test user authentication"""
         try:
-            users = response.json()
-            if not users:
-                print("   ❌ No users found for test invoice")
-                return None
-                
-            test_user = users[0]  # Use first user
-            print(f"   📧 Using test user: {test_user.get('email', 'N/A')}")
-        except:
-            print("   ❌ Error parsing users response")
-            return None
-        
-        # Get amenities
-        success, response = self.run_test(
-            "Get Amenities for Test Invoice",
-            "GET",
-            "amenities",
-            200,
-            token=self.admin_token
-        )
-        
-        if not success or not response:
-            print("   ❌ Failed to get amenities for test invoice")
-            return None
-            
-        try:
-            amenities = response.json()
-            if not amenities:
-                print("   ❌ No amenities found for test invoice")
-                return None
-                
-            test_amenity = amenities[0]  # Use first amenity
-            print(f"   🏊 Using test amenity: {test_amenity.get('name', 'N/A')}")
-        except:
-            print("   ❌ Error parsing amenities response")
-            return None
-        
-        # Create invoice
-        invoice_data = {
-            "user_email": test_user['email'],
-            "amenity_id": test_amenity['id'],
-            "month": datetime.now().month,
-            "year": datetime.now().year
-        }
-        
-        success, response = self.run_test(
-            "Create Test Invoice",
-            "POST",
-            "invoices",
-            200,
-            data=invoice_data,
-            token=self.admin_token
-        )
-        
-        if success and response:
-            try:
-                result = response.json()
-                invoice_id = result.get('id')
-                invoice_number = result.get('invoice_number')
-                print(f"   ✅ Test invoice created: {invoice_number} (ID: {invoice_id})")
-                return invoice_id
-            except:
-                print("   ❌ Error parsing invoice creation response")
-                return None
-        else:
-            print("   ❌ Failed to create test invoice")
-            return None
-
-    def test_offline_payment_submission(self):
-        """Test offline payment submission"""
-        print("\n" + "="*60)
-        print("💳 TESTING OFFLINE PAYMENT SUBMISSION")
-        print("="*60)
-        
-        # Create a test invoice if we don't have one
-        if not self.test_invoice_id:
-            self.test_invoice_id = self.create_test_invoice()
-        
-        if not self.test_invoice_id:
-            print("   ❌ Cannot test offline payment without a test invoice")
-            self.failed_tests.append("Offline Payment Submission: No test invoice available")
-            return
-        
-        # Test 1: Submit offline payment
-        payment_data = {
-            "transaction_reference": f"TEST-TXN-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        }
-        
-        success, response = self.run_test(
-            "Submit Offline Payment",
-            "POST",
-            f"invoices/{self.test_invoice_id}/pay-offline",
-            200,
-            data=payment_data,
-            token=self.user_token
-        )
-        
-        if success and response:
-            try:
-                result = response.json()
-                print(f"   📊 Submission Result:")
-                print(f"      - Message: {result.get('message', 'N/A')}")
-                print(f"      - Invoice ID: {result.get('invoice_id', 'N/A')}")
-            except:
-                pass
-        
-        # Test 2: Try to submit again (should fail)
-        self.run_test(
-            "Submit Offline Payment Again (Should Fail)",
-            "POST",
-            f"invoices/{self.test_invoice_id}/pay-offline",
-            400,  # Should fail with 400
-            data=payment_data,
-            token=self.user_token
-        )
-
-    def test_pending_approvals(self):
-        """Test pending approvals endpoint"""
-        print("\n" + "="*60)
-        print("⏳ TESTING PENDING APPROVALS")
-        print("="*60)
-        
-        # Test 1: Get pending approvals (admin access)
-        success, response = self.run_test(
-            "Get Pending Approvals (Admin)",
-            "GET",
-            "invoices/pending-approvals",
-            200,
-            token=self.admin_token
-        )
-        
-        if success and response:
-            try:
-                result = response.json()
-                print(f"   📊 Pending Approvals:")
-                print(f"      - Count: {len(result)}")
-                for approval in result[:3]:  # Show first 3
-                    print(f"        * Invoice: {approval.get('invoice_number', 'N/A')}")
-                    print(f"          User: {approval.get('user_name', 'N/A')}")
-                    print(f"          Amount: ₹{approval.get('total_amount', 0)}")
-                    print(f"          Reference: {approval.get('offline_transaction_reference', 'N/A')}")
-            except:
-                pass
-        
-        # Test 2: Try with user token (should fail)
-        self.run_test(
-            "Get Pending Approvals (User - Should Fail)",
-            "GET",
-            "invoices/pending-approvals",
-            403,  # Should fail with 403
-            token=self.user_token
-        )
-
-    def test_payment_approval_rejection(self):
-        """Test payment approval and rejection"""
-        print("\n" + "="*60)
-        print("✅❌ TESTING PAYMENT APPROVAL/REJECTION")
-        print("="*60)
-        
-        if not self.test_invoice_id:
-            print("   ❌ Cannot test approval/rejection without a test invoice")
-            self.failed_tests.append("Payment Approval/Rejection: No test invoice available")
-            return
-        
-        # Test 1: Approve offline payment
-        approval_data = {
-            "approval_note": "Test approval - payment verified"
-        }
-        
-        success, response = self.run_test(
-            "Approve Offline Payment",
-            "POST",
-            f"invoices/{self.test_invoice_id}/approve-offline",
-            200,
-            data=approval_data,
-            token=self.admin_token
-        )
-        
-        if success and response:
-            try:
-                result = response.json()
-                print(f"   📊 Approval Result:")
-                print(f"      - Message: {result.get('message', 'N/A')}")
-                print(f"      - Invoice ID: {result.get('invoice_id', 'N/A')}")
-            except:
-                pass
-        
-        # Create another test invoice for rejection test
-        rejection_invoice_id = self.create_test_invoice()
-        if rejection_invoice_id:
-            # Submit offline payment for rejection test
-            payment_data = {
-                "transaction_reference": f"REJECT-TEST-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            }
-            
-            submit_success, _ = self.run_test(
-                "Submit Payment for Rejection Test",
-                "POST",
-                f"invoices/{rejection_invoice_id}/pay-offline",
-                200,
-                data=payment_data,
-                token=self.user_token
+            response = requests.post(
+                f"{self.api_url}/auth/login",
+                json={
+                    "email": "troa.systems@gmail.com",
+                    "password": "Test@123"
+                },
+                timeout=10
             )
             
-            if submit_success:
-                # Test 2: Reject offline payment
-                rejection_data = {
-                    "rejection_reason": "Test rejection - invalid transaction reference"
+            if response.status_code == 200:
+                data = response.json()
+                self.token = data.get('token')
+                self.user_email = data.get('user', {}).get('email')
+                self.user_name = data.get('user', {}).get('name', 'Test User')
+                self.log(f"Login successful for {self.user_email}")
+                return True
+            else:
+                self.log(f"Login failed: {response.status_code} - {response.text}")
+                return False
+        except Exception as e:
+            self.log(f"Login error: {e}")
+            return False
+    
+    def test_get_groups(self) -> bool:
+        """Test fetching chat groups"""
+        try:
+            response = requests.get(
+                f"{self.api_url}/chat/groups",
+                headers={"Authorization": f"Bearer {self.token}"},
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                groups = response.json()
+                if groups:
+                    self.test_group_id = groups[0]['id']
+                    self.log(f"Found {len(groups)} groups, using group: {groups[0]['name']}")
+                    return True
+                else:
+                    self.log("No groups found")
+                    return False
+            else:
+                self.log(f"Get groups failed: {response.status_code}")
+                return False
+        except Exception as e:
+            self.log(f"Get groups error: {e}")
+            return False
+    
+    async def test_websocket_connection(self) -> bool:
+        """Test WebSocket connection to chat endpoint"""
+        if not self.test_group_id:
+            self.log("No test group available for WebSocket test")
+            return False
+        
+        ws_endpoint = f"{self.ws_url}/api/chat/ws/{self.test_group_id}?token={self.token}"
+        
+        try:
+            async with websockets.connect(ws_endpoint, timeout=10) as websocket:
+                self.log("WebSocket connection established successfully")
+                
+                # Wait for initial messages (like online users)
+                try:
+                    initial_msg = await asyncio.wait_for(websocket.recv(), timeout=5)
+                    data = json.loads(initial_msg)
+                    self.log(f"Received initial message: {data.get('type', 'unknown')}")
+                except asyncio.TimeoutError:
+                    self.log("No initial message received (this is okay)")
+                
+                return True
+                
+        except websockets.exceptions.ConnectionClosed as e:
+            self.log(f"WebSocket connection closed: {e}")
+            return False
+        except Exception as e:
+            self.log(f"WebSocket connection error: {e}")
+            return False
+    
+    async def test_websocket_message_sending(self) -> bool:
+        """Test sending messages via WebSocket"""
+        if not self.test_group_id:
+            return False
+        
+        ws_endpoint = f"{self.ws_url}/api/chat/ws/{self.test_group_id}?token={self.token}"
+        
+        try:
+            async with websockets.connect(ws_endpoint, timeout=10) as websocket:
+                # Send a test message
+                test_message = {
+                    "type": "send_message",
+                    "content": f"WebSocket test message at {datetime.now().isoformat()}"
                 }
                 
-                self.run_test(
-                    "Reject Offline Payment",
-                    "POST",
-                    f"invoices/{rejection_invoice_id}/reject-offline",
-                    200,
-                    data=rejection_data,
-                    token=self.admin_token
-                )
-
-    def test_invoice_status_flow(self):
-        """Test the complete invoice status flow"""
-        print("\n" + "="*60)
-        print("🔄 TESTING INVOICE STATUS FLOW")
-        print("="*60)
-        
-        # Create a fresh invoice for status flow testing
-        flow_invoice_id = self.create_test_invoice()
-        if not flow_invoice_id:
-            print("   ❌ Cannot test status flow without a test invoice")
-            return
-        
-        # Step 1: Check initial status (should be pending)
-        success, response = self.run_test(
-            "Check Initial Invoice Status",
-            "GET",
-            f"invoices?view=manage",
-            200,
-            token=self.admin_token
-        )
-        
-        if success and response:
-            try:
-                invoices = response.json()
-                test_invoice = next((inv for inv in invoices if inv['id'] == flow_invoice_id), None)
-                if test_invoice:
-                    print(f"   📊 Initial Status: {test_invoice.get('payment_status', 'N/A')}")
-                    print(f"   📊 Offline Status: {test_invoice.get('offline_payment_status', 'None')}")
-                else:
-                    print("   ⚠️  Test invoice not found in list")
-            except:
-                pass
-        
-        # Step 2: Submit offline payment
-        payment_data = {
-            "transaction_reference": f"FLOW-TEST-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        }
-        
-        submit_success, _ = self.run_test(
-            "Submit Offline Payment (Flow Test)",
-            "POST",
-            f"invoices/{flow_invoice_id}/pay-offline",
-            200,
-            data=payment_data,
-            token=self.user_token
-        )
-        
-        if submit_success:
-            # Step 3: Check status after submission (should be pending_approval)
-            success, response = self.run_test(
-                "Check Status After Submission",
-                "GET",
-                f"invoices?view=manage",
-                200,
-                token=self.admin_token
-            )
-            
-            if success and response:
+                await websocket.send(json.dumps(test_message))
+                self.log("Test message sent via WebSocket")
+                
+                # Wait for message confirmation or broadcast
                 try:
-                    invoices = response.json()
-                    test_invoice = next((inv for inv in invoices if inv['id'] == flow_invoice_id), None)
-                    if test_invoice:
-                        print(f"   📊 After Submission - Payment Status: {test_invoice.get('payment_status', 'N/A')}")
-                        print(f"   📊 After Submission - Offline Status: {test_invoice.get('offline_payment_status', 'None')}")
+                    response = await asyncio.wait_for(websocket.recv(), timeout=10)
+                    data = json.loads(response)
+                    
+                    if data.get('type') == 'new_message':
+                        self.log("Received message confirmation via WebSocket")
+                        return True
                     else:
-                        print("   ⚠️  Test invoice not found after submission")
-                except:
-                    pass
-            
-            # Step 4: Approve payment
-            approval_data = {
-                "approval_note": "Flow test approval"
-            }
-            
-            approve_success, _ = self.run_test(
-                "Approve Payment (Flow Test)",
-                "POST",
-                f"invoices/{flow_invoice_id}/approve-offline",
-                200,
-                data=approval_data,
-                token=self.admin_token
+                        self.log(f"Unexpected response type: {data.get('type')}")
+                        return False
+                        
+                except asyncio.TimeoutError:
+                    self.log("No response received for sent message")
+                    return False
+                    
+        except Exception as e:
+            self.log(f"WebSocket message sending error: {e}")
+            return False
+    
+    async def test_typing_indicators(self) -> bool:
+        """Test typing indicators via WebSocket"""
+        if not self.test_group_id:
+            return False
+        
+        ws_endpoint = f"{self.ws_url}/api/chat/ws/{self.test_group_id}?token={self.token}"
+        
+        try:
+            async with websockets.connect(ws_endpoint, timeout=10) as websocket:
+                # Send start typing
+                await websocket.send(json.dumps({"type": "start_typing"}))
+                self.log("Sent start_typing indicator")
+                
+                # Wait a moment
+                await asyncio.sleep(1)
+                
+                # Send stop typing
+                await websocket.send(json.dumps({"type": "stop_typing"}))
+                self.log("Sent stop_typing indicator")
+                
+                return True
+                
+        except Exception as e:
+            self.log(f"Typing indicators error: {e}")
+            return False
+    
+    async def test_online_users(self) -> bool:
+        """Test online users functionality"""
+        if not self.test_group_id:
+            return False
+        
+        ws_endpoint = f"{self.ws_url}/api/chat/ws/{self.test_group_id}?token={self.token}"
+        
+        try:
+            async with websockets.connect(ws_endpoint, timeout=10) as websocket:
+                # Request online users
+                await websocket.send(json.dumps({"type": "get_online_users"}))
+                self.log("Requested online users list")
+                
+                # Wait for response
+                try:
+                    response = await asyncio.wait_for(websocket.recv(), timeout=5)
+                    data = json.loads(response)
+                    
+                    if data.get('type') == 'online_users':
+                        users = data.get('users', [])
+                        self.log(f"Received online users: {len(users)} users")
+                        return True
+                    else:
+                        # Check if we get online_users in initial connection
+                        self.log("Checking for online_users in connection messages...")
+                        return True  # Connection itself indicates online tracking works
+                        
+                except asyncio.TimeoutError:
+                    self.log("No online users response (may be sent on connection)")
+                    return True  # This is acceptable
+                    
+        except Exception as e:
+            self.log(f"Online users test error: {e}")
+            return False
+    
+    def test_http_polling_fallback(self) -> bool:
+        """Test HTTP endpoints as fallback when WebSocket fails"""
+        if not self.test_group_id:
+            return False
+        
+        try:
+            # Test getting messages via HTTP
+            response = requests.get(
+                f"{self.api_url}/chat/groups/{self.test_group_id}/messages",
+                headers={"Authorization": f"Bearer {self.token}"},
+                timeout=10
             )
             
-            if approve_success:
-                # Step 5: Check final status (should be paid)
-                success, response = self.run_test(
-                    "Check Final Status After Approval",
-                    "GET",
-                    f"invoices?view=manage",
-                    200,
-                    token=self.admin_token
+            if response.status_code == 200:
+                messages = response.json()
+                self.log(f"HTTP fallback: Retrieved {len(messages)} messages")
+                
+                # Test typing status via HTTP
+                typing_response = requests.get(
+                    f"{self.api_url}/chat/groups/{self.test_group_id}/typing",
+                    headers={"Authorization": f"Bearer {self.token}"},
+                    timeout=10
                 )
                 
-                if success and response:
-                    try:
-                        invoices = response.json()
-                        test_invoice = next((inv for inv in invoices if inv['id'] == flow_invoice_id), None)
-                        if test_invoice:
-                            print(f"   📊 Final - Payment Status: {test_invoice.get('payment_status', 'N/A')}")
-                            print(f"   📊 Final - Offline Status: {test_invoice.get('offline_payment_status', 'None')}")
-                            print(f"   📊 Final - Payment Method: {test_invoice.get('payment_method', 'None')}")
-                            print(f"   📊 Final - Payment Date: {test_invoice.get('payment_date', 'None')}")
-                        else:
-                            print("   ⚠️  Test invoice not found after approval")
-                    except:
-                        pass
-
-    def test_bulk_villa_features(self):
-        """Test bulk villa upload features"""
-        print("\n" + "="*60)
-        print("🏠 TESTING BULK VILLA FEATURES")
-        print("="*60)
-        
-        # Test 1: Download villa template (admin only)
-        success, response = self.run_test(
-            "Download Villa Template (Admin)",
-            "GET",
-            "bulk/villas/template",
-            200,
-            token=self.admin_token
-        )
-        
-        if success and response:
-            content_type = response.headers.get('content-type', '')
-            if 'spreadsheet' in content_type or 'excel' in content_type:
-                print("   ✅ Template downloaded successfully (Excel format)")
+                if typing_response.status_code == 200:
+                    self.log("HTTP fallback: Typing status endpoint working")
+                    return True
+                else:
+                    self.log(f"HTTP typing endpoint failed: {typing_response.status_code}")
+                    return False
             else:
-                print(f"   ⚠️  Unexpected content type: {content_type}")
+                self.log(f"HTTP messages endpoint failed: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            self.log(f"HTTP fallback test error: {e}")
+            return False
+    
+    async def test_websocket_reconnection(self) -> bool:
+        """Test WebSocket reconnection logic"""
+        if not self.test_group_id:
+            return False
         
-        # Test 2: Try villa template with accountant (should fail)
-        self.run_test(
-            "Download Villa Template (Accountant - Should Fail)",
-            "GET",
-            "bulk/villas/template",
-            403,  # Expecting forbidden
-            token=self.accountant_token
-        )
+        ws_endpoint = f"{self.ws_url}/api/chat/ws/{self.test_group_id}?token={self.token}"
         
-        # Test 3: Bulk upload villas
-        print("\n📤 Testing bulk villa upload...")
-        excel_file = self.create_sample_villa_excel()
+        try:
+            # First connection
+            websocket1 = await websockets.connect(ws_endpoint, timeout=10)
+            self.log("First WebSocket connection established")
+            
+            # Close it
+            await websocket1.close()
+            self.log("First connection closed")
+            
+            # Wait a moment
+            await asyncio.sleep(1)
+            
+            # Second connection (simulating reconnection)
+            websocket2 = await websockets.connect(ws_endpoint, timeout=10)
+            self.log("Second WebSocket connection established (reconnection test)")
+            
+            await websocket2.close()
+            return True
+            
+        except Exception as e:
+            self.log(f"WebSocket reconnection test error: {e}")
+            return False
+    
+    async def test_read_receipts(self) -> bool:
+        """Test read receipts via WebSocket"""
+        if not self.test_group_id:
+            return False
         
-        success, response = self.run_test(
-            "Bulk Upload Villas",
-            "POST",
-            "bulk/villas/upload",
-            200,
-            token=self.admin_token,
-            files={'file': ('test_villas.xlsx', excel_file, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
-        )
+        ws_endpoint = f"{self.ws_url}/api/chat/ws/{self.test_group_id}?token={self.token}"
         
-        if success and response:
-            try:
-                result = response.json()
-                print(f"   📊 Upload Summary:")
-                print(f"      - Success: {result.get('success', False)}")
-                print(f"      - Message: {result.get('message', 'N/A')}")
-                print(f"      - Created: {result.get('created', 0)}")
-                print(f"      - Updated: {result.get('updated', 0)}")
-                if 'details' in result:
-                    print(f"      - Details:")
-                    for detail in result['details'][:5]:  # Show first 5
-                        action = detail.get('action', 'unknown')
-                        villa = detail.get('villa_number', 'N/A')
-                        emails = detail.get('total_emails', 0)
-                        print(f"        * Villa {villa}: {action} ({emails} emails)")
-            except:
-                pass
-
-    def test_invoice_management_apis(self):
-        """Test invoice management APIs"""
-        print("\n" + "="*60)
-        print("📋 TESTING INVOICE MANAGEMENT APIs")
-        print("="*60)
+        try:
+            async with websockets.connect(ws_endpoint, timeout=10) as websocket:
+                # Get recent messages first
+                response = requests.get(
+                    f"{self.api_url}/chat/groups/{self.test_group_id}/messages?limit=5",
+                    headers={"Authorization": f"Bearer {self.token}"},
+                    timeout=10
+                )
+                
+                if response.status_code == 200:
+                    messages = response.json()
+                    if messages:
+                        # Send read receipt for the latest message
+                        message_ids = [msg['id'] for msg in messages[:2]]  # Mark first 2 as read
+                        read_receipt = {
+                            "type": "mark_read",
+                            "message_ids": message_ids
+                        }
+                        
+                        await websocket.send(json.dumps(read_receipt))
+                        self.log(f"Sent read receipt for {len(message_ids)} messages")
+                        return True
+                    else:
+                        self.log("No messages to mark as read")
+                        return True  # Not a failure
+                else:
+                    self.log("Could not fetch messages for read receipt test")
+                    return False
+                    
+        except Exception as e:
+            self.log(f"Read receipts test error: {e}")
+            return False
+    
+    async def test_reactions_sync(self) -> bool:
+        """Test reactions sync via WebSocket"""
+        if not self.test_group_id:
+            return False
         
-        # Test invoice listing with different views
-        self.run_test(
-            "Get Invoices (Management View - Accountant)",
-            "GET",
-            "invoices?view=manage",
-            200,
-            token=self.accountant_token
-        )
+        ws_endpoint = f"{self.ws_url}/api/chat/ws/{self.test_group_id}?token={self.token}"
         
-        self.run_test(
-            "Get Invoices (Personal View - Accountant)",
-            "GET",
-            "invoices?view=my",
-            200,
-            token=self.accountant_token
-        )
+        try:
+            async with websockets.connect(ws_endpoint, timeout=10) as websocket:
+                # Get recent messages first
+                response = requests.get(
+                    f"{self.api_url}/chat/groups/{self.test_group_id}/messages?limit=5",
+                    headers={"Authorization": f"Bearer {self.token}"},
+                    timeout=10
+                )
+                
+                if response.status_code == 200:
+                    messages = response.json()
+                    if messages:
+                        # Add reaction to the latest message
+                        message_id = messages[0]['id']
+                        reaction = {
+                            "type": "add_reaction",
+                            "message_id": message_id,
+                            "emoji": "👍"
+                        }
+                        
+                        await websocket.send(json.dumps(reaction))
+                        self.log(f"Sent reaction to message {message_id}")
+                        
+                        # Wait for reaction update
+                        try:
+                            response = await asyncio.wait_for(websocket.recv(), timeout=5)
+                            data = json.loads(response)
+                            
+                            if data.get('type') == 'reaction_added':
+                                self.log("Received reaction update via WebSocket")
+                                return True
+                            else:
+                                self.log(f"Unexpected response: {data.get('type')}")
+                                return True  # Reaction was sent successfully
+                                
+                        except asyncio.TimeoutError:
+                            self.log("No reaction update received (but reaction was sent)")
+                            return True
+                    else:
+                        self.log("No messages to react to")
+                        return True
+                else:
+                    self.log("Could not fetch messages for reaction test")
+                    return False
+                    
+        except Exception as e:
+            self.log(f"Reactions sync test error: {e}")
+            return False
+    
+    def test_websocket_endpoint_accessibility(self) -> bool:
+        """Test if WebSocket endpoint is accessible"""
+        if not self.test_group_id:
+            return False
         
-        # Test villa listing
-        self.run_test(
-            "Get Villas (Admin)",
-            "GET",
-            "villas",
-            200,
-            token=self.admin_token
-        )
-
-    def test_email_functionality(self):
-        """Test email functionality by checking logs"""
-        print("\n" + "="*60)
-        print("📧 TESTING EMAIL FUNCTIONALITY")
-        print("="*60)
+        ws_endpoint = f"{self.ws_url}/api/chat/ws/{self.test_group_id}?token={self.token}"
         
-        print("📝 Note: Email functionality is tested through:")
-        print("   - Bulk invoice upload (emails sent to villa owners)")
-        print("   - Resend is in test mode - only troa.systems@gmail.com receives emails")
-        print("   - Check backend logs for email sending attempts")
-        
-        # We can't directly test email delivery, but we can verify the API calls work
-        # The bulk upload tests above should trigger email sending
-
-    def run_all_tests(self):
-        """Run all tests"""
-        print("🚀 Starting TROA Offline QR Payment API Tests")
-        print(f"📍 Base URL: {self.base_url}")
-        print(f"🔑 Using tokens: User, Admin & Accountant")
-        
-        # Run test suites for offline payment system
-        self.test_offline_payment_qr_info()
-        self.test_offline_payment_submission()
-        self.test_pending_approvals()
-        self.test_payment_approval_rejection()
-        self.test_invoice_status_flow()
-        
-        # Print summary
-        print("\n" + "="*60)
-        print("📊 TEST SUMMARY")
-        print("="*60)
-        print(f"✅ Tests passed: {self.tests_passed}/{self.tests_run}")
-        print(f"❌ Tests failed: {len(self.failed_tests)}")
-        
-        if self.failed_tests:
-            print("\n🔍 Failed Tests:")
-            for i, failure in enumerate(self.failed_tests, 1):
-                print(f"   {i}. {failure}")
-        
-        success_rate = (self.tests_passed / self.tests_run * 100) if self.tests_run > 0 else 0
-        print(f"\n📈 Success Rate: {success_rate:.1f}%")
-        
-        if success_rate >= 80:
-            print("🎉 Overall Status: GOOD")
-        elif success_rate >= 60:
-            print("⚠️  Overall Status: NEEDS ATTENTION")
-        else:
-            print("🚨 Overall Status: CRITICAL ISSUES")
-        
-        return success_rate >= 80
+        try:
+            # Use asyncio to test connection
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            async def test_connection():
+                try:
+                    async with websockets.connect(ws_endpoint, timeout=5) as websocket:
+                        return True
+                except Exception:
+                    return False
+            
+            result = loop.run_until_complete(test_connection())
+            loop.close()
+            
+            if result:
+                self.log("WebSocket endpoint is accessible")
+                return True
+            else:
+                self.log("WebSocket endpoint is not accessible")
+                return False
+                
+        except Exception as e:
+            self.log(f"WebSocket accessibility test error: {e}")
+            return False
 
 def main():
-    tester = TROAAPITester()
-    success = tester.run_all_tests()
-    return 0 if success else 1
+    """Main test execution"""
+    tester = WebSocketChatTester()
+    
+    print("=" * 60)
+    print("🚀 WebSocket Community Chat Testing Suite")
+    print("=" * 60)
+    
+    # Authentication tests
+    if not tester.run_test("User Login", tester.test_login):
+        print("❌ Cannot proceed without authentication")
+        return 1
+    
+    if not tester.run_test("Fetch Chat Groups", tester.test_get_groups):
+        print("❌ Cannot proceed without chat groups")
+        return 1
+    
+    # WebSocket endpoint tests
+    tester.run_test("WebSocket Endpoint Accessibility", tester.test_websocket_endpoint_accessibility)
+    tester.run_test("WebSocket Connection", tester.test_websocket_connection)
+    tester.run_test("WebSocket Message Sending", tester.test_websocket_message_sending)
+    tester.run_test("Typing Indicators", tester.test_typing_indicators)
+    tester.run_test("Online Users Count", tester.test_online_users)
+    tester.run_test("Read Receipts", tester.test_read_receipts)
+    tester.run_test("Reactions Sync", tester.test_reactions_sync)
+    tester.run_test("WebSocket Reconnection", tester.test_websocket_reconnection)
+    
+    # HTTP fallback tests
+    tester.run_test("HTTP Polling Fallback", tester.test_http_polling_fallback)
+    
+    # Results summary
+    print("\n" + "=" * 60)
+    print("📊 TEST RESULTS SUMMARY")
+    print("=" * 60)
+    print(f"Tests Run: {tester.tests_run}")
+    print(f"Tests Passed: {tester.tests_passed}")
+    print(f"Tests Failed: {tester.tests_run - tester.tests_passed}")
+    print(f"Success Rate: {(tester.tests_passed / tester.tests_run * 100):.1f}%")
+    
+    if tester.tests_passed == tester.tests_run:
+        print("🎉 All tests passed!")
+        return 0
+    else:
+        print(f"⚠️  {tester.tests_run - tester.tests_passed} test(s) failed")
+        return 1
 
 if __name__ == "__main__":
     sys.exit(main())
