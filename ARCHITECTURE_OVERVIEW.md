@@ -43,44 +43,44 @@ The TROA (The Retreat Owners Association) platform is a full-stack facility, eve
 
 ```mermaid
 graph TD
-    User[User/Resident]
-    Staff[Clubhouse Staff]
-    Admin[Admin/Manager]
+    User["User/Resident"]
+    Staff["Clubhouse Staff"]
+    Admin["Admin/Manager"]
 
-    subgraph "Frontend (React)"
-        UI[UI Components]
-        AuthCtx[Auth Context]
-        Axios[Axios Interceptor]
+    subgraph Frontend_Scope ["Frontend (React)"]
+        UI["UI Components"]
+        AuthCtx["Auth Context"]
+        Axios["Axios Interceptor"]
     end
 
-    subgraph "Backend (FastAPI)"
-        API[API Router]
+    subgraph Backend_Scope ["Backend (FastAPI)"]
+        API["API Router"]
         
-        subgraph "Middleware Logic"
-            AuthMid[Auth Middleware]
-            CacheMid[Cache-Control]
-            CORS[CORS Middleware]
+        subgraph Middleware_Scope ["Middleware Logic"]
+            AuthMid["Auth Middleware"]
+            CacheMid["Cache-Control"]
+            CORS["CORS Middleware"]
         end
 
-        subgraph "Business Modules"
-            AuthMod[Authentication]
-            BookMod[Booking Engine]
-            EventMod[Events Manager]
-            FinMod[Finance & Invoices]
-            CommMod[Communications]
+        subgraph Business_Modules ["Business Modules"]
+            AuthMod["Authentication"]
+            BookMod["Booking Engine"]
+            EventMod["Events Manager"]
+            FinMod["Finance & Invoices"]
+            CommMod["Communications"]
         end
     end
 
-    subgraph "Data Persistence"
-        Mongo[(MongoDB)]
-        GridFS[GridFS (Files)]
+    subgraph Data_Persistence ["Data Persistence"]
+        Mongo[("MongoDB")]
+        GridFS["GridFS (Files)"]
     end
 
-    subgraph "External Services"
-        SendGrid[SendGrid Email]
-        Razorpay[Razorpay Gateway]
-        Google[Google OAuth]
-        OpenAI[Chatbot LLM]
+    subgraph External_Services ["External Services"]
+        SendGrid["SendGrid Email"]
+        Razorpay["Razorpay Gateway"]
+        Google["Google OAuth"]
+        OpenAI["Chatbot LLM"]
     end
 
     User --> UI
@@ -102,10 +102,10 @@ graph TD
     FinMod --> Mongo
     
     FinMod --> Razorpay
-    FinMod --> ReportLab[PDF Generator]
+    FinMod --> ReportLab["PDF Generator"]
     
     CommMod --> SendGrid
-    CommMod --> Push[Push Notifs]
+    CommMod --> Push["Push Notifs"]
 ```
 
 ---
