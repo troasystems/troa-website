@@ -236,6 +236,11 @@ const CommunityChat = () => {
   const typingTimeoutRef = useRef(null);
   const typingPollRef = useRef(null);
   
+  // WebSocket state
+  const [wsConnected, setWsConnected] = useState(false);
+  const [usePollingFallback, setUsePollingFallback] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -269,33 +274,157 @@ const CommunityChat = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, token, selectedGroup]);
 
-  // Poll for new messages and typing status when in a group
+  // WebSocket connection and message handling
   useEffect(() => {
     if (selectedGroup && isAuthenticated && token) {
       initialLoadRef.current = true;
       setHasMoreMessages(true);
       setMessages([]);
       setMessagesLoading(true);
+      setTypingUsers([]);
+      setUsePollingFallback(false);
+      
+      // Fetch initial messages
       fetchMessages(selectedGroup.id);
-      markGroupAsRead(selectedGroup.id); // Mark as read when entering group
+      markGroupAsRead(selectedGroup.id);
       
-      // Poll every 3 seconds for new messages
-      pollIntervalRef.current = setInterval(() => {
-        fetchMessages(selectedGroup.id, true);
-      }, 3000);
+      // Get session token for WebSocket authentication
+      const sessionToken = localStorage.getItem('session_token');
+      const wsToken = sessionToken || token;
       
-      // Poll for typing status every 2 seconds
-      typingPollRef.current = setInterval(() => {
-        fetchTypingUsers(selectedGroup.id);
-      }, 2000);
+      // Set up WebSocket event listeners
+      const unsubscribers = [];
+      
+      unsubscribers.push(chatWebSocket.on('connected', () => {
+        console.log('[Chat] WebSocket connected');
+        setWsConnected(true);
+        setUsePollingFallback(false);
+        // Stop polling if running
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
+        if (typingPollRef.current) {
+          clearInterval(typingPollRef.current);
+          typingPollRef.current = null;
+        }
+      }));
+      
+      unsubscribers.push(chatWebSocket.on('disconnected', () => {
+        console.log('[Chat] WebSocket disconnected');
+        setWsConnected(false);
+      }));
+      
+      unsubscribers.push(chatWebSocket.on('fallbackToPolling', () => {
+        console.log('[Chat] Falling back to HTTP polling');
+        setWsConnected(false);
+        setUsePollingFallback(true);
+        startPolling();
+      }));
+      
+      unsubscribers.push(chatWebSocket.on('newMessage', (message) => {
+        console.log('[Chat] New message received via WebSocket');
+        setMessages(prev => {
+          // Check if message already exists (optimistic update)
+          if (prev.some(m => m.id === message.id)) {
+            return prev.map(m => m.id === message.id ? message : m);
+          }
+          // Add new message
+          return [...prev, message];
+        });
+        // Scroll to bottom for new messages
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+        // Update cache
+        if (selectedGroup) {
+          addMessageToCache(selectedGroup.id, message);
+        }
+      }));
+      
+      unsubscribers.push(chatWebSocket.on('messageDeleted', ({ messageId }) => {
+        console.log('[Chat] Message deleted via WebSocket:', messageId);
+        setMessages(prev => prev.map(m => 
+          m.id === messageId 
+            ? { ...m, is_deleted: true, content: '', attachments: [] }
+            : m
+        ));
+        if (selectedGroup) {
+          updateMessageInCache(selectedGroup.id, messageId, { is_deleted: true, content: '', attachments: [] });
+        }
+      }));
+      
+      unsubscribers.push(chatWebSocket.on('typingStart', ({ userEmail, userName }) => {
+        if (userEmail !== user?.email) {
+          setTypingUsers(prev => {
+            if (prev.some(u => u.email === userEmail)) return prev;
+            return [...prev, { email: userEmail, name: userName }];
+          });
+        }
+      }));
+      
+      unsubscribers.push(chatWebSocket.on('typingStop', ({ userEmail }) => {
+        setTypingUsers(prev => prev.filter(u => u.email !== userEmail));
+      }));
+      
+      unsubscribers.push(chatWebSocket.on('readReceipt', ({ userEmail, messageIds }) => {
+        console.log('[Chat] Read receipt received via WebSocket');
+        setMessages(prev => prev.map(m => {
+          if (messageIds.includes(m.id) && !m.read_by?.includes(userEmail)) {
+            return { ...m, read_by: [...(m.read_by || []), userEmail] };
+          }
+          return m;
+        }));
+      }));
+      
+      unsubscribers.push(chatWebSocket.on('reactionUpdate', ({ messageId, reactions }) => {
+        console.log('[Chat] Reaction update via WebSocket');
+        setMessages(prev => prev.map(m => 
+          m.id === messageId ? { ...m, reactions } : m
+        ));
+        if (selectedGroup) {
+          updateMessageInCache(selectedGroup.id, messageId, { reactions });
+        }
+      }));
+      
+      unsubscribers.push(chatWebSocket.on('onlineUsers', ({ users }) => {
+        setOnlineUsers(users);
+      }));
+      
+      unsubscribers.push(chatWebSocket.on('userJoined', ({ userEmail, userName }) => {
+        setOnlineUsers(prev => {
+          if (prev.some(u => u.email === userEmail)) return prev;
+          return [...prev, { email: userEmail, name: userName }];
+        });
+      }));
+      
+      unsubscribers.push(chatWebSocket.on('userLeft', ({ userEmail }) => {
+        setOnlineUsers(prev => prev.filter(u => u.email !== userEmail));
+        // Also remove from typing users
+        setTypingUsers(prev => prev.filter(u => u.email !== userEmail));
+      }));
+      
+      // Connect to WebSocket
+      chatWebSocket.connect(selectedGroup.id, wsToken);
     }
+    
     return () => {
+      // Cleanup WebSocket connection
+      chatWebSocket.disconnect();
+      chatWebSocket.removeAllListeners();
+      setWsConnected(false);
+      setOnlineUsers([]);
+      
+      // Cleanup polling
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
       }
       if (typingPollRef.current) {
         clearInterval(typingPollRef.current);
+        typingPollRef.current = null;
       }
+      
       // Clear typing status when leaving group
       if (selectedGroup && isTyping) {
         updateTypingStatus(selectedGroup.id, false);
@@ -304,6 +433,27 @@ const CommunityChat = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedGroup, isAuthenticated, token]);
+  
+  // Start HTTP polling as fallback
+  const startPolling = useCallback(() => {
+    if (!selectedGroup) return;
+    
+    console.log('[Chat] Starting HTTP polling fallback');
+    
+    // Poll every 3 seconds for new messages
+    if (!pollIntervalRef.current) {
+      pollIntervalRef.current = setInterval(() => {
+        fetchMessages(selectedGroup.id, true);
+      }, 3000);
+    }
+    
+    // Poll for typing status every 2 seconds
+    if (!typingPollRef.current) {
+      typingPollRef.current = setInterval(() => {
+        fetchTypingUsers(selectedGroup.id);
+      }, 2000);
+    }
+  }, [selectedGroup]);
 
   // Scroll to bottom only on initial load or new messages from self
   useEffect(() => {
