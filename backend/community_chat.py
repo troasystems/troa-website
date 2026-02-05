@@ -1,8 +1,9 @@
 """
 Community Chat Service for TROA
 WhatsApp-like group chat functionality with file upload support
+Now with WebSocket support for real-time messaging
 """
-from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form, WebSocket, WebSocketDisconnect, Query
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, timezone
@@ -11,6 +12,7 @@ import os
 import logging
 import base64
 import mimetypes
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +20,9 @@ chat_router = APIRouter(prefix="/chat", tags=["Community Chat"])
 
 # Import push notification helper
 from push_notifications import send_notification_to_group_members
+
+# Import WebSocket manager
+from websocket_manager import chat_manager, WSMessageType
 
 # File upload constants
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
