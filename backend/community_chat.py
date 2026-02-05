@@ -894,6 +894,8 @@ async def delete_message(message_id: str, request: Request):
         if message['sender_email'] != user['email']:
             raise HTTPException(status_code=403, detail="You can only delete your own messages")
         
+        group_id = message.get('group_id')
+        
         # Soft delete - mark as deleted but keep the record
         await db.chat_messages.update_one(
             {"id": message_id},
@@ -911,6 +913,10 @@ async def delete_message(message_id: str, request: Request):
         if message.get('attachments'):
             attachment_ids = [att['id'] for att in message['attachments']]
             await db.chat_attachments.delete_many({"id": {"$in": attachment_ids}})
+        
+        # Broadcast deletion via WebSocket
+        if group_id:
+            await broadcast_message_deleted(group_id, message_id)
         
         logger.info(f"Message {message_id} deleted by {user['email']}")
         return {"message": "Message deleted successfully"}
