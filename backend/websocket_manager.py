@@ -35,7 +35,7 @@ class ConnectionManager:
             if user_email in self.active_connections[group_id]:
                 try:
                     await self.active_connections[group_id][user_email].close()
-                except:
+                except Exception:
                     pass
             
             self.active_connections[group_id][user_email] = websocket
