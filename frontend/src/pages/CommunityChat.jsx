@@ -6,7 +6,7 @@ import {
   Crown, Shield, Trash2, X, Loader2, UserPlus, Settings,
   Paperclip, Image, FileText, Download, Eye, UserMinus, Search,
   Check, CheckCheck, Edit2, Camera, Reply, Lock, Globe, Smile,
-  ChevronRight
+  ChevronRight, Wifi, WifiOff
 } from 'lucide-react';
 import axios from 'axios';
 import EmojiPicker from 'emoji-picker-react';
@@ -26,6 +26,7 @@ import {
   clearGroupMessagesCache,
   invalidateGroupsCache
 } from '../services/chatCache';
+import chatWebSocket from '../services/chatWebSocket';
 
 const getAPI = () => `${getBackendUrl()}/api`;
 
