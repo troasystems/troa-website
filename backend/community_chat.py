@@ -1327,19 +1327,35 @@ async def verify_websocket_token(token: str) -> Optional[dict]:
         # Find session
         session = await db.sessions.find_one({"token": token}, {"_id": 0})
         if not session:
+            logger.warning(f"WebSocket: No session found for token")
             return None
         
         # Check if expired
-        expires_at = session.get('expires_at')
+        expires_at = session.get('expires') or session.get('expires_at')
         if expires_at:
             if isinstance(expires_at, str):
                 expires_at = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
             if expires_at < datetime.now(timezone.utc):
+                logger.warning(f"WebSocket: Session expired")
                 return None
         
-        # Get user data
-        user = await db.users.find_one({"email": session['user_email']}, {"_id": 0})
+        # Get user email from session - handle both formats
+        # Format 1: session.user.email (nested object)
+        # Format 2: session.user_email (flat field)
+        user_email = None
+        if isinstance(session.get('user'), dict):
+            user_email = session['user'].get('email')
+        else:
+            user_email = session.get('user_email')
+        
+        if not user_email:
+            logger.warning(f"WebSocket: No user email in session")
+            return None
+        
+        # Get user data from users collection
+        user = await db.users.find_one({"email": user_email}, {"_id": 0})
         if not user:
+            logger.warning(f"WebSocket: User not found for email {user_email}")
             return None
         
         return {
