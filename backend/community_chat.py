@@ -1004,8 +1004,10 @@ async def add_reaction_to_message(message_id: str, reaction_data: AddReactionReq
         if not message:
             raise HTTPException(status_code=404, detail="Message not found")
         
+        group_id = message.get("group_id")
+        
         # Check if user is a member of the group
-        group = await db.chat_groups.find_one({"id": message["group_id"]}, {"_id": 0})
+        group = await db.chat_groups.find_one({"id": group_id}, {"_id": 0})
         if not group or user['email'] not in group.get('members', []):
             raise HTTPException(status_code=403, detail="You must be a group member to react to messages")
         
@@ -1051,6 +1053,10 @@ async def add_reaction_to_message(message_id: str, reaction_data: AddReactionReq
             {"id": message_id},
             {"$set": {"reactions": reactions}}
         )
+        
+        # Broadcast reaction update via WebSocket
+        if group_id:
+            await broadcast_reaction_update(group_id, message_id, reactions)
         
         logger.info(f"User {user['email']} {action} reaction {reaction_data.emoji} to message {message_id}")
         return {"message": f"Reaction {action}", "reactions": reactions}
