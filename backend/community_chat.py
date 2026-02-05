@@ -1333,9 +1333,19 @@ async def verify_websocket_token(token: str) -> Optional[dict]:
         # Check if expired
         expires_at = session.get('expires') or session.get('expires_at')
         if expires_at:
+            # Handle both string and datetime objects
             if isinstance(expires_at, str):
                 expires_at = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
-            if expires_at < datetime.now(timezone.utc):
+            elif hasattr(expires_at, 'tzinfo') and expires_at.tzinfo is None:
+                # If it's a naive datetime, assume UTC
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
+            
+            now = datetime.now(timezone.utc)
+            # Make comparison work by ensuring both are timezone-aware
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
+            
+            if expires_at < now:
                 logger.warning(f"WebSocket: Session expired")
                 return None
         
