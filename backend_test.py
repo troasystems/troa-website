@@ -278,7 +278,7 @@ class WebSocketChatTester:
         
         try:
             # First connection
-            websocket1 = await websockets.connect(ws_endpoint, timeout=10)
+            websocket1 = await websockets.connect(ws_endpoint)
             self.log("First WebSocket connection established")
             
             # Close it
@@ -289,7 +289,7 @@ class WebSocketChatTester:
             await asyncio.sleep(1)
             
             # Second connection (simulating reconnection)
-            websocket2 = await websockets.connect(ws_endpoint, timeout=10)
+            websocket2 = await websockets.connect(ws_endpoint)
             self.log("Second WebSocket connection established (reconnection test)")
             
             await websocket2.close()
