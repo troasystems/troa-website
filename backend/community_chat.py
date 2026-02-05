@@ -1296,6 +1296,344 @@ async def get_unread_counts(request: Request):
         raise HTTPException(status_code=500, detail="Failed to get unread counts")
 
 
+# ============ WEBSOCKET ENDPOINT ============
+
+async def verify_websocket_token(token: str) -> Optional[dict]:
+    """Verify session token and return user data"""
+    try:
+        db = await get_db()
+        # Remove "Bearer " prefix if present
+        if token.startswith("Bearer "):
+            token = token[7:]
+        
+        # Find session
+        session = await db.sessions.find_one({"token": token}, {"_id": 0})
+        if not session:
+            return None
+        
+        # Check if expired
+        expires_at = session.get('expires_at')
+        if expires_at:
+            if isinstance(expires_at, str):
+                expires_at = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+            if expires_at < datetime.now(timezone.utc):
+                return None
+        
+        # Get user data
+        user = await db.users.find_one({"email": session['user_email']}, {"_id": 0})
+        if not user:
+            return None
+        
+        return {
+            "email": user['email'],
+            "name": user.get('name', 'Unknown'),
+            "picture": user.get('picture'),
+            "role": user.get('role', 'user')
+        }
+    except Exception as e:
+        logger.error(f"WebSocket token verification error: {e}")
+        return None
+
+
+@chat_router.websocket("/ws/{group_id}")
+async def websocket_endpoint(
+    websocket: WebSocket, 
+    group_id: str,
+    token: str = Query(...)
+):
+    """
+    WebSocket endpoint for real-time chat
+    
+    Connect with: ws://host/api/chat/ws/{group_id}?token={session_token}
+    
+    Message types from client:
+    - {"type": "send_message", "content": "...", "reply_to": {...}}
+    - {"type": "start_typing"}
+    - {"type": "stop_typing"}
+    - {"type": "mark_read", "message_ids": [...]}
+    - {"type": "add_reaction", "message_id": "...", "emoji": "..."}
+    - {"type": "get_online_users"}
+    
+    Message types from server:
+    - {"type": "new_message", "message": {...}}
+    - {"type": "typing_start", "user_email": "...", "user_name": "..."}
+    - {"type": "typing_stop", "user_email": "..."}
+    - {"type": "read_receipt", "user_email": "...", "message_ids": [...]}
+    - {"type": "reaction_added", "message_id": "...", "reactions": [...]}
+    - {"type": "online_users", "users": [...]}
+    - {"type": "user_joined", "user_email": "...", "user_name": "..."}
+    - {"type": "user_left", "user_email": "..."}
+    """
+    db = await get_db()
+    
+    # Verify token
+    user = await verify_websocket_token(token)
+    if not user:
+        await websocket.close(code=4001, reason="Invalid or expired token")
+        return
+    
+    user_email = user['email']
+    user_name = user['name']
+    user_picture = user.get('picture')
+    user_role = user.get('role', 'user')
+    
+    # Check if group exists and user is a member
+    group = await db.chat_groups.find_one({"id": group_id}, {"_id": 0})
+    if not group:
+        await websocket.close(code=4004, reason="Group not found")
+        return
+    
+    if user_email not in group.get('members', []):
+        await websocket.close(code=4003, reason="Not a member of this group")
+        return
+    
+    # Check MC-only restrictions
+    is_mc_only = group.get('is_mc_only') or group.get('group_type') == 'mc_only'
+    is_admin_or_manager = user_role in ['admin', 'manager']
+    
+    # Connect to WebSocket
+    await chat_manager.connect(websocket, group_id, user_email, user_name, user_picture)
+    
+    # Send current online users to the new connection
+    online_users = chat_manager.get_online_users(group_id)
+    await websocket.send_text(json.dumps({
+        "type": WSMessageType.ONLINE_USERS,
+        "users": online_users
+    }))
+    
+    try:
+        while True:
+            # Receive message from client
+            data = await websocket.receive_text()
+            message_data = json.loads(data)
+            msg_type = message_data.get("type")
+            
+            if msg_type == WSMessageType.SEND_MESSAGE:
+                # Check if user can send messages in MC-only groups
+                if is_mc_only and not is_admin_or_manager:
+                    await websocket.send_text(json.dumps({
+                        "type": WSMessageType.ERROR,
+                        "error": "Only managers can send messages in this group"
+                    }))
+                    continue
+                
+                content = message_data.get("content", "").strip()
+                reply_to = message_data.get("reply_to")
+                
+                if not content:
+                    continue
+                
+                # Create message
+                message = {
+                    "id": str(uuid4()),
+                    "group_id": group_id,
+                    "sender_email": user_email,
+                    "sender_name": user_name,
+                    "sender_picture": user_picture,
+                    "content": content,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "attachments": [],
+                    "status": "sent",
+                    "read_by": [],
+                    "reactions": [],
+                    "reply_to": reply_to
+                }
+                
+                await db.chat_messages.insert_one(message)
+                
+                # Broadcast to all users in group (including sender for confirmation)
+                await chat_manager.broadcast_to_group(group_id, {
+                    "type": WSMessageType.NEW_MESSAGE,
+                    "message": message
+                })
+                
+                # Send push notification to offline members
+                try:
+                    preview = content[:50] + "..." if len(content) > 50 else content
+                    await send_notification_to_group_members(
+                        group_id=group_id,
+                        title=f"{user_name} in {group['name']}",
+                        body=preview,
+                        exclude_email=user_email,
+                        url=f"/chat?group={group_id}"
+                    )
+                except Exception as push_error:
+                    logger.error(f"Failed to send push notification: {push_error}")
+            
+            elif msg_type == WSMessageType.START_TYPING:
+                # Broadcast typing start to others
+                await chat_manager.broadcast_to_group(group_id, {
+                    "type": WSMessageType.TYPING_START,
+                    "user_email": user_email,
+                    "user_name": user_name
+                }, exclude_user=user_email)
+            
+            elif msg_type == WSMessageType.STOP_TYPING:
+                # Broadcast typing stop to others
+                await chat_manager.broadcast_to_group(group_id, {
+                    "type": WSMessageType.TYPING_STOP,
+                    "user_email": user_email
+                }, exclude_user=user_email)
+            
+            elif msg_type == WSMessageType.MARK_READ:
+                message_ids = message_data.get("message_ids", [])
+                if message_ids:
+                    # Update messages in database
+                    await db.chat_messages.update_many(
+                        {"id": {"$in": message_ids}, "sender_email": {"$ne": user_email}},
+                        {"$addToSet": {"read_by": user_email}}
+                    )
+                    
+                    # Also update user's last read timestamp
+                    await db.chat_user_reads.update_one(
+                        {"user_email": user_email, "group_id": group_id},
+                        {
+                            "$set": {
+                                "user_email": user_email,
+                                "group_id": group_id,
+                                "last_read_at": datetime.now(timezone.utc).isoformat()
+                            }
+                        },
+                        upsert=True
+                    )
+                    
+                    # Broadcast read receipt to message senders
+                    await chat_manager.broadcast_to_group(group_id, {
+                        "type": WSMessageType.READ_RECEIPT,
+                        "user_email": user_email,
+                        "user_name": user_name,
+                        "message_ids": message_ids
+                    }, exclude_user=user_email)
+            
+            elif msg_type == WSMessageType.ADD_REACTION:
+                message_id = message_data.get("message_id")
+                emoji = message_data.get("emoji")
+                
+                if not message_id or not emoji:
+                    continue
+                
+                # Get the message
+                msg = await db.chat_messages.find_one({"id": message_id}, {"_id": 0})
+                if not msg:
+                    continue
+                
+                reactions = msg.get('reactions', [])
+                
+                # Find existing reaction from this user
+                existing_idx = None
+                for idx, r in enumerate(reactions):
+                    if r.get('user_email') == user_email:
+                        existing_idx = idx
+                        break
+                
+                if existing_idx is not None:
+                    if reactions[existing_idx].get('emoji') == emoji:
+                        # Same emoji - remove it
+                        reactions.pop(existing_idx)
+                    else:
+                        # Different emoji - update
+                        reactions[existing_idx] = {
+                            "emoji": emoji,
+                            "user_email": user_email,
+                            "user_name": user_name,
+                            "created_at": datetime.now(timezone.utc).isoformat()
+                        }
+                else:
+                    # Add new reaction
+                    reactions.append({
+                        "emoji": emoji,
+                        "user_email": user_email,
+                        "user_name": user_name,
+                        "created_at": datetime.now(timezone.utc).isoformat()
+                    })
+                
+                # Update database
+                await db.chat_messages.update_one(
+                    {"id": message_id},
+                    {"$set": {"reactions": reactions}}
+                )
+                
+                # Broadcast reaction update
+                await chat_manager.broadcast_to_group(group_id, {
+                    "type": WSMessageType.REACTION_ADDED,
+                    "message_id": message_id,
+                    "reactions": reactions
+                })
+            
+            elif msg_type == WSMessageType.DELETE_MESSAGE:
+                message_id = message_data.get("message_id")
+                if not message_id:
+                    continue
+                
+                # Verify ownership
+                msg = await db.chat_messages.find_one({"id": message_id}, {"_id": 0})
+                if not msg or msg.get('sender_email') != user_email:
+                    await websocket.send_text(json.dumps({
+                        "type": WSMessageType.ERROR,
+                        "error": "Cannot delete this message"
+                    }))
+                    continue
+                
+                # Soft delete
+                await db.chat_messages.update_one(
+                    {"id": message_id},
+                    {
+                        "$set": {
+                            "is_deleted": True,
+                            "deleted_at": datetime.now(timezone.utc).isoformat(),
+                            "content": "",
+                            "attachments": []
+                        }
+                    }
+                )
+                
+                # Broadcast deletion
+                await chat_manager.broadcast_to_group(group_id, {
+                    "type": WSMessageType.MESSAGE_DELETED,
+                    "message_id": message_id
+                })
+            
+            elif msg_type == WSMessageType.GET_ONLINE_USERS:
+                online_users = chat_manager.get_online_users(group_id)
+                await websocket.send_text(json.dumps({
+                    "type": WSMessageType.ONLINE_USERS,
+                    "users": online_users
+                }))
+    
+    except WebSocketDisconnect:
+        logger.info(f"WebSocket disconnected: {user_email} from group {group_id}")
+    except Exception as e:
+        logger.error(f"WebSocket error for {user_email} in group {group_id}: {e}")
+    finally:
+        await chat_manager.disconnect(group_id, user_email)
+
+
+# Helper function to broadcast message via WebSocket (for HTTP endpoints)
+async def broadcast_new_message(group_id: str, message: dict):
+    """Broadcast a new message to all WebSocket connections in a group"""
+    await chat_manager.broadcast_to_group(group_id, {
+        "type": WSMessageType.NEW_MESSAGE,
+        "message": message
+    })
+
+
+async def broadcast_message_deleted(group_id: str, message_id: str):
+    """Broadcast message deletion to all WebSocket connections in a group"""
+    await chat_manager.broadcast_to_group(group_id, {
+        "type": WSMessageType.MESSAGE_DELETED,
+        "message_id": message_id
+    })
+
+
+async def broadcast_reaction_update(group_id: str, message_id: str, reactions: list):
+    """Broadcast reaction update to all WebSocket connections in a group"""
+    await chat_manager.broadcast_to_group(group_id, {
+        "type": WSMessageType.REACTION_ADDED,
+        "message_id": message_id,
+        "reactions": reactions
+    })
+
+
 # Initialize MC Group on startup
 async def init_mc_group():
     """Create MC Group if it doesn't exist"""
