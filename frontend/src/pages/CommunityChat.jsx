@@ -1065,6 +1065,14 @@ const CommunityChat = () => {
 
   // Reaction handling
   const addReaction = async (messageId, emoji) => {
+    // Use WebSocket if connected
+    if (wsConnected && chatWebSocket.connected) {
+      chatWebSocket.addReaction(messageId, emoji);
+      setShowEmojiPicker(null);
+      return;
+    }
+    
+    // Fallback to HTTP
     try {
       const response = await axios.post(
         `${getAPI()}/chat/messages/${messageId}/react`,
