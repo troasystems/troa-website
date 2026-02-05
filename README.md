@@ -2,20 +2,22 @@
 
 A full-stack web application for managing a residential community association. Built with React, FastAPI, and MongoDB.
 
+> 📚 **Technical Documentation**: For a deep dive into the system architecture, booking logic, and data models, please see the [Architecture Overview](ARCHITECTURE_OVERVIEW.md).
+
 ![TROA Screenshot](https://customer-assets.emergentagent.com/job_troaresidents/artifacts/ig305kse_821366b6-decf-46dc-8c80-2dade0f65395.jpeg)
 
 ## Features
 
 - 🏠 **Public Website** - Home, About, Committee, Amenities, Gallery, Contact pages
 - 🔐 **Dual Authentication** - Google OAuth + Email/Password with email verification
-- 👥 **Role-Based Access Control** - Admin, Manager, and User roles
+- 👥 **Role-Based Access Control** - Admin, Manager, Accountant, Clubhouse Staff, and User roles
 - 📅 **Amenity Booking System** - Book community amenities with calendar view
 - 🎉 **Events Management** - Create events, register with online/offline payments
 - 💳 **Razorpay Integration** - Online payment processing
 - 🤖 **AI Chatbot** - Answer visitor queries about the community
 - 📝 **Feedback System** - Collect and manage user feedback
 - 📊 **Admin Portal** - Manage users, events, bookings, and approvals
-- 📧 **Email Notifications** - AWS SES integration for transactional emails
+- 📧 **Email Notifications** - SendGrid integration for transactional emails
 - ✉️ **Email Verification** - 2-week grace period for new email registrations
 - 📸 **Instagram Gallery** - Integrated Instagram feed display
 - 🏘️ **Membership Applications** - New resident application workflow
@@ -27,7 +29,7 @@ A full-stack web application for managing a residential community association. B
 - **Database**: MongoDB
 - **Authentication**: Google OAuth 2.0 + Email/Password
 - **Payments**: Razorpay
-- **Email Service**: AWS SES (Simple Email Service)
+- **Email Service**: SendGrid
 - **AI/LLM**: OpenAI (via Emergent Integrations)
 
 ---
@@ -200,14 +202,11 @@ BASIC_AUTH_PASSWORD=your-secure-password
 EMERGENT_LLM_KEY=your_emergent_llm_key
 
 # ===========================================
-# AWS SES EMAIL (Required for email features)
+# SENDGRID EMAIL (Required for email features)
 # ===========================================
-# Get from: https://console.aws.amazon.com/ses/
-AWS_ACCESS_KEY_ID=your_aws_access_key_id
-AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
-AWS_SES_REGION=eu-west-3
-AWS_SES_SENDER_EMAIL=noreply@yourdomain.com
-AWS_SES_REPLY_TO_EMAIL=support@yourdomain.com
+# Get from: https://app.sendgrid.com/settings/api_keys
+SENDGRID_API_KEY=your_sendgrid_api_key
+SENDER_EMAIL=noreply@yourdomain.com
 ```
 
 ### Frontend (`frontend/.env`)
@@ -250,25 +249,14 @@ REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id
    - `https://yourdomain.com/api/auth/google/callback` (production)
 8. Copy Client ID and Client Secret to your `.env` files
 
-### 2. AWS SES Setup (Email Service)
+### 2. SendGrid Setup (Email Service)
 
-1. Go to [AWS SES Console](https://console.aws.amazon.com/ses/)
-2. Verify your sender domain or email address
-3. Create IAM credentials with SES permissions:
-   ```json
-   {
-     "Version": "2012-10-17",
-     "Statement": [
-       {
-         "Effect": "Allow",
-         "Action": ["ses:SendEmail", "ses:SendRawEmail"],
-         "Resource": "*"
-       }
-     ]
-   }
-   ```
-4. **Important**: Request production access to send emails to any address (sandbox mode only allows verified addresses)
-5. Copy credentials to `backend/.env`
+1. Go to [SendGrid Dashboard](https://app.sendgrid.com/)
+2. Navigate to **Settings** > **API Keys**
+3. Create a new API Key with "Full Access" or "Mail Send" permissions
+4. Verify your Sender Identity (Single Sender Verification or Domain Authentication)
+5. Copy the generated API Key to `SENDGRID_API_KEY` in `backend/.env`
+6. Set `SENDER_EMAIL` to your verified sender address
 
 ### 3. Razorpay Setup (Payments)
 
@@ -293,7 +281,7 @@ troa-website/
 ├── backend/
 │   ├── server.py          # Main FastAPI application & routes
 │   ├── auth.py            # Authentication (Google OAuth + Email/Password)
-│   ├── email_service.py   # AWS SES email service
+│   ├── email_service.py   # SendGrid email service
 │   ├── events.py          # Events management API
 │   ├── chatbot.py         # AI chatbot logic
 │   ├── models.py          # Pydantic models
@@ -339,6 +327,8 @@ troa-website/
 |------|-------------|
 | **Admin** | Full access - manage users, events, bookings, settings, approve applications |
 | **Manager** | Manage events and bookings, view reports, approve registrations |
+| **Accountant** | Manage maintenance invoices, view financial reports |
+| **Clubhouse Staff** | Verify bookings and attendance, managing facility operations |
 | **User** | Book amenities, register for events, submit feedback, view own bookings |
 
 ### Setting Up Admin User
