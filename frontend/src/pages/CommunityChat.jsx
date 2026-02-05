@@ -647,6 +647,19 @@ const CommunityChat = () => {
   // Update typing status
   const updateTypingStatus = async (groupId, typing) => {
     if (!token) return;
+    
+    // Use WebSocket if connected
+    if (wsConnected && chatWebSocket.connected) {
+      if (typing) {
+        chatWebSocket.startTyping();
+      } else {
+        chatWebSocket.stopTyping();
+      }
+      setIsTyping(typing);
+      return;
+    }
+    
+    // Fallback to HTTP
     try {
       await axios.post(`${getAPI()}/chat/groups/${groupId}/typing`, 
         { is_typing: typing },
@@ -658,9 +671,9 @@ const CommunityChat = () => {
     }
   };
 
-  // Fetch who is typing in the group
+  // Fetch who is typing in the group (HTTP fallback)
   const fetchTypingUsers = async (groupId) => {
-    if (!token) return;
+    if (!token || wsConnected) return; // Skip if WebSocket is connected
     try {
       const response = await axios.get(`${getAPI()}/chat/groups/${groupId}/typing`, {
         headers: { Authorization: `Bearer ${token}` }
