@@ -112,7 +112,7 @@ class WebSocketChatTester:
         ws_endpoint = f"{self.ws_url}/api/chat/ws/{self.test_group_id}?token={self.token}"
         
         try:
-            async with websockets.connect(ws_endpoint, timeout=10) as websocket:
+            async with websockets.connect(ws_endpoint) as websocket:
                 self.log("WebSocket connection established successfully")
                 
                 # Wait for initial messages (like online users)
@@ -140,7 +140,7 @@ class WebSocketChatTester:
         ws_endpoint = f"{self.ws_url}/api/chat/ws/{self.test_group_id}?token={self.token}"
         
         try:
-            async with websockets.connect(ws_endpoint, timeout=10) as websocket:
+            async with websockets.connect(ws_endpoint) as websocket:
                 # Send a test message
                 test_message = {
                     "type": "send_message",
@@ -178,7 +178,7 @@ class WebSocketChatTester:
         ws_endpoint = f"{self.ws_url}/api/chat/ws/{self.test_group_id}?token={self.token}"
         
         try:
-            async with websockets.connect(ws_endpoint, timeout=10) as websocket:
+            async with websockets.connect(ws_endpoint) as websocket:
                 # Send start typing
                 await websocket.send(json.dumps({"type": "start_typing"}))
                 self.log("Sent start_typing indicator")
@@ -204,7 +204,7 @@ class WebSocketChatTester:
         ws_endpoint = f"{self.ws_url}/api/chat/ws/{self.test_group_id}?token={self.token}"
         
         try:
-            async with websockets.connect(ws_endpoint, timeout=10) as websocket:
+            async with websockets.connect(ws_endpoint) as websocket:
                 # Request online users
                 await websocket.send(json.dumps({"type": "get_online_users"}))
                 self.log("Requested online users list")
@@ -307,7 +307,7 @@ class WebSocketChatTester:
         ws_endpoint = f"{self.ws_url}/api/chat/ws/{self.test_group_id}?token={self.token}"
         
         try:
-            async with websockets.connect(ws_endpoint, timeout=10) as websocket:
+            async with websockets.connect(ws_endpoint) as websocket:
                 # Get recent messages first
                 response = requests.get(
                     f"{self.api_url}/chat/groups/{self.test_group_id}/messages?limit=5",
@@ -347,7 +347,7 @@ class WebSocketChatTester:
         ws_endpoint = f"{self.ws_url}/api/chat/ws/{self.test_group_id}?token={self.token}"
         
         try:
-            async with websockets.connect(ws_endpoint, timeout=10) as websocket:
+            async with websockets.connect(ws_endpoint) as websocket:
                 # Get recent messages first
                 response = requests.get(
                     f"{self.api_url}/chat/groups/{self.test_group_id}/messages?limit=5",
