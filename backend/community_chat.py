@@ -677,6 +677,9 @@ async def send_message(group_id: str, message_data: ChatMessage, request: Reques
         
         await db.chat_messages.insert_one(message)
         
+        # Broadcast via WebSocket to all connected users
+        await broadcast_new_message(group_id, message)
+        
         # Send push notification to group members (except sender)
         try:
             # Truncate message for notification
