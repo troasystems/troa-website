@@ -639,6 +639,16 @@ const CommunityChat = () => {
       });
       // Clear unread count for this group locally
       setUnreadCounts(prev => ({ ...prev, [groupId]: 0 }));
+      
+      // Also send read receipts via WebSocket if connected
+      if (wsConnected && chatWebSocket.connected && messages.length > 0) {
+        const unreadMessageIds = messages
+          .filter(m => m.sender_email !== user?.email && !m.read_by?.includes(user?.email))
+          .map(m => m.id);
+        if (unreadMessageIds.length > 0) {
+          chatWebSocket.markRead(unreadMessageIds);
+        }
+      }
     } catch (error) {
       console.error('Error marking group as read:', error);
     }
