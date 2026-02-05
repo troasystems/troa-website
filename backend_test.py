@@ -409,7 +409,7 @@ class WebSocketChatTester:
             
             async def test_connection():
                 try:
-                    async with websockets.connect(ws_endpoint, timeout=5) as websocket:
+                    async with websockets.connect(ws_endpoint) as websocket:
                         return True
                 except Exception:
                     return False
