@@ -776,7 +776,7 @@ async def register_with_email(credentials: EmailPasswordRegister, request: Reque
                 origin = f"{parsed.scheme}://{parsed.netloc}"
         
         if not origin:
-            origin = os.getenv('REACT_APP_BACKEND_URL', 'https://emailbuzz.preview.emergentagent.com')
+            origin = os.getenv('REACT_APP_BACKEND_URL', 'https://pdf-debug-1.preview.emergentagent.com')
         
         verification_link = f"{origin}/verify-email?token={verification_token}&email={credentials.email}"
         
@@ -1212,7 +1212,7 @@ async def resend_verification(request: Request):
                 origin = f"{parsed.scheme}://{parsed.netloc}"
         
         if not origin:
-            origin = os.getenv('REACT_APP_BACKEND_URL', 'https://emailbuzz.preview.emergentagent.com')
+            origin = os.getenv('REACT_APP_BACKEND_URL', 'https://pdf-debug-1.preview.emergentagent.com')
         
         verification_link = f"{origin}/verify-email?token={new_token}&email={user['email']}"
         
@@ -1310,7 +1310,7 @@ async def resend_verification_by_email(request: Request, email_data: dict):
                 origin = f"{parsed.scheme}://{parsed.netloc}"
         
         if not origin:
-            origin = os.getenv('REACT_APP_BACKEND_URL', 'https://emailbuzz.preview.emergentagent.com')
+            origin = os.getenv('REACT_APP_BACKEND_URL', 'https://pdf-debug-1.preview.emergentagent.com')
         
         verification_link = f"{origin}/verify-email?token={new_token}&email={email}"
         

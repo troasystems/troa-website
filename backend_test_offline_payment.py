@@ -10,7 +10,7 @@ import json
 from datetime import datetime
 
 class TROAOfflinePaymentTester:
-    def __init__(self, base_url="https://emailbuzz.preview.emergentagent.com"):
+    def __init__(self, base_url="https://pdf-debug-1.preview.emergentagent.com"):
         self.base_url = base_url
         self.accountant_token = "e30e0d6d-d9a0-4d4f-90d5-7d718c1babd2"
         self.admin_token = "2222da03-770a-4485-8918-e9464bbed53c"
