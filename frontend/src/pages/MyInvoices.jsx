@@ -100,9 +100,22 @@ const MyInvoices = () => {
         description: 'Invoice downloaded'
       });
     } catch (error) {
+      // With responseType: 'blob', server error bodies (JSON) arrive as a Blob.
+      // Parse it so we surface the real reason instead of a generic message.
+      let message = 'Failed to download invoice';
+      try {
+        if (error.response?.data instanceof Blob) {
+          const text = await error.response.data.text();
+          const parsed = JSON.parse(text);
+          if (parsed?.detail) message = parsed.detail;
+        }
+      } catch (_) {
+        if (error.response?.status === 401) message = 'Session expired. Please log in again.';
+        else if (error.response?.status === 403) message = 'You do not have access to this invoice.';
+      }
       toast({
         title: 'Error',
-        description: 'Failed to download invoice',
+        description: message,
         variant: 'destructive'
       });
     }
@@ -742,6 +755,7 @@ const MyInvoices = () => {
                       <div className="flex flex-col sm:flex-row gap-2 mt-4" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => downloadInvoicePdf(invoice.id, invoice.invoice_number)}
+                          data-testid={`download-invoice-pdf-${invoice.id}`}
                           className="flex items-center justify-center space-x-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium transition-colors"
                         >
                           <Download className="w-4 h-4" />

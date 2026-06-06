@@ -1,5 +1,5 @@
-// TROA PWA Service Worker - High Performance Caching v2
-const CACHE_VERSION = 'v2';
+// TROA PWA Service Worker - High Performance Caching v3
+const CACHE_VERSION = 'v3';
 const STATIC_CACHE = `troa-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `troa-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `troa-images-${CACHE_VERSION}`;
@@ -111,6 +111,14 @@ self.addEventListener('fetch', (event) => {
 
   // Skip chrome-extension and other non-http requests
   if (!url.protocol.startsWith('http')) {
+    return;
+  }
+
+  // NEVER intercept binary file-download endpoints (e.g. invoice/receipt PDFs).
+  // Letting the browser handle these natively preserves the Content-Disposition
+  // attachment download. Intercepting them via the SW corrupts blob downloads in
+  // production (works in preview/curl which bypass the SW).
+  if (url.pathname.startsWith('/api/') && url.pathname.endsWith('/pdf')) {
     return;
   }
 
