@@ -33,6 +33,20 @@ offline/QR payments with admin approval, Google OAuth + email/password auth, pus
 - **Bug fix: Service Worker cache version.** Bumped `CACHE_VERSION` from v3 to v4 to ensure browsers pick up the new frontend bundle.
 - Testing: 13/13 backend tests pass (pytest). Frontend verified via screenshots.
 
+### 2026-06-07 (admin/manager booking overrides)
+- **Admin/Manager can cancel any booking.** `DELETE /api/bookings/{id}` now allows admin/manager to cancel any user's booking. Audit log records the override. Push notification sent to booking owner.
+- **Admin/Manager can edit any booking.** `PUT /api/bookings/{id}` allows admin/manager to edit any booking with relaxed rules: today/tomorrow date restriction skipped, consecutive-day block skipped. Peak time restriction still enforced.
+- **New admin endpoint `GET /api/manage/bookings`** with date_from/date_to/amenity_id/user_email/status filters.
+- **Staff Dashboard UI.** Edit/Cancel override buttons on booking cards for admin/manager. Edit opens BookingCalendar in override mode with full date picker.
+- Testing: 9/9 new + 13/13 existing regression tests pass.
+
+### 2026-06-07 (admin/manager booking overrides)
+- **Admin/Manager can cancel any booking.** `DELETE /api/bookings/{id}` now allows admin/manager to cancel any user's booking. Audit log records the override. Push notification sent to booking owner.
+- **Admin/Manager can edit any booking.** `PUT /api/bookings/{id}` allows admin/manager to edit any booking with relaxed rules: today/tomorrow date restriction skipped, consecutive-day block skipped. Peak time restriction still enforced.
+- **New admin endpoint `GET /api/manage/bookings`** with date_from/date_to/amenity_id/user_email/status filters for admin/manager booking management.
+- **Staff Dashboard UI.** Edit and Cancel override buttons shown on booking cards when user role is admin or manager. Clicking Edit opens BookingCalendar in override mode with a full date picker (not limited to today/tomorrow).
+- Testing: 9/9 new + 13/13 existing regression tests pass.
+
 ### 2026-06-07 (code quality fixes)
 - **Security: Hardcoded secrets in tests.** Replaced hardcoded credentials in test_user_whitelist.py and test_booking_features.py with `os.getenv()` calls.
 - **Security: MD5 → SHA-256.** Replaced `hashlib.md5` with `hashlib.sha256` in gridfs_upload.py and migrate_to_gridfs.py for file integrity ETags.
