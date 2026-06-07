@@ -54,7 +54,7 @@ const Events = () => {
   });
   
   // Registration form state
-  const [registrants, setRegistrants] = useState([{ name: '', registrant_type: 'adult', preferences: {} }]);
+  const [registrants, setRegistrants] = useState([{ _key: `reg-${Date.now()}-0`, name: '', registrant_type: 'adult', preferences: {} }]);
   const [paymentMethod, setPaymentMethod] = useState('online');
   const [registering, setRegistering] = useState(false);
   
@@ -334,7 +334,7 @@ const Events = () => {
   };
 
   const resetRegistrationForm = () => {
-    setRegistrants([{ name: '', registrant_type: 'adult', preferences: {} }]);
+    setRegistrants([{ _key: `reg-${Date.now()}-0`, name: '', registrant_type: 'adult', preferences: {} }]);
     setPaymentMethod('online');
   };
 
@@ -363,7 +363,7 @@ const Events = () => {
   };
 
   const addRegistrant = () => {
-    setRegistrants([...registrants, { name: '', registrant_type: 'adult', preferences: {} }]);
+    setRegistrants([...registrants, { _key: `reg-${Date.now()}`, name: '', registrant_type: 'adult', preferences: {} }]);
   };
 
   const updateRegistrant = (index, field, value) => {
@@ -822,7 +822,7 @@ const Events = () => {
                   </button>
                 </div>
                 {eventForm.preferences.map((pref, index) => (
-                  <div key={index} className="flex space-x-2 mb-2">
+                  <div key={`pref-${pref.name}-${index}`} className="flex space-x-2 mb-2">
                     <input
                       type="text"
                       value={pref.name}
@@ -924,7 +924,7 @@ const Events = () => {
                 </div>
 
                 {registrants.map((registrant, index) => (
-                  <div key={index} className="border rounded-lg p-4 mb-3">
+                  <div key={registrant._key || index} className="border rounded-lg p-4 mb-3">
                     <div className="flex justify-between items-center mb-2">
                       <span className="font-medium text-gray-700">Person {index + 1}</span>
                       {registrants.length > 1 && (

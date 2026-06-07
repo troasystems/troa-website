@@ -78,7 +78,7 @@ async def migrate_images():
                 continue
             
             # Calculate ETag
-            etag = hashlib.md5(content).hexdigest()
+            etag = hashlib.sha256(content).hexdigest()
             file_ext = image_path.suffix.lower()
             
             # Upload to GridFS

@@ -817,6 +817,7 @@ For any queries, contact {self.reply_to_email}"""
         is_overdue: bool = False
     ) -> dict:
         """Send invoice payment reminder notification"""
+        subject_prefix = "REMINDER"  # default
         
         if is_overdue:
             urgency_color = "#dc2626"  # Red

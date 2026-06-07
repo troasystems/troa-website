@@ -41,7 +41,7 @@ def event_loop():
 @pytest.fixture(scope='session')
 def session_token(event_loop):
     """Insert a temp admin session in Mongo, return token."""
-    token = 'testtok_' + secrets.token_hex(12)
+    token = 'testtok_' + secrets.token_urlsafe(16)
 
     async def _setup():
         client = AsyncIOMotorClient(MONGO_URL)

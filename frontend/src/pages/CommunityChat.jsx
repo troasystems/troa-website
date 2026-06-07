@@ -1724,7 +1724,7 @@ const CommunityChat = () => {
           <div className="bg-white border-t px-4 py-2">
             <div className="flex flex-wrap gap-2">
               {selectedFiles.map((file, index) => (
-                <div key={index} className="relative bg-gray-100 rounded-lg p-2 pr-8 flex items-center space-x-2">
+                <div key={`${file.name}-${file.size}`} className="relative bg-gray-100 rounded-lg p-2 pr-8 flex items-center space-x-2">
                   {ALLOWED_IMAGE_TYPES.includes(file.type) ? (
                     <Image className="w-4 h-4 text-purple-500" />
                   ) : (

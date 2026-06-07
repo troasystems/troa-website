@@ -33,6 +33,15 @@ offline/QR payments with admin approval, Google OAuth + email/password auth, pus
 - **Bug fix: Service Worker cache version.** Bumped `CACHE_VERSION` from v3 to v4 to ensure browsers pick up the new frontend bundle.
 - Testing: 13/13 backend tests pass (pytest). Frontend verified via screenshots.
 
+### 2026-06-07 (code quality fixes)
+- **Security: Hardcoded secrets in tests.** Replaced hardcoded credentials in test_user_whitelist.py and test_booking_features.py with `os.getenv()` calls.
+- **Security: MD5 → SHA-256.** Replaced `hashlib.md5` with `hashlib.sha256` in gridfs_upload.py and migrate_to_gridfs.py for file integrity ETags.
+- **Python: Undefined variable safety.** Added `subject_prefix = "REMINDER"` default initialization in email_service.py `send_invoice_reminder()` before conditional branches.
+- **React: Index as key.** Replaced `key={index}` with stable keys in MyEvents.jsx (registrant `_key` field), Events.jsx (registrant `_key`, preference composite), HelpDesk.jsx (`service.title`, `contact.label`), CommunityChat.jsx (`file.name-file.size`).
+- **Note on `is None` comparisons:** All 24 flagged `is`/`is not` comparisons in community_chat.py, routes/users.py, villas.py, routes/invoices.py are `is None`/`is not None` — correct Python idiom, no fix needed.
+- **Note on localStorage tokens:** 72+ instances use localStorage for auth tokens — this is an architectural decision (PWA offline support). Migration to httpOnly cookies would require significant auth refactoring and is tracked as a future improvement.
+- **Note on React hook dependencies:** Pre-existing ESLint warnings for `react-hooks/exhaustive-deps` across CommunityChat, VerifyEmail, MyInvoices, etc. — these are non-breaking and require careful per-case analysis. Tracked as tech debt.
+
 ### 2026-06-06 (previous fork)
 - FIXED (P0): Invoice PDF download failing in production.
 - WebSocket chat implementation completed.

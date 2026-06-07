@@ -385,7 +385,7 @@ const HelpDesk = () => {
           <div className="space-y-12">
             {services.map((service, index) => (
               <div
-                key={index}
+                key={service.title}
                 className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-300"
               >
                 <div className="p-8">
@@ -469,7 +469,7 @@ const HelpDesk = () => {
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {emergencyContacts.map((contact, index) => (
               <div
-                key={index}
+                key={contact.label}
                 className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 transform"
               >
                 <div className="flex items-center gap-4 mb-3">

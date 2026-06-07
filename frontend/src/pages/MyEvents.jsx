@@ -94,17 +94,18 @@ const MyEvents = () => {
   const openModifyModal = (reg) => {
     setSelectedRegistration(reg);
     // Copy registrants with all fields including registrant_type
-    setModifyRegistrants(reg.registrants?.map(r => ({ 
+    setModifyRegistrants(reg.registrants?.map((r, i) => ({ 
+      _key: `reg-${Date.now()}-${i}`,
       name: r.name || '',
       registrant_type: r.registrant_type || 'adult',
       preferences: r.preferences || {}
-    })) || [{ name: '', registrant_type: 'adult', preferences: {} }]);
+    })) || [{ _key: `reg-${Date.now()}-0`, name: '', registrant_type: 'adult', preferences: {} }]);
     setModifyPaymentMethod('online');
     setShowModifyModal(true);
   };
 
   const addRegistrant = () => {
-    setModifyRegistrants([...modifyRegistrants, { name: '', registrant_type: 'adult', preferences: {} }]);
+    setModifyRegistrants([...modifyRegistrants, { _key: `reg-${Date.now()}`, name: '', registrant_type: 'adult', preferences: {} }]);
   };
 
   const removeRegistrant = (index) => {
@@ -451,7 +452,7 @@ const MyEvents = () => {
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {reg.registrants?.map((person, index) => (
-                          <div key={index} className={`px-3 py-1 rounded-full ${
+                          <div key={`${person.name}-${person.registrant_type}-${index}`} className={`px-3 py-1 rounded-full ${
                             reg.event?.per_person_type === 'adult_child'
                               ? person.registrant_type === 'child'
                                 ? 'bg-pink-50 border border-pink-200'
@@ -659,7 +660,7 @@ const MyEvents = () => {
                 </div>
 
                 {modifyRegistrants.map((registrant, index) => (
-                  <div key={index} className="border rounded-lg p-4 mb-3">
+                  <div key={registrant._key || index} className="border rounded-lg p-4 mb-3">
                     <div className="flex justify-between items-center mb-2">
                       <span className="font-medium text-gray-700">Person {index + 1}</span>
                       {modifyRegistrants.length > 1 && (

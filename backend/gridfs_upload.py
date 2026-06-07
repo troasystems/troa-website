@@ -87,7 +87,7 @@ async def upload_image(request: Request, file: UploadFile = File(...)):
         # Generate unique filename and ETag
         file_ext = get_file_extension(file.filename)
         unique_filename = f"{uuid.uuid4()}{file_ext}"
-        etag = hashlib.md5(content).hexdigest()
+        etag = hashlib.sha256(content).hexdigest()
         
         # Get GridFS bucket
         bucket, client, db = await get_gridfs_bucket()
@@ -131,7 +131,7 @@ async def get_image(filename: str, request: Request):
     
     Caching Strategy:
     - Cache-Control: max-age=2592000 (30 days)
-    - ETag: MD5 hash of file content
+    - ETag: SHA-256 hash of file content
     - Returns 304 Not Modified if client has cached version
     """
     try:

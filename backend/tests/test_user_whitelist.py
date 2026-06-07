@@ -20,9 +20,9 @@ from typing import Dict, Any, List
 BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://websocket-app-3.preview.emergentagent.com')
 API_BASE_URL = f"{BACKEND_URL}/api"
 
-# Basic Auth credentials
-BASIC_AUTH_USERNAME = "dogfooding"
-BASIC_AUTH_PASSWORD = "skywalker"
+# Basic Auth credentials from environment
+BASIC_AUTH_USERNAME = os.getenv('BASIC_AUTH_USERNAME', 'dogfooding')
+BASIC_AUTH_PASSWORD = os.getenv('BASIC_AUTH_PASSWORD', 'skywalker')
 
 class UserWhitelistTester:
     def __init__(self):
@@ -83,7 +83,7 @@ class UserWhitelistTester:
                 print("📝 Will test authentication requirements and error handling")
                 
                 # Use a placeholder token for testing authentication requirements
-                self.admin_session_token = "Bearer test_session_token"
+                self.admin_session_token = "Bearer " + os.getenv('TEST_SESSION_TOKEN', 'test_session_token')
                 return True
             else:
                 self.log_error("OAuth Setup", f"OAuth redirect failed: {response.status_code}")
