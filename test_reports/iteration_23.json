@@ -1,0 +1,47 @@
+{
+  "summary": "Smoke-tested the refactored TROA backend (server.py split into routes/*). 17/17 pytest backend tests passed via the public preview URL. All public GETs (committee, amenities, gallery, events, health) return 200; auth-protected endpoints (feedback, invoices, users, membership-GET, invoices/{id}/pdf, invoices/pending/count) correctly return 401; membership POST works (200) with correct payload schema (firstName/lastName/villaNo); WebSocket /api/chat/ws/{group_id} endpoint is reachable. Frontend pages (/, /committee, /amenities, /events, /gallery, /about, /contact, /login) all load 200 with no JS pageerrors. One latent bug found in routes/membership.py: notification side-effects use stale attribute names from the old monolith.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/membership",
+        "issue": "Membership application is created (200 OK), but the email + push notification side-effects silently fail. Backend log: `'MembershipApplication' object has no attribute 'name'`. routes/membership.py references app_obj.name / app_obj.villa_no, but models.MembershipApplication exposes firstName / lastName / villaNo. The exceptions are swallowed by inner try/except so the API still succeeds, but admins/managers receive NO notification of new applications.",
+        "priority": "MEDIUM"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Google Login on /login",
+        "issue": "GSI logs '[GSI_LOGGER]: The given origin is not allowed for the given client ID.' on the preview URL. Expected for non-prod origin; not a refactoring regression. Email/password login should still work.",
+        "affected_selectors": ["#g_id_signin / google login button"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_refactored_routes.py",
+    "/app/test_reports/pytest/refactor_results.xml"
+  ],
+  "action_items": [
+    "Fix routes/membership.py: replace app_obj.name with f\"{app_obj.firstName} {app_obj.lastName or ''}\".strip(), app_obj.villa_no -> app_obj.villaNo. Also for `applicant_phone=app_obj.phone` (this one is correct, phone exists). The push notification body and admin email use the same wrong attribute names. After fix, /api/membership should no longer emit AttributeError in backend logs and admin notifications will actually be sent."
+  ],
+  "critical_code_review_comments": [
+    "routes/membership.py uses stale attribute names from the pre-refactor monolith (name, villa_no) that do not exist on the MembershipApplication pydantic model (which uses firstName/lastName/villaNo). Inner try/except swallows the AttributeError so it appears to work but notifications are silently dropped.",
+    "routes/gallery.py POST endpoint has no auth guard (any caller can create gallery images). Compare with committee/amenities which require admin. Likely a pre-existing issue but worth confirming.",
+    "Cache-Control middleware in server.py: response Cache-Control header observed on /api/committee was 'no-store, no-cache, must-revalidate' instead of the expected 'public, max-age=300, ...'. Likely an ingress/CDN override at the preview proxy — functional behavior unaffected but worth verifying in production.",
+    "server.py uses deprecated FastAPI @app.on_event('startup'/'shutdown') hooks. Consider migrating to lifespan handlers (FastAPI >=0.93)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_refactored_routes.py (new)"
+  ],
+  "success_rate": {"backend": "100% (17/17)", "frontend": "100% public pages load"},
+  "test_credentials": "No working password known. Sessions can be injected via Mongo as documented in /app/memory/test_credentials.md.",
+  "seed_data_creation": "Created 2 test membership applications with firstName=TEST_Applicant_* and villaNo=TEST-001 in db.membership_applications. Safe to delete by prefix.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "iteration_23 confirms refactoring is functionally clean for unauthenticated flows. Authenticated CRUD (invoices, bookings, payments, chat WS auth, push) was NOT exercised in this iteration because no working password is available — inject a session token to extend coverage. The only regression-class bug found is the membership notification AttributeError; the API still responds 200 so end users won't notice but admins miss notifications.",
+  "rca of the issue": "When server.py was split, routes/membership.py was extracted but the notification side-effect block still references attributes from a pre-refactor model variant (.name, .villa_no). The current models.MembershipApplication / MembershipApplicationCreate define firstName, lastName, villaNo. Because the calls are wrapped in `try/except Exception as email_error: logger.error(...)`, the AttributeError is logged but never surfaces to the API client, so the POST returns 200 with the application created in DB while no admin gets notified."
+}
