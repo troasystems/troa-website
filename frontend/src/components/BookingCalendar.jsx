@@ -426,10 +426,10 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated, editingBooking = 
 
             <div className="flex flex-wrap gap-2 mb-4">
               <div className="flex items-center space-x-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
-                <Info className="w-3 h-3" /><span>External Guest: \u20B9{GUEST_CHARGE}/session</span>
+                <Info className="w-3 h-3" /><span>External Guest: ₹{GUEST_CHARGE}/session</span>
               </div>
               <div className="flex items-center space-x-1 text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded">
-                <Info className="w-3 h-3" /><span>Coach: \u20B9{GUEST_CHARGE}/session</span>
+                <Info className="w-3 h-3" /><span>Coach: ₹{GUEST_CHARGE}/session</span>
               </div>
             </div>
 
@@ -441,7 +441,7 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated, editingBooking = 
                       {getGuestTypeIcon(guest.guest_type)}
                       <span>{getGuestTypeLabel(guest.guest_type)}</span>
                       {(guest.guest_type === 'external' || guest.guest_type === 'coach') && (
-                        <span className="text-xs bg-white px-2 py-0.5 rounded">\u20B9{GUEST_CHARGE}</span>
+                        <span className="text-xs bg-white px-2 py-0.5 rounded">₹{GUEST_CHARGE}</span>
                       )}
                     </span>
                     <button onClick={() => handleRemoveGuest(index)} className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors">
