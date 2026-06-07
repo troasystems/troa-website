@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Calendar, Clock, Users, Check, X, AlertCircle, Home, UserPlus, Award, Edit, History, ChevronDown, ChevronUp, ShieldAlert, Download, FileText } from 'lucide-react';
+import { Calendar, Clock, Users, Check, X, AlertCircle, Home, UserPlus, Award, Edit, History, ChevronDown, ChevronUp, ShieldAlert, Download, FileText, Trash2, Edit2 } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 import { useAuth } from '../context/AuthContext';
 import { getBackendUrl } from '../utils/api';
+import BookingCalendar from '../components/BookingCalendar';
 
 const getAPI = () => `${getBackendUrl()}/api`;
 
@@ -29,8 +30,12 @@ const ClubhouseStaffDashboard = () => {
   });
   const [downloadingReport, setDownloadingReport] = useState(false);
 
+  // Admin/Manager override editing state
+  const [overrideEditBooking, setOverrideEditBooking] = useState(null);
+
   // Check access permissions
   const hasAccess = ['admin', 'manager', 'clubhouse_staff'].includes(role);
+  const canOverride = ['admin', 'manager'].includes(role);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -196,6 +201,21 @@ const ClubhouseStaffDashboard = () => {
       });
     } finally {
       setDownloadingReport(false);
+    }
+  };
+
+  const handleOverrideCancel = async (booking) => {
+    if (!window.confirm(`Cancel ${booking.booked_by_name}'s booking for ${booking.amenity_name} on ${booking.booking_date} ${booking.start_time}–${booking.end_time}?`)) return;
+    try {
+      const token = localStorage.getItem('session_token');
+      await axios.delete(`${getAPI()}/bookings/${booking.id}`, {
+        withCredentials: true,
+        headers: { ...(token ? { 'X-Session-Token': `Bearer ${token}` } : {}) }
+      });
+      toast({ title: 'Booking Cancelled', description: `${booking.booked_by_name}'s booking has been cancelled.` });
+      fetchBookings();
+    } catch (error) {
+      toast({ title: 'Error', description: error.response?.data?.detail || 'Failed to cancel booking', variant: 'destructive' });
     }
   };
 
@@ -426,6 +446,27 @@ const ClubhouseStaffDashboard = () => {
                           <span>Details</span>
                           {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </button>
+                        {/* Admin/Manager override actions */}
+                        {canOverride && (
+                          <>
+                            <button
+                              onClick={() => setOverrideEditBooking(booking)}
+                              data-testid={`override-edit-${booking.id}`}
+                              className="flex items-center space-x-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => handleOverrideCancel(booking)}
+                              data-testid={`override-cancel-${booking.id}`}
+                              className="flex items-center space-x-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              <span>Cancel</span>
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -675,6 +716,20 @@ const ClubhouseStaffDashboard = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Admin/Manager booking edit override modal */}
+      {overrideEditBooking && (
+        <BookingCalendar
+          amenity={{ id: overrideEditBooking.amenity_id, name: overrideEditBooking.amenity_name }}
+          editingBooking={overrideEditBooking}
+          onClose={() => setOverrideEditBooking(null)}
+          onBookingCreated={() => {
+            setOverrideEditBooking(null);
+            fetchBookings();
+            toast({ title: 'Booking Updated', description: 'The booking has been updated successfully.' });
+          }}
+        />
       )}
     </div>
   );

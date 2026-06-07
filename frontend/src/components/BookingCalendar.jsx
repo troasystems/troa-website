@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Calendar, Clock, Users, X, Check, AlertCircle, Home, UserPlus, Award, Info } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 
+import { useAuth } from '../context/AuthContext';
 import { getBackendUrl } from '../utils/api';
 const getAPI = () => `${getBackendUrl()}/api`;
 
@@ -11,6 +12,10 @@ const PEAK_START = 18; // 6 PM
 const PEAK_END = 20;   // 8 PM
 
 const BookingCalendar = ({ amenity, onClose, onBookingCreated, editingBooking = null }) => {
+  const { role, user } = useAuth();
+  // Admin/manager editing someone else's booking = override mode (relaxed date rules)
+  const isAdminOverride = ['admin', 'manager'].includes(role) && editingBooking && editingBooking.booked_by_email !== user?.email;
+
   const today = new Date().toISOString().split('T')[0];
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
@@ -245,39 +250,58 @@ const BookingCalendar = ({ amenity, onClose, onBookingCreated, editingBooking = 
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Date Selection — today/tomorrow only */}
+          {/* Date Selection */}
           <div>
             <label className="flex items-center space-x-2 text-lg font-semibold text-gray-900 mb-3">
               <Calendar className="w-5 h-5 text-purple-600" />
               <span>Select Date</span>
             </label>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setSelectedDate(today)}
-                data-testid="date-today-btn"
-                className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
-                  selectedDate === today
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Today
-                <span className="block text-xs opacity-80">{today}</span>
-              </button>
-              <button
-                onClick={() => setSelectedDate(tomorrow)}
-                data-testid="date-tomorrow-btn"
-                className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
-                  selectedDate === tomorrow
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Tomorrow
-                <span className="block text-xs opacity-80">{tomorrow}</span>
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mt-2">Bookings can only be made for today or tomorrow.</p>
+            {isAdminOverride ? (
+              <>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  min={today}
+                  data-testid="date-picker-override"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                <p className="text-xs text-blue-600 mt-2 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  Admin/Manager override — date restriction lifted.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setSelectedDate(today)}
+                    data-testid="date-today-btn"
+                    className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
+                      selectedDate === today
+                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Today
+                    <span className="block text-xs opacity-80">{today}</span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedDate(tomorrow)}
+                    data-testid="date-tomorrow-btn"
+                    className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
+                      selectedDate === tomorrow
+                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Tomorrow
+                    <span className="block text-xs opacity-80">{tomorrow}</span>
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Bookings can only be made for today or tomorrow.</p>
+              </>
+            )}
           </div>
 
           {/* Duration Selection */}

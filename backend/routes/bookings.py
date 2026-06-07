@@ -253,20 +253,28 @@ async def get_my_bookings(request: Request):
 
 @bookings_router.delete("/bookings/{booking_id}")
 async def cancel_booking(booking_id: str, request: Request):
-    """Cancel booking - only booking owner can cancel"""
+    """Cancel booking - owner, admin, or manager can cancel"""
     try:
         user = await require_auth(request)
         booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
         if not booking:
             raise HTTPException(status_code=404, detail="Booking not found")
-        if booking['booked_by_email'] != user['email']:
+
+        is_owner = booking['booked_by_email'] == user['email']
+        is_admin_or_manager = user.get('role') in ['admin', 'manager']
+
+        if not is_owner and not is_admin_or_manager:
             raise HTTPException(status_code=403, detail="You can only cancel your own bookings")
+
+        cancel_detail = 'Booking cancelled by user'
+        if not is_owner and is_admin_or_manager:
+            cancel_detail = f"Booking cancelled by {user.get('role')} ({user['name']})"
 
         audit_entry = {
             'timestamp': datetime.utcnow().isoformat(), 'action': 'cancelled',
             'by_email': user['email'], 'by_name': user['name'],
             'by_role': user.get('role', 'user'),
-            'details': 'Booking cancelled by user',
+            'details': cancel_detail,
             'changes': {'status': {'from': 'confirmed', 'to': 'cancelled'}}
         }
         await db.bookings.update_one(
@@ -275,9 +283,12 @@ async def cancel_booking(booking_id: str, request: Request):
              "$push": {"audit_log": audit_entry}}
         )
 
+        # Notify the booking owner if cancelled by admin/manager
+        owner_email = booking['booked_by_email']
+        owner_name = booking.get('booked_by_name', '')
         try:
             await email_service.send_booking_cancellation(
-                recipient_email=user['email'], user_name=user['name'],
+                recipient_email=owner_email, user_name=owner_name,
                 amenity_name=booking['amenity_name'], booking_date=booking['booking_date'],
                 start_time=booking['start_time'], end_time=booking['end_time']
             )
@@ -286,7 +297,7 @@ async def cancel_booking(booking_id: str, request: Request):
         try:
             admin_emails = await get_admin_manager_emails()
             await email_service.send_booking_notification_to_admins(
-                action='cancelled', user_name=user['name'], user_email=user['email'],
+                action='cancelled', user_name=owner_name, user_email=owner_email,
                 amenity_name=booking['amenity_name'], booking_date=booking['booking_date'],
                 start_time=booking['start_time'], end_time=booking['end_time'],
                 admin_emails=admin_emails
@@ -294,13 +305,15 @@ async def cancel_booking(booking_id: str, request: Request):
         except Exception as email_error:
             logger.error(f"Failed to send admin cancellation notification: {email_error}")
         try:
-            await send_notification_to_admins(
-                title="Booking Cancelled",
-                body=f"{user['name']} cancelled {booking['amenity_name']} booking on {booking['booking_date']}",
-                url="/admin"
-            )
+            if not is_owner:
+                await send_notification_to_user(
+                    user_email=owner_email,
+                    title="Booking Cancelled by Management",
+                    body=f"Your {booking['amenity_name']} booking on {booking['booking_date']} at {booking['start_time']} was cancelled by management.",
+                    url="/my-bookings"
+                )
         except Exception as push_error:
-            logger.error(f"Failed to send admin push notification: {push_error}")
+            logger.error(f"Failed to send push notification: {push_error}")
 
         return {"message": "Booking cancelled successfully"}
     except HTTPException:
@@ -320,13 +333,17 @@ class BookingEditRequest(BaseModel):
 
 @bookings_router.put("/bookings/{booking_id}")
 async def edit_booking(booking_id: str, edit_data: BookingEditRequest, request: Request):
-    """Edit an existing booking — only the owner, before the booking time"""
+    """Edit an existing booking — owner, admin, or manager"""
     try:
         user = await require_auth(request)
         booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
         if not booking:
             raise HTTPException(status_code=404, detail="Booking not found")
-        if booking['booked_by_email'] != user['email']:
+
+        is_owner = booking['booked_by_email'] == user['email']
+        is_admin_or_manager = user.get('role') in ['admin', 'manager']
+
+        if not is_owner and not is_admin_or_manager:
             raise HTTPException(status_code=403, detail="You can only edit your own bookings")
 
         # Can't edit past bookings
@@ -334,15 +351,16 @@ async def edit_booking(booking_id: str, edit_data: BookingEditRequest, request: 
         bdate = datetime.strptime(booking['booking_date'], "%Y-%m-%d")
         btime = datetime.strptime(booking['start_time'], "%H:%M")
         booking_dt = bdate.replace(hour=btime.hour, minute=btime.minute)
-        if booking_dt < now:
+        if booking_dt < now and not is_admin_or_manager:
             raise HTTPException(status_code=400, detail="Cannot edit a past booking")
 
         if edit_data.duration_minutes not in [30, 60]:
             raise HTTPException(status_code=400, detail="Duration must be 30 or 60 minutes")
 
-        # Feature 1: only today/tomorrow
-        _validate_booking_date(edit_data.booking_date)
-        # Feature 4: peak time restriction
+        # Admin/manager override: skip today/tomorrow and consecutive-day restrictions
+        if not is_admin_or_manager:
+            _validate_booking_date(edit_data.booking_date)
+        # Peak time restriction always applies
         _validate_peak_time(edit_data.start_time, edit_data.duration_minutes)
 
         start_dt = datetime.strptime(edit_data.start_time, "%H:%M")
@@ -365,12 +383,13 @@ async def edit_booking(booking_id: str, edit_data: BookingEditRequest, request: 
                     detail=f"Time slot conflicts with existing booking ({existing['start_time']}-{existing['end_time']})"
                 )
 
-        # Feature 2: consecutive day check (excluding self)
-        await _check_consecutive_day_slot(
-            user['email'], booking['amenity_id'],
-            edit_data.booking_date, edit_data.start_time, edit_data.duration_minutes,
-            exclude_booking_id=booking_id
-        )
+        # Consecutive day check — skip for admin/manager overrides
+        if not is_admin_or_manager:
+            await _check_consecutive_day_slot(
+                user['email'], booking['amenity_id'],
+                edit_data.booking_date, edit_data.start_time, edit_data.duration_minutes,
+                exclude_booking_id=booking_id
+            )
 
         processed_guests, total_guest_charges = _process_guests(edit_data.guests)
 
@@ -382,11 +401,15 @@ async def edit_booking(booking_id: str, edit_data: BookingEditRequest, request: 
         if booking['duration_minutes'] != edit_data.duration_minutes:
             changes['duration_minutes'] = {'from': booking['duration_minutes'], 'to': edit_data.duration_minutes}
 
+        override_note = ""
+        if not is_owner and is_admin_or_manager:
+            override_note = f" [Override by {user.get('role')} {user['name']}]"
+
         audit_entry = {
             'timestamp': datetime.utcnow().isoformat(), 'action': 'edited',
             'by_email': user['email'], 'by_name': user['name'],
             'by_role': user.get('role', 'user'),
-            'details': f"Booking edited: {edit_data.booking_date} {edit_data.start_time}-{end_time}",
+            'details': f"Booking edited: {edit_data.booking_date} {edit_data.start_time}-{end_time}{override_note}",
             'changes': changes if changes else None
         }
 
@@ -406,7 +429,20 @@ async def edit_booking(booking_id: str, edit_data: BookingEditRequest, request: 
                 "$push": {"audit_log": audit_entry}
             }
         )
-        logger.info(f"Booking {booking_id} edited by {user['email']}")
+        logger.info(f"Booking {booking_id} edited by {user['email']} (role: {user.get('role')})")
+
+        # Notify owner if edited by admin/manager
+        if not is_owner:
+            try:
+                await send_notification_to_user(
+                    user_email=booking['booked_by_email'],
+                    title="Booking Updated by Management",
+                    body=f"Your {booking['amenity_name']} booking was updated to {edit_data.booking_date} {edit_data.start_time}.",
+                    url="/my-bookings"
+                )
+            except Exception as push_error:
+                logger.error(f"Failed to send edit notification: {push_error}")
+
         updated = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
         return AmenityBooking(**updated)
     except HTTPException:
@@ -414,6 +450,45 @@ async def edit_booking(booking_id: str, edit_data: BookingEditRequest, request: 
     except Exception as e:
         logger.error(f"Error editing booking: {e}")
         raise HTTPException(status_code=500, detail="Failed to edit booking")
+
+
+# ============ ADMIN/MANAGER BOOKING MANAGEMENT ============
+
+@bookings_router.get("/manage/bookings")
+async def get_managed_bookings(
+    request: Request,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    amenity_id: Optional[str] = None,
+    user_email: Optional[str] = None,
+    status: Optional[str] = "confirmed",
+):
+    """Get all bookings for admin/manager management with filters"""
+    try:
+        from auth import require_manager_or_admin
+        await require_manager_or_admin(request)
+
+        query = {}
+        if status:
+            query["status"] = status
+        if amenity_id:
+            query["amenity_id"] = amenity_id
+        if user_email:
+            query["booked_by_email"] = user_email
+        if date_from and date_to:
+            query["booking_date"] = {"$gte": date_from, "$lte": date_to}
+        elif date_from:
+            query["booking_date"] = {"$gte": date_from}
+        elif date_to:
+            query["booking_date"] = {"$lte": date_to}
+
+        bookings = await db.bookings.find(query, {"_id": 0}).sort("booking_date", -1).to_list(500)
+        return [AmenityBooking(**b) for b in bookings]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching managed bookings: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch bookings")
 
 
 # ============ CLUBHOUSE STAFF ROUTES ============
