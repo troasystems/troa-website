@@ -21,15 +21,16 @@ async def create_membership_application(application: MembershipApplicationCreate
         app_dict = application.dict()
         app_obj = MembershipApplication(**app_dict)
         await db.membership_applications.insert_one(app_obj.dict())
+        applicant_name = f"{app_obj.firstName} {app_obj.lastName or ''}".strip()
         logger.info(f"New membership application from {app_obj.email}")
 
         try:
             admin_emails = await get_admin_manager_emails()
             await email_service.send_membership_application_notification(
-                applicant_name=app_obj.name,
+                applicant_name=applicant_name,
                 applicant_email=app_obj.email,
                 applicant_phone=app_obj.phone,
-                villa_no=app_obj.villa_no,
+                villa_no=app_obj.villaNo,
                 message=app_obj.message if hasattr(app_obj, 'message') else None,
                 admin_emails=admin_emails
             )
@@ -39,7 +40,7 @@ async def create_membership_application(application: MembershipApplicationCreate
         try:
             await send_notification_to_admins(
                 title="New Membership Application",
-                body=f"{app_obj.name} (Villa {app_obj.villa_no}) applied for membership",
+                body=f"{applicant_name} (Villa {app_obj.villaNo}) applied for membership",
                 url="/admin"
             )
         except Exception as push_error:
