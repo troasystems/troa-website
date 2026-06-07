@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List
 
 class InvoiceSystemTester:
-    def __init__(self, base_url="https://pdf-debug-1.preview.emergentagent.com"):
+    def __init__(self, base_url="https://websocket-app-3.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.session = requests.Session()
