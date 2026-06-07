@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
 import { Home, X, Loader2 } from 'lucide-react';
 import axios from 'axios';
-
-const getBackendUrl = () => {
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return window.location.origin;
-  }
-  return process.env.REACT_APP_BACKEND_URL || '';
-};
+import { getBackendUrl } from '../utils/api';
 
 const API = `${getBackendUrl()}/api`;
 

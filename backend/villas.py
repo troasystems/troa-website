@@ -3,11 +3,12 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
 import os
 import logging
+from pathlib import Path
 from dotenv import load_dotenv
 from models import Villa, VillaCreate, VillaUpdate, PRIVILEGED_ROLES
 from auth import require_admin, require_manager_or_admin, require_auth
 
-load_dotenv()
+load_dotenv(Path(__file__).parent / '.env')
 
 logger = logging.getLogger(__name__)
 

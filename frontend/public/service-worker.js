@@ -1,5 +1,5 @@
-// TROA PWA Service Worker - High Performance Caching v3
-const CACHE_VERSION = 'v3';
+// TROA PWA Service Worker - High Performance Caching v4
+const CACHE_VERSION = 'v4';
 const STATIC_CACHE = `troa-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `troa-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `troa-images-${CACHE_VERSION}`;

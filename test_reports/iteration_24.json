@@ -1,0 +1,33 @@
+{
+  "summary": "Tested 4 amenity booking features + 4 bug fixes. All 13 backend pytest cases PASS against the public preview URL: today/tomorrow date restriction, consecutive-day same-slot block, edit booking (PUT /api/bookings/{id}) with date+peak revalidation, and peak-hours 18:00-20:00 30-min rejection (including the 17:30+30=18:00 edge case where slot_end == peak_start should pass). Static verification of all 5 bug-fix files passes: VillaManagement.jsx, VillaNumberModal.jsx, EmailVerificationBanner.jsx, VerifyEmail.jsx, Login.jsx all import getBackendUrl from ../utils/api and have no local definition; service-worker.js has CACHE_VERSION = 'v4'; backend/villas.py uses load_dotenv(Path(__file__).parent / '.env'). Frontend BookingCalendar.jsx correctly implements today/tomorrow buttons, editingBooking prop pre-fill, peak slot blocking with auto-switch to 60min, and proper data-testid attributes. MyBookings.jsx shows Edit button with canEditBooking() guard and re-uses BookingCalendar in edit mode. Public pages (/login, /amenities) load cleanly without console pageerrors.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_booking_features.py",
+    "/app/test_reports/pytest/booking_features.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "routes/bookings.py is ~590 lines and mixes amenity bookings + clubhouse staff + PDF reports; consider splitting into bookings_user.py + bookings_staff.py to stay under the 700-line guideline as more features are added.",
+    "_check_consecutive_day_slot uses an exact match on duration_minutes — so booking a 60-min slot at 10:00 today and a 30-min slot at 10:00 tomorrow would NOT trip the consecutive-day check. If product intent is 'same time slot' regardless of duration, drop duration from the query; if it's strictly 'identical slot', current behavior is fine. Worth confirming with PM.",
+    "Edit booking does NOT enforce a cancellation/edit cutoff window (e.g. no edits within 1 hour of start). Today's check only blocks 'past' bookings via booking_dt < now, so a user can edit a 10:00 booking at 09:59. Consider adding a buffer.",
+    "BookingCalendar.jsx PUT uses `${getAPI()}/bookings/{id}` which is fine, but on edit the consecutive-day backend error message references the OTHER day's date; the frontend just toasts the raw detail — acceptable but could be styled better."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_booking_features.py (new)"
+  ],
+  "success_rate": {"backend": "100% (13/13)", "frontend": "100% (static + public page load)"},
+  "test_credentials": "Used the inject-session approach from /app/memory/test_credentials.md: temp 'testtok_*' session for troa.systems@gmail.com (admin). Cleaned up in fixture teardown.",
+  "seed_data_creation": "Each test creates bookings on TODAY/TOMORROW for amenity 69bec999-30e1-4127-845d-dc6dff3e2057 (Sports Courts) under troa.systems@gmail.com. Auto-cleaned via autouse fixture before/after every test and at session teardown. No leftover seed data.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "iteration_24: All 4 booking features and 4 bug fixes are functionally correct at API + static-frontend level. The new test file /app/backend/tests/test_booking_features.py is a reusable regression suite — re-run with `pytest backend/tests/test_booking_features.py -v`. Requires MongoDB access to inject sessions. UI flow for edit-booking was NOT exercised through Playwright due to no working password; recommend the main agent self-verify in the browser by clicking the Edit button on MyBookings.",
+  "rca of the issue": "N/A — no regressions found."
+}

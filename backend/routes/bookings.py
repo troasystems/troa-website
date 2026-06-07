@@ -1,8 +1,9 @@
 """Amenity Bookings + Clubhouse Staff routes + PDF Reports"""
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
+from pydantic import BaseModel
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date as date_type
 import logging
 
 from database import db
@@ -18,6 +19,97 @@ bookings_router = APIRouter(tags=["Bookings"])
 
 GUEST_CHARGE = 50.0  # per session for external guests and coaches
 
+# Peak hours: 6 PM (18:00) to 8 PM (20:00) — no 30-min slots allowed
+PEAK_START_HOUR = 18
+PEAK_END_HOUR = 20
+
+
+def _validate_booking_date(booking_date: str):
+    """Validate booking date is today or tomorrow only"""
+    today = date_type.today()
+    tomorrow = today + timedelta(days=1)
+    try:
+        bd = datetime.strptime(booking_date, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
+    if bd < today:
+        raise HTTPException(status_code=400, detail="Cannot book in the past")
+    if bd > tomorrow:
+        raise HTTPException(status_code=400, detail="Bookings can only be made for today or tomorrow")
+
+
+def _validate_peak_time(start_time: str, duration_minutes: int):
+    """Peak hours 18:00-20:00: only 60-min slots allowed"""
+    h, m = map(int, start_time.split(':'))
+    slot_start = h * 60 + m
+    slot_end = slot_start + duration_minutes
+    peak_start = PEAK_START_HOUR * 60
+    peak_end = PEAK_END_HOUR * 60
+    # If the slot overlaps with peak window at all, enforce 60 min
+    if slot_start < peak_end and slot_end > peak_start and duration_minutes != 60:
+        raise HTTPException(
+            status_code=400,
+            detail="Peak hours (6 PM – 8 PM): only 1-hour bookings are allowed"
+        )
+
+
+async def _check_consecutive_day_slot(user_email: str, amenity_id: str, booking_date: str, start_time: str, duration_minutes: int, exclude_booking_id: str = None):
+    """Same person cannot book the same slot 2 days in a row"""
+    bd = datetime.strptime(booking_date, "%Y-%m-%d").date()
+    prev_day = (bd - timedelta(days=1)).strftime("%Y-%m-%d")
+    next_day = (bd + timedelta(days=1)).strftime("%Y-%m-%d")
+
+    query = {
+        "booked_by_email": user_email,
+        "amenity_id": amenity_id,
+        "status": "confirmed",
+        "booking_date": {"$in": [prev_day, next_day]},
+        "start_time": start_time,
+        "duration_minutes": duration_minutes,
+    }
+    if exclude_booking_id:
+        query["id"] = {"$ne": exclude_booking_id}
+
+    conflict = await db.bookings.find_one(query, {"_id": 0})
+    if conflict:
+        raise HTTPException(
+            status_code=400,
+            detail=f"You already have this same slot booked on {conflict['booking_date']}. The same slot cannot be booked on consecutive days."
+        )
+
+
+def _process_guests(raw_guests, legacy_guests_list=None):
+    """Process and validate guest list, return (processed_guests, total_charges)"""
+    processed = []
+    total_charges = 0.0
+    for guest in (raw_guests or []):
+        guest_type = guest.get('guest_type', 'external')
+        guest_name = guest.get('name', '').strip()
+        villa_number = guest.get('villa_number', '').strip() if guest.get('villa_number') else None
+        if not guest_name:
+            continue
+        if guest_type == 'resident' and not villa_number:
+            raise HTTPException(status_code=400, detail=f"Villa number is required for resident guest: {guest_name}")
+        charge = GUEST_CHARGE if guest_type in ['external', 'coach'] else 0.0
+        if charge:
+            total_charges += charge
+        processed.append({
+            'name': guest_name, 'guest_type': guest_type,
+            'villa_number': villa_number, 'charge': charge
+        })
+    if len(processed) > 3:
+        raise HTTPException(status_code=400, detail="Maximum 3 additional guests allowed")
+
+    if not processed and legacy_guests_list:
+        for name in legacy_guests_list[:3]:
+            if name.strip():
+                processed.append({
+                    'name': name.strip(), 'guest_type': 'external',
+                    'villa_number': None, 'charge': GUEST_CHARGE
+                })
+                total_charges += GUEST_CHARGE
+    return processed, total_charges
+
 
 # ============ BOOKING ROUTES ============
 
@@ -29,41 +121,21 @@ async def create_booking(booking: AmenityBookingCreate, request: Request):
         if booking.duration_minutes not in [30, 60]:
             raise HTTPException(status_code=400, detail="Duration must be 30 or 60 minutes")
 
-        processed_guests = []
-        total_guest_charges = 0.0
-        for guest in (booking.guests or []):
-            guest_type = guest.get('guest_type', 'external')
-            guest_name = guest.get('name', '').strip()
-            villa_number = guest.get('villa_number', '').strip() if guest.get('villa_number') else None
-            if not guest_name:
-                continue
-            if guest_type == 'resident' and not villa_number:
-                raise HTTPException(status_code=400, detail=f"Villa number is required for resident guest: {guest_name}")
-            charge = GUEST_CHARGE if guest_type in ['external', 'coach'] else 0.0
-            if charge:
-                total_guest_charges += charge
-            processed_guests.append({
-                'name': guest_name, 'guest_type': guest_type,
-                'villa_number': villa_number, 'charge': charge
-            })
-        if len(processed_guests) > 3:
-            raise HTTPException(status_code=400, detail="Maximum 3 additional guests allowed")
+        # Feature 1: only today/tomorrow
+        _validate_booking_date(booking.booking_date)
 
-        legacy_guests = []
-        if booking.additional_guests and not booking.guests:
-            for name in booking.additional_guests[:3]:
-                if name.strip():
-                    legacy_guests.append({
-                        'name': name.strip(), 'guest_type': 'external',
-                        'villa_number': None, 'charge': GUEST_CHARGE
-                    })
-                    total_guest_charges += GUEST_CHARGE
-            processed_guests = legacy_guests
+        # Feature 4: peak time restriction
+        _validate_peak_time(booking.start_time, booking.duration_minutes)
+
+        processed_guests, total_guest_charges = _process_guests(
+            booking.guests, booking.additional_guests if not booking.guests else None
+        )
 
         start_dt = datetime.strptime(booking.start_time, "%H:%M")
         end_dt = start_dt + timedelta(minutes=booking.duration_minutes)
         end_time = end_dt.strftime("%H:%M")
 
+        # Overlap check
         existing_bookings = await db.bookings.find({
             "amenity_id": booking.amenity_id,
             "booking_date": booking.booking_date,
@@ -77,6 +149,9 @@ async def create_booking(booking: AmenityBookingCreate, request: Request):
                     status_code=409,
                     detail=f"Time slot conflicts with existing booking ({existing['start_time']}-{existing['end_time']})"
                 )
+
+        # Feature 2: no consecutive day same slot
+        await _check_consecutive_day_slot(user['email'], booking.amenity_id, booking.booking_date, booking.start_time, booking.duration_minutes)
 
         audit_entry = {
             'timestamp': datetime.utcnow().isoformat(), 'action': 'created',
@@ -233,6 +308,112 @@ async def cancel_booking(booking_id: str, request: Request):
     except Exception as e:
         logger.error(f"Error cancelling booking: {e}")
         raise HTTPException(status_code=500, detail="Failed to cancel booking")
+
+
+# ============ EDIT BOOKING ============
+
+class BookingEditRequest(BaseModel):
+    booking_date: str
+    start_time: str
+    duration_minutes: int
+    guests: Optional[list] = []
+
+@bookings_router.put("/bookings/{booking_id}")
+async def edit_booking(booking_id: str, edit_data: BookingEditRequest, request: Request):
+    """Edit an existing booking — only the owner, before the booking time"""
+    try:
+        user = await require_auth(request)
+        booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        if booking['booked_by_email'] != user['email']:
+            raise HTTPException(status_code=403, detail="You can only edit your own bookings")
+
+        # Can't edit past bookings
+        now = datetime.now()
+        bdate = datetime.strptime(booking['booking_date'], "%Y-%m-%d")
+        btime = datetime.strptime(booking['start_time'], "%H:%M")
+        booking_dt = bdate.replace(hour=btime.hour, minute=btime.minute)
+        if booking_dt < now:
+            raise HTTPException(status_code=400, detail="Cannot edit a past booking")
+
+        if edit_data.duration_minutes not in [30, 60]:
+            raise HTTPException(status_code=400, detail="Duration must be 30 or 60 minutes")
+
+        # Feature 1: only today/tomorrow
+        _validate_booking_date(edit_data.booking_date)
+        # Feature 4: peak time restriction
+        _validate_peak_time(edit_data.start_time, edit_data.duration_minutes)
+
+        start_dt = datetime.strptime(edit_data.start_time, "%H:%M")
+        end_dt = start_dt + timedelta(minutes=edit_data.duration_minutes)
+        end_time = end_dt.strftime("%H:%M")
+
+        # Overlap check (excluding this booking)
+        existing_bookings = await db.bookings.find({
+            "amenity_id": booking['amenity_id'],
+            "booking_date": edit_data.booking_date,
+            "status": "confirmed",
+            "id": {"$ne": booking_id}
+        }, {"_id": 0}).to_list(100)
+        for existing in existing_bookings:
+            es = datetime.strptime(existing['start_time'], "%H:%M")
+            ee = datetime.strptime(existing['end_time'], "%H:%M")
+            if start_dt < ee and end_dt > es:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Time slot conflicts with existing booking ({existing['start_time']}-{existing['end_time']})"
+                )
+
+        # Feature 2: consecutive day check (excluding self)
+        await _check_consecutive_day_slot(
+            user['email'], booking['amenity_id'],
+            edit_data.booking_date, edit_data.start_time, edit_data.duration_minutes,
+            exclude_booking_id=booking_id
+        )
+
+        processed_guests, total_guest_charges = _process_guests(edit_data.guests)
+
+        changes = {}
+        if booking['booking_date'] != edit_data.booking_date:
+            changes['booking_date'] = {'from': booking['booking_date'], 'to': edit_data.booking_date}
+        if booking['start_time'] != edit_data.start_time:
+            changes['start_time'] = {'from': booking['start_time'], 'to': edit_data.start_time}
+        if booking['duration_minutes'] != edit_data.duration_minutes:
+            changes['duration_minutes'] = {'from': booking['duration_minutes'], 'to': edit_data.duration_minutes}
+
+        audit_entry = {
+            'timestamp': datetime.utcnow().isoformat(), 'action': 'edited',
+            'by_email': user['email'], 'by_name': user['name'],
+            'by_role': user.get('role', 'user'),
+            'details': f"Booking edited: {edit_data.booking_date} {edit_data.start_time}-{end_time}",
+            'changes': changes if changes else None
+        }
+
+        await db.bookings.update_one(
+            {"id": booking_id},
+            {
+                "$set": {
+                    "booking_date": edit_data.booking_date,
+                    "start_time": edit_data.start_time,
+                    "end_time": end_time,
+                    "duration_minutes": edit_data.duration_minutes,
+                    "guests": processed_guests,
+                    "additional_guests": [g['name'] for g in processed_guests],
+                    "total_guest_charges": total_guest_charges,
+                    "updated_at": datetime.utcnow(),
+                },
+                "$push": {"audit_log": audit_entry}
+            }
+        )
+        logger.info(f"Booking {booking_id} edited by {user['email']}")
+        updated = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+        return AmenityBooking(**updated)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error editing booking: {e}")
+        raise HTTPException(status_code=500, detail="Failed to edit booking")
 
 
 # ============ CLUBHOUSE STAFF ROUTES ============

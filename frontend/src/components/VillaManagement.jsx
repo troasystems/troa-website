@@ -6,8 +6,9 @@ import {
   ChevronDown, ChevronUp, Users, Square, Upload, Download, FileSpreadsheet, CheckCircle, XCircle
 } from 'lucide-react';
 import axios from 'axios';
+import { getBackendUrl } from '../utils/api';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = getBackendUrl();
 
 const VillaManagement = () => {
   const { token, isAdmin, isManager } = useAuth();

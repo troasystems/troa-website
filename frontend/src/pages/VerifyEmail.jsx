@@ -3,13 +3,7 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-
-const getBackendUrl = () => {
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return window.location.origin;
-  }
-  return process.env.REACT_APP_BACKEND_URL || '';
-};
+import { getBackendUrl } from '../utils/api';
 
 const API = `${getBackendUrl()}/api`;
 

@@ -4,13 +4,7 @@ import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import { LogIn, Mail, Lock, User, Eye, EyeOff, Home, Camera, AlertTriangle, RefreshCw, CheckCircle } from 'lucide-react';
 import axios from 'axios';
-
-const getBackendUrl = () => {
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return window.location.origin;
-  }
-  return process.env.REACT_APP_BACKEND_URL || '';
-};
+import { getBackendUrl } from '../utils/api';
 
 const API = `${getBackendUrl()}/api`;
 

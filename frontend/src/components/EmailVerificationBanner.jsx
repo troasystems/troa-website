@@ -3,13 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Mail, X, AlertTriangle, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
-
-const getBackendUrl = () => {
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return window.location.origin;
-  }
-  return process.env.REACT_APP_BACKEND_URL || '';
-};
+import { getBackendUrl } from '../utils/api';
 
 const API = `${getBackendUrl()}/api`;
 
